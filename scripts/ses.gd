@@ -13,6 +13,7 @@ const KLASOR := "res://assets/audio/%s.wav"
 const EFEKTLER: PackedStringArray = [
 	"kanca_at", "kanca_tak", "kanca_birak", "zipla", "olum",
 	"bitis", "menu", "kontrol", "kirilma", "madalya",
+	"firla", "akis",
 ]
 const ES_ZAMANLI := 8
 

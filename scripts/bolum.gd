@@ -39,8 +39,11 @@ var _kayit_sayaci := 0.0
 var _kayit := PackedVector2Array()
 var _parcacik_havuzu: Array[CPUParticles2D] = []
 var _parcacik_sira := 0
+var _zincir := 0            ## yere degmeden art arda kac kanca (ustalik zinciri)
+var _en_uzun_zincir := 0
 
 var _sure_etiket: Label
+var _akis_etiket: Label
 var _eniyi_etiket: Label
 var _madalya_gorsel: TextureRect
 var _duraklat_panel: Control
@@ -182,7 +185,31 @@ func _dunyayi_kur() -> void:
 			(kn.get_node("Gorsel") as Sprite2D).frame = 1
 		_dunya.add_child(kn)
 	_dunya.add_child(_bitis_bayragi(_veri["bitis"]))
+	_rota_ipucunu_isaretle()
 	_kamera_sinirla()
+
+## Altin madalya kazanildiysa (ve ayar acikken) rotanin kullandigi kanca
+## noktalari isaretlenir - "nereden gidilirmis" sorusunun cevabi.
+func _rota_ipucunu_isaretle() -> void:
+	if not bool(Kayit.ayar("rota_ipucu")):
+		return
+	if Bolumler.madalya(bolum_no, Kayit.en_iyi(bolum_no)) != 0:
+		return
+	var rota := RotaVerisi.nokta(bolum_no)
+	if rota.is_empty():
+		return
+	for n in _dunya.get_children():
+		if not (n is KancaNoktasi):
+			continue
+		var nokta: KancaNoktasi = n
+		# Hareketli nokta rotada orta konumuyla duruyor (Bolumler.tum_kanca).
+		var yer: Vector2 = nokta.position
+		if nokta.tur == KancaNoktasi.TUR_HAREKETLI:
+			yer = (nokta.a + nokta.b) * 0.5
+		for p: Vector2 in rota:
+			if yer.distance_to(p) < 24.0:
+				nokta.rotada(true)
+				break
 
 ## Zemin dikdortgenleri TileMapLayer'a dosenir (gorsel + carpisma tek yerden).
 func _zemini_dose() -> void:
@@ -359,12 +386,24 @@ func sars(guc: float) -> void:
 func _kanca_takildi(yer: Vector2) -> void:
 	sars(1.6)
 	parcacik_at(yer, Palet.NOKTA_BAGLI, 6)
+	# Ustalik zinciri: yere degmeden art arda tutulan her nokta zinciri uzatir.
+	_zincir += 1
+	_en_uzun_zincir = maxi(_en_uzun_zincir, _zincir)
+	if _zincir >= 2:
+		Ses.cal("akis")
+	_akis_yaz()
 
-func _kanca_koptu(hiz: Vector2) -> void:
-	if hiz.length() > 320.0:
+## bonus = esik ustu hizda birakildi (BIRAKMA_CARPANI uygulandi).
+func _kanca_koptu(hiz: Vector2, bonus: bool) -> void:
+	if bonus:
+		parcacik_at(_oyuncu.global_position, Palet.ALTIN, 14)
+		sars(1.2)
+	elif hiz.length() > 320.0:
 		parcacik_at(_oyuncu.global_position, Palet.HALAT, 8)
 
 func _yere_indi(dusus_hizi: float) -> void:
+	_zincir = 0
+	_akis_yaz()
 	if dusus_hizi > 260.0:
 		parcacik_at(_oyuncu.global_position + Vector2(0, 12), Palet.KAYA_KENAR,
 			clampi(int(dusus_hizi / 60.0), 4, 14))
@@ -379,6 +418,8 @@ func _yeniden() -> void:
 	_kayit = PackedVector2Array()
 	_kayit_sayaci = 0.0
 	_oluyor = false
+	_zincir = 0
+	_en_uzun_zincir = 0
 	_dunyayi_kur()
 	_dogur()
 	if _hayalet != null:
@@ -391,6 +432,7 @@ func _oldu() -> void:
 	if _bitti or _oluyor:
 		return
 	_oluyor = true
+	_zincir = 0
 	Ses.cal("olum")
 	parcacik_at(_oyuncu.global_position, Palet.ATKI, 18)
 	sars(5.0)
@@ -429,14 +471,16 @@ func _process(delta: float) -> void:
 		if _kayit_sayaci >= Hayalet.ARALIK:
 			_kayit_sayaci -= Hayalet.ARALIK
 			_kayit.append(_oyuncu.global_position)
+	# Kamera ofseti iki kaynagin toplami: sarsinti + oyuncunun ileri bakisi.
+	var sars_ofset := Vector2.ZERO
 	if _sarsinti > 0.0:
 		_sarsinti_t += delta
 		_sarsinti = move_toward(_sarsinti, 0.0, Ayarlar.SARSINTI_SONUMU * delta)
-		_kamera.offset = Vector2(
+		sars_ofset = Vector2(
 			sin(_sarsinti_t * Ayarlar.SARSINTI_HIZ) * _sarsinti,
 			cos(_sarsinti_t * Ayarlar.SARSINTI_HIZ * 1.3) * _sarsinti)
-	elif _kamera.offset != Vector2.ZERO:
-		_kamera.offset = Vector2.ZERO
+	_kamera.offset = sars_ofset + _oyuncu.kamera_ileri
+	_kamera.zoom = Vector2.ONE * _oyuncu.kamera_yakinlik
 	if not _bitti and not _duraklatildi and _oyuncu.global_position.y > Ayarlar.OLUM_Y:
 		_oldu()
 
@@ -466,6 +510,7 @@ func _bitise_degdi(govde: Node2D) -> void:
 	Ses.cal("bitis")
 	parcacik_at(_oyuncu.global_position, Palet.BITIS, 24)
 
+	var akis_rekor := Kayit.akis_yaz(bolum_no, _en_uzun_zincir)
 	var rekor := Kayit.sure_yaz(bolum_no, _sure)
 	Kayit.bolum_ac(mini(bolum_no + 1, Bolumler.sayi()))
 	if rekor and bool(Kayit.ayar("hayalet")):
@@ -481,6 +526,7 @@ func _bitise_degdi(govde: Node2D) -> void:
 		"YENİ REKOR!" if rekor else "En iyi: %s" % _bicim(Kayit.en_iyi(bolum_no)),
 		"Madalya: %s" % Bolumler.MADALYA_ADI[madalya],
 		"Altın %s · Gümüş %s · Bronz %s" % [_bicim(m[0]), _bicim(m[1]), _bicim(m[2])],
+		"Akış: ×%d%s" % [_en_uzun_zincir, "  (yeni en uzun zincir!)" if akis_rekor else ""],
 	]
 	_bitis_metin.text = "\n".join(PackedStringArray(satirlar))
 	_bitis_panel.visible = true
@@ -537,10 +583,18 @@ func _hayaleti_kur() -> void:
 func _sure_yaz() -> void:
 	_sure_etiket.text = "Süre  %s" % _bicim(_sure)
 
+## Ustalik zinciri gostergesi: iki ve ustu zincirde gorunur.
+func _akis_yaz() -> void:
+	if _akis_etiket == null:
+		return
+	_akis_etiket.visible = _zincir >= 2
+	_akis_etiket.text = "Akış ×%d" % _zincir
+
+## Madalya sureleri ms hassasiyetinde uretildigi icin gosterim de ms.
 static func _bicim(saniye: float) -> String:
 	if saniye <= 0.0:
 		return "--:--"
-	return "%02d:%05.2f" % [int(saniye) / 60, fmod(saniye, 60.0)]
+	return "%02d:%06.3f" % [int(saniye) / 60, fmod(saniye, 60.0)]
 
 func _arayuzu_kur() -> void:
 	var katman := CanvasLayer.new()
@@ -550,6 +604,11 @@ func _arayuzu_kur() -> void:
 	_sure_etiket = _etiket("", 16, Color(1, 1, 1))
 	_sure_etiket.position = Vector2(12, 8)
 	katman.add_child(_sure_etiket)
+
+	_akis_etiket = _etiket("", 12, Palet.ALTIN)
+	_akis_etiket.position = Vector2(12, 78)
+	_akis_etiket.visible = false
+	katman.add_child(_akis_etiket)
 
 	var en_iyi := Kayit.en_iyi(bolum_no)
 	_eniyi_etiket = _etiket("En iyi  %s" % _bicim(en_iyi), 11, Ayarlar.RENK_METIN)
@@ -611,6 +670,7 @@ func _arayuzu_kur() -> void:
 func _ayarlara() -> void:
 	Ses.cal("menu")
 	_duraklat_panel.visible = false
+	AyarPanel.ana_kutuya_don(_ayar_panel)
 	_ayar_panel.visible = true
 	_ayar_panel.find_child("GeriAyar", true, false).grab_focus()
 

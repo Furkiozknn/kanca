@@ -1,5 +1,5 @@
 extends SceneTree
-## rFXGen'in urettigi 7 ham on ayardan oyunun 10 efektini uretir.
+## rFXGen'in urettigi 7 ham on ayardan oyunun 12 efektini uretir.
 ##
 ##   powershell -ExecutionPolicy Bypass -File tools\kilitli.ps1 -- --headless --path . -s res://tools/ses_uret.gd
 ##
@@ -27,6 +27,8 @@ const RECETE := {
 	"kontrol":     ["coin",      1.25, 0.70, 0.32],
 	"kirilma":     ["explosion", 1.75, 0.65, 0.24],
 	"madalya":     ["coin",      0.78, 0.90, 0.50],
+	"firla":       ["powerup",   1.70, 0.55, 0.20],
+	"akis":        ["coin",      1.60, 0.45, 0.16],
 }
 
 func _initialize() -> void:

@@ -16,7 +16,8 @@ class_name Bolumler
 ##   kanca_k     : Array[Vector2]           kirilgan: bir kez tutulur
 ##   ruzgar      : Array[{alan: Rect2, yon: Vector2}]  itici alan
 ##   kontrol     : Array[Vector2]           kontrol noktasi (olunce buradan devam)
-##   madalya     : [altin, gumus, bronz] saniye
+##   madalya     : [altin, gumus, bronz] saniye - YEDEK deger; uretilmis rota
+##                 verisi (scripts/rota_verisi.gd) varsa o kullanilir
 ##   kisayol     : iyi bir sallanisla atlanabilen kisim (README icin)
 
 const KARO := 16
@@ -254,7 +255,17 @@ static func veri(bolum_no: int) -> Dictionary:
 	for anahtar: String in BOS:
 		if not d.has(anahtar):
 			d[anahtar] = BOS[anahtar]
+	d["madalya"] = madalya_esikleri(bolum_no)
 	return d
+
+## Madalya esikleri. Bot kosusundan uretilmis deger varsa o kazanir; yoksa
+## tablodaki yedek deger. Boylece esikler tek yerden gelir.
+static func madalya_esikleri(bolum_no: int) -> Array:
+	var uretilmis := RotaVerisi.madalya(bolum_no)
+	if uretilmis.size() == 3:
+		return uretilmis
+	var d: Dictionary = VERI[clampi(bolum_no, 1, VERI.size()) - 1]
+	return d.get("madalya", BOS["madalya"])
 
 static func ad(bolum_no: int) -> String:
 	return String(VERI[clampi(bolum_no, 1, VERI.size()) - 1]["ad"])
@@ -279,6 +290,41 @@ static func zeminler(bolum_no: int) -> Array[Rect2]:
 		cikti.append(karola(r))
 	return cikti
 
+## Gorus hatti: iki nokta arasinda kati zemin var mi (statik surum).
+## Oyun icinde Oyuncu.gorus_var fizik isini ile ayni kontrolu yapiyor; bu surum
+## testlerin ve rota planlayicisinin sahne kurmadan ayni cevabi almasi icin.
+static func gorus_var(a: Vector2, b: Vector2, zeminler: Array[Rect2]) -> bool:
+	for r: Rect2 in zeminler:
+		if kesisiyor(r, a, b):
+			return false
+	return true
+
+## Dogru parcasi - dikdortgen kesisimi (slab yontemi).
+static func kesisiyor(r: Rect2, a: Vector2, b: Vector2) -> bool:
+	var d := b - a
+	var t0 := 0.0
+	var t1 := 1.0
+	for eksen in 2:
+		var yon: float = d.x if eksen == 0 else d.y
+		var bas: float = a.x if eksen == 0 else a.y
+		var alt: float = r.position.x if eksen == 0 else r.position.y
+		var ust: float = r.end.x if eksen == 0 else r.end.y
+		if absf(yon) < 0.00001:
+			if bas < alt or bas > ust:
+				return false
+			continue
+		var ta := (alt - bas) / yon
+		var tb := (ust - bas) / yon
+		if ta > tb:
+			var gecici := ta
+			ta = tb
+			tb = gecici
+		t0 = maxf(t0, ta)
+		t1 = minf(t1, tb)
+		if t0 > t1:
+			return false
+	return true
+
 ## Tutunulabilir tum kanca noktalari (hareketli olanlar orta noktasiyla).
 ## Gecilebilirlik testi ve bolum kurulumu ayni listeyi gorur.
 static func tum_kanca(bolum_no: int) -> Array[Vector2]:
@@ -296,7 +342,7 @@ static func tum_kanca(bolum_no: int) -> Array[Vector2]:
 static func madalya(bolum_no: int, sure: float) -> int:
 	if sure <= 0.0:
 		return 3
-	var m: Array = veri(bolum_no)["madalya"]
+	var m: Array = madalya_esikleri(bolum_no)
 	for i in 3:
 		if sure <= float(m[i]):
 			return i

@@ -1,6 +1,6 @@
 # Sesler nasıl üretildi
 
-İki adım: rFXGen'den 7 ham ön ayar, sonra `tools/ses_uret.gd` ile 10 oyun efekti.
+İki adım: rFXGen'den 7 ham ön ayar, sonra `tools/ses_uret.gd` ile 12 oyun efekti.
 
 ## 1. Ham ön ayarlar
 
@@ -38,6 +38,10 @@ yolunda `pitch_scale`'i sessizce yok sayıyor.
 | `kontrol` | coin | 1,25 | 0,70 | 0,23 sn |
 | `kirilma` | explosion | 1,75 | 0,65 | 0,08 sn |
 | `madalya` | coin | 0,78 | 0,90 | 0,36 sn |
+| `firla` | powerup | 1,70 | 0,55 | 0,20 sn |
+| `akis` | coin | 1,60 | 0,45 | 0,16 sn |
+
+`firla` eşik üstü hızda bırakmanın ödülü (v0.3), `akis` ustalık zinciri uzayınca çalar.
 
 `hit` ve `explosion` ikişer efekte kaynaklık ediyor; ayrışma perde farkından
 geliyor (`kanca_tak` tok, `kirilma` tiz ve kısa).
