@@ -29,6 +29,27 @@ const KANCA_UCUS_SURESI := 0.055     ## halat bu surede ucup takilir (his icin; 
 const NISAN_ASGARI_HIZA := 0.2       ## nisan yonuyle bu kadar hizali noktalar aday
 const AZAMI_HIZ := 900.0
 
+# --- Hedefleme puanlamasi (v0.3) ---
+## puan = hiza*NISAN_PUAN_HIZA - uzaklik/menzil + hiz_uyumu*NISAN_PUAN_HIZ
+const NISAN_PUAN_HIZA := 3.0         ## nisan yonuyle hizanin agirligi
+const NISAN_PUAN_HIZ := 1.0          ## mevcut hiz yonune uyumun agirligi
+const NISAN_HIZ_ESIGI := 120.0       ## bu hizin altinda hiz yonu puana girmez
+const KANCA_TAMPON_SURESI := 0.12    ## basis saklanir: bu surede hedef belirirse takilir
+const KANCA_KOJOT_SURESI := 0.12     ## hedef kaybolduktan sonra bu kadar hala tutulabilir
+const KANCA_KOJOT_PAYI := 1.2        ## kojot penceresinde menzil bu oranda genisler
+
+# --- Sallanma his ayarlari (v0.3) ---
+var SALLANMA_YERCEKIMI := 1.3        ## sallanirken yercekimi bu carpanla uygulanir (olcumle)
+const POMPA_VERIMI := 0.55           ## halat kisaltmanin aci momentumu kazancindan alinan pay
+const BIRAKMA_ESIGI := 380.0         ## bu hizin ustunde birakma bonusu (altinda duz birakma)
+
+# --- Kamera (ileri bakan) ---
+const KAMERA_ILERI := 0.22           ## ofset = hiz * bu
+const KAMERA_ILERI_AZAMI := 84.0     ## ofsetin px siniri
+const KAMERA_ILERI_YUMUSAKLIK := 3.0
+const KAMERA_UZAKLASMA := 0.09       ## yuksek hizda goruntu bu oranda genisler
+const KAMERA_UZAKLASMA_ESIGI := 320.0
+
 # --- Bolum ogeleri ---
 const HAREKETLI_HIZ := 46.0          ## hareketli kanca noktasinin px/sn hizi
 const KIRILGAN_UYARI := 0.45         ## kirilgan nokta birakildiktan sonra bu kadar yanip soner

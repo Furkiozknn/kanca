@@ -22,6 +22,8 @@ var faz := 0.0                 ## hareketli: baslangic fazi (0..1)
 
 var _vurgulu := false
 var _bagli := false
+var _menzilde := true           ## menzil disindaki noktalar soluk/gri gorunur
+var _rotada := false            ## altin madalyadan sonra acilan rota ipucu isareti
 var _kirildi := false
 var _kirilma_sayaci := 0.0
 var _t := 0.0
@@ -49,7 +51,9 @@ func _ready() -> void:
 		position = _hareketli_konum()
 	_renk_guncelle()
 
-func _process(delta: float) -> void:
+## Fizik karesinde hareket eder: headless botun ve testlerin gordugu hareket
+## gercek oyundakiyle birebir ayni olsun (process delta gercek zamana bagli).
+func _physics_process(delta: float) -> void:
 	if tur == TUR_HAREKETLI and not _kirildi:
 		var uzunluk := a.distance_to(b)
 		if uzunluk > 1.0:
@@ -81,6 +85,18 @@ func bagla(acik: bool) -> void:
 	if not acik and tur == TUR_KIRILGAN and not _kirildi:
 		_kirilma_sayaci = Ayarlar.KIRILGAN_UYARI
 
+## Nisan menzili icinde mi (disindakiler soluk cizilir).
+func menzilde(acik: bool) -> void:
+	if acik != _menzilde:
+		_menzilde = acik
+		_renk_guncelle()
+
+## Rota ipucu: altin madalyadan sonra hayaletin kullandigi noktalar isaretlenir.
+func rotada(acik: bool) -> void:
+	if acik != _rotada:
+		_rotada = acik
+		_renk_guncelle()
+
 ## Kanca atilabilir mi (kirilmis nokta aday olamaz).
 func kullanilabilir() -> bool:
 	return not _kirildi
@@ -103,6 +119,13 @@ func _renk_guncelle() -> void:
 	elif _vurgulu:
 		_gorsel.modulate = Color(1.5, 1.5, 1.5)
 		_gorsel.scale = Vector2(1.08, 1.08)
+	elif not _menzilde:
+		# Menzil disi: soluk ve grimsi - nereye kanca atilamayacagi bir bakista belli.
+		_gorsel.modulate = Color(0.55, 0.58, 0.62, 0.7)
+		_gorsel.scale = Vector2.ONE
+	elif _rotada:
+		_gorsel.modulate = Color(1.25, 1.15, 0.7)
+		_gorsel.scale = Vector2(1.05, 1.05)
 	else:
 		_gorsel.modulate = Color(1, 1, 1)
 		_gorsel.scale = Vector2.ONE
