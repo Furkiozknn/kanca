@@ -51,6 +51,7 @@ func _cek() -> void:
 	_yaz(await _altin_hayalet_cek(), "res://docs/ekran/hayalet_altin.png")
 	_yaz(await _gunluk_cek(), "res://docs/ekran/gunluk.png")
 	_yaz(await _yeniden_dugmesi_cek(), "res://docs/ekran/yeniden_dokunmatik.png")
+	_yaz(await _telefon_cek(), "res://docs/ekran/telefon.png")
 
 	await _kapak_yap()
 	print("Ekran goruntuleri hazir: docs/ekran/ ve yayin/")
@@ -203,6 +204,31 @@ func _yeniden_dugmesi_cek() -> Image:
 	var im := await _goruntu()
 	bolum.free()
 	await get_tree().process_frame
+	Ayarlar.dokunmatik_zorla = -1
+	return im
+
+## Telefon orani (915x412, yatay). Pencere gercekten o boyuta getiriliyor:
+## stretch aspect=keep oldugu icin oyun 640x360'i koruyup yanlara siyah bant
+## koyuyor - telefon tarayicisinda gorulen sey birebir bu.
+func _telefon_cek() -> Image:
+	Ayarlar.dokunmatik_zorla = 1
+	var eski := DisplayServer.window_get_size()
+	DisplayServer.window_set_size(Vector2i(915, 412))
+	for i in 4:
+		await get_tree().process_frame
+	var bolum: Bolum = load(Bolumler.yol(6)).instantiate()
+	add_child(bolum)
+	for i in 12:
+		await get_tree().process_frame
+	_sallandir(bolum, 6)
+	for i in 24:
+		await get_tree().process_frame
+	var im := await _goruntu()
+	bolum.free()
+	await get_tree().process_frame
+	DisplayServer.window_set_size(eski)
+	for i in 3:
+		await get_tree().process_frame
 	Ayarlar.dokunmatik_zorla = -1
 	return im
 
