@@ -26,7 +26,8 @@ Godot yolu: `C:\Users\furki\AppData\Local\Microsoft\WinGet\Links\godot.exe` (PAT
 | Yol | Ne var |
 |---|---|
 | `scripts/` | Oyun kodu. Autoload'lar: `Ayarlar`, `Kayit`, `Ses`, `Gecis` (bu sırayla). |
-| `scripts/rota_verisi.gd` | **Üretilmiş** — `tools/rota.gd` yazar. Elle düzenleme. |
+| `scripts/rota_verisi.gd` | **Üretilmiş** — `tools/rota.gd` yazar. Elle düzenleme. Madalya eşiği, rota ipucu ve **altın hayalet izi** bu dosyadan gelir. |
+| `scripts/gunluk.gd` | Günlük meydan okuma: tarihten tohum → bölüm + değiştirici. |
 | `scenes/` | `menu.tscn`, `oyuncu.tscn`, `bolumler/bolum_NN.tscn` (sadece `bolum_no` taşır). |
 | `assets/sprites/` | **Üretilmiş** PNG'ler — elle düzenleme, `tools/sprite_uret.gd`'yi düzenle. |
 | `assets/audio/` | **Üretilmiş** WAV'lar. `_ham/` rFXGen çıktısı, kök dizin işlenmiş efektler. |
@@ -54,6 +55,21 @@ arkasında bırakır:
 | 6 | Kanca noktası |
 | 7 | Parçacıklar |
 
+## Hayalet ve günlük meydan okuma
+
+Hayalet iki kaynaktan gelebilir (`Kayit.ayar("hayalet_kip")`): `1` oyuncunun
+kendi en iyi koşusu (`user://hayalet_NN.dat`), `2` **altın hayalet** — botun
+koşusu (`RotaVerisi.iz()`), yalnız o bölümde altın madalya kazanıldıysa.
+Örnekleme **10 Hz**, aradaki kareler doğrusal ara değerle. Örnekleme aralığı
+kayıt dosyasına yazılıyor: `Hayalet.ARALIK` değişirse eski kayıtlar yanlış
+hızda oynamasın (sürümsüz eski dosya yok sayılır).
+
+Günlük meydan okuma ana ilerlemeden ayrı: `Gunluk.aktif` bayrağıyla açılır,
+süre `[gunluk]` bölümüne yazılır, bölüm açmaz, en iyi süreyi ve hayaleti
+bozmaz. Değiştirici **oyuncuya** uygulanır (`oyuncu.azami_halat`,
+`oyuncu.sabit_ruzgar`) — `Ayarlar` autoload'ındaki global sabitlere yazmak
+normal bölümlere sızardı.
+
 ## Madalya süreleri ve rota
 
 Madalya eşikleri **elle yazılmaz**: `tools/rota.gd` her bölümü bot ile gerçek
@@ -64,6 +80,9 @@ yoksa `Bolumler.VERI[...]["madalya"]` yedeğine düşer. Aynı veri rota ipucunu
 
 Bölüm geometrisini değiştirdiysen `rota` adımını **testten önce** çalıştır —
 testler üretilmiş veriyi denetliyor.
+
+Tanı kipi (`--scene res://tools/rota.tscn -- --tani 3`) tek bölüm koşar ve
+dosyayı **yazmaz**; bot bir bölümde neden öldüğünü anlamanın en hızlı yolu.
 
 ## Denge sabitleri nerede
 
@@ -155,7 +174,16 @@ hiç Godot süreci yoksa hemen devralır. **Godot'u kilitsiz çalıştırma.**
    aktarımı `web` + `web_android`/`web_ios` bildirir. Girdi şemasını tek yerden
    sor: **`Ayarlar.dokunmatik_mi()`** (oyuncu girdisi, menü yardımı, bölüm ipuçları
    ve HUD aynı işlevi okur). Testlerde `Ayarlar.dokunmatik_zorla` ile ezilir.
-12. **HUD metni dünya çiziminin önünde ama saydam.** Yeni bir HUD etiketini
+12. **`PackedVector2Array([...])` sabit ifade DEĞİL.** `const VERI := {...}`
+   içinde kullanınca dosya parse edilmez ve `RotaVerisi` sınıfı hiç yüklenmez —
+   hata mesajı "Nonexistent function 'madalya' in base 'GDScript'" gibi alakasız
+   çıkar. Üretilmiş dosyaya **düz `Array`** yaz, okurken dönüştür
+   (`RotaVerisi.iz()`). `Vector2(1, 2)` sabit ifadedir, sorun ondan değil.
+13. **Üretilmiş dosyayı yazan araç, üretemediğinde dosyaya DOKUNMAMALI.**
+   `tools/rota.gd` başarısız bir koşuda `rota_verisi.gd`'yi boşaltıyordu; bir
+   kez de tanı kipi 13 bölümün verisini sildi. İkisi de kapatıldı (boş sonuç =
+   yazma yok, tanı kipi = yazma yok).
+14. **HUD metni dünya çiziminin önünde ama saydam.** Yeni bir HUD etiketini
    `Bolum._serit(...)` ile sar; yoksa bir kanca noktası sprite'ının üzerinde
    okunmaz olur (v0.3.1 web bulgusu).
 

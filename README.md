@@ -6,11 +6,14 @@ bölümü en kısa sürede bitir.**
 Hız odaklı 2B sallanma platform oyunu. Godot 4.7.2, GL Compatibility,
 640×360 taban çözünürlük. Tema: **fırtınalı gökyüzü adaları**.
 
-Durum: **v0.3 — rakip analizinden gelen oynanış turu.** 14 bölüm, gerçek pixel
-art, ses ve müzik, ayarlar ekranı, madalyalar, hayalet tekrarı, kontrol noktaları;
-üstüne puanlamalı hedefleme, kancada tampon + kojot, halat pompası, bırakma
-bonusu, ileri bakan kamera, tek parmak dokunmatik şeması, tuş atama, rota ipucu
-ve ustalık zinciri.
+Durum: **v0.4 — akıllı bot, altın hayalet, günlük meydan okuma.** 14 bölüm,
+gerçek pixel art, ses ve müzik, ayarlar ekranı, madalyalar, hayalet tekrarı,
+kontrol noktaları; puanlamalı hedefleme, kancada tampon + kojot, halat pompası,
+bırakma bonusu, ileri bakan kamera, tek parmak dokunmatik şeması, tuş atama,
+rota ipucu ve ustalık zinciri. v0.4 ile: **madalya eşikleri 14 bölümün
+tamamında gerçek bot koşusundan** (v0.3'te 5'i), **altın hayalet** (botun
+koşusunu izleyebilirsin), telefonda **tek dokunuşla yeniden başlatma** ve
+**günlük meydan okuma**.
 
 ![Menü](docs/ekran/menu.png)
 ![13. bölüm](docs/ekran/bolum_13.png)
@@ -81,7 +84,13 @@ Nişan, parmağın ekranda bulunduğu noktaya bakar.
   bot koşusundan üretilmiş — aşağıya bak); oyun içinde sol üstte altın hedefi,
   bitişte kazanılan madalya, Bölüm Seç ekranında bölüm başına madalya rozeti görünür.
 - **Hayalet:** bir bölümü yeni rekorla bitirdiğinde koşun kaydedilir ve sonraki
-  denemede yarı saydam hayalet olarak yanında oynar. Ayarlardan kapatılabilir.
+  denemede yarı saydam hayalet olarak yanında oynar. Ayarlarda üç seçenek var:
+  *Kapalı*, *En iyi koşun*, **Altın hayalet** — sonuncusu botun koşusunu altın
+  renkli oynatır ve yalnız o bölümde **altın madalya kazandıktan sonra** açılır.
+  Kayıt 10 Hz örnek + ara değer (bölüm başına birkaç yüz bayt).
+- **Günlük meydan okuma:** tarihten tohumlanan bir bölüm + küçük bir değiştirici
+  (kısa halat ya da yan rüzgâr). Herkeste aynı, günde bir değişir. Kendi kayıt
+  yuvası var: ana ilerlemeyi, en iyi süreleri ve hayaletleri bozmaz.
 
 ### Bölüm öğeleri
 
@@ -144,7 +153,8 @@ Ayrıntı ve tuzaklar: `CLAUDE.md`.
 | `scripts/tuslar.gd` | Tuş atama: kayıttaki özel tuşları `InputMap`'e uygular. |
 | `scripts/tus_dugmesi.gd` | Ayarlardaki tek eylemlik tus yakalama düğmesi. |
 | `scripts/bolum.gd` | Bölümü veriden kurar; süre, ölüm, kontrol noktası, madalya, hayalet, parçacık, sarsıntı, arayüz. |
-| `scripts/hayalet.gd` | En iyi koşunun yarı saydam tekrarı. |
+| `scripts/hayalet.gd` | En iyi koşunun (ya da botun altın koşusunun) yarı saydam tekrarı, 10 Hz örnek + ara değer. |
+| `scripts/gunluk.gd` | Günlük meydan okuma: tarihten tohum → bölüm + değiştirici. |
 | `scripts/menu.gd` | Ana menü + bölüm seçme + ayarlar. |
 | `scripts/kayit.gd` | `user://kayit.cfg` — ilerleme, en iyi süreler, ayarlar. Hayaletler `user://hayalet_NN.dat`. |
 | `scripts/ses.gd` | `Muzik` / `Efekt` veri yolları, efekt havuzu, döngülü müzik. |
@@ -213,13 +223,39 @@ doğrulanmamıştı. v0.3'te `tools/rota.gd` bunu ölçüme çeviriyor:
    aşıldığında bırakır. Her karar anına 0,05–0,20 sn arası rastgele tepki
    gecikmesi eklenir (Neon White'ın "geliştirici kendi oyununda fazla iyi"
    sorununa karşı aynı çözüm).
-3. **Eşik.** Bölüm başına 5 koşu; altın = ortanca × 1,25, gümüş × 1,70,
-   bronz × 2,30, **ms hassasiyetinde**. Botu birebir hedef yapmak
+3. **Eşik.** Bölüm başına 5 koşu; altın = ortanca × 1,45, gümüş × 1,95,
+   bronz × 2,60, **ms hassasiyetinde**. Botu birebir hedef yapmak
    (× 1,08) Neon White'ın düştüğü tuzak olurdu — bot hiçbir kancayı kaçırmaz.
 
-Ölçüm üç kuralla gürültüden temizlenir: en iyinin 1,5 katından kötü koşular
+Ölçüm üç kuralla gürültüden temizlenir: en iyinin 1,25 katından kötü koşular
 (kaçırılan kanca, ölüm) ortancaya girmez; ölçek bölüm oranlarının **ortancası**
 alınır; ölçeğin 2 katından yavaş kalan bölüm de tahmine devredilir.
+
+### v0.4: bot ne öğrendi
+
+Üç ekleme, üçü de tanı kipinde (`-- --tani <bölüm>`) görülen gerçek bir ölüm
+nedeninden çıktı:
+
+- **Halat pompası.** Bot 3. bölümde (480,96) noktasına 200 px halatla tutunuyor,
+  sarkacın dip noktası y=296'ya iniyor ve oradaki diken tarlası (y=288) onu
+  öldürüyordu. Bot artık halatı iki sebeple değiştiriyor: *güvenlik* (yay dibi
+  diken/zemin üstünde kalsın) ve *hız* (yay dibinde kısalt, uçlarda uzat).
+  Pompa **520 px/sn'de kesiliyor** — sınırsız pompalayan ilk sürüm azami hıza
+  (900) dayanıp çapa etrafında tam tur atıyor ve bitiş platformunu aşıyordu.
+- **Rota araması.** Bir rotayı hiçbir koşuda bitiremezse en çok ölünen düğüme
+  plan cezası yazılıp Dijkstra yeniden koşuluyor: aynı graf, farklı yol.
+- **Kurtarma kancası.** Rota adımı henüz menzilde değilken düşüyorsa, yoldaki
+  herhangi bir noktaya tutunuyor (oyuncunun yaptığı şey). Bitişe uçarken
+  **bitişten ötedeki** noktaya tutunmak yasak — yoksa platformu aşıyor.
+- **İniş kontrolü.** Bitişe giderken balistik yol hesaplanıyor: iniş noktası
+  bitiş platformunu aşacaksa bırakma "uygun" sayılmıyor.
+
+Çarpanların **gerekçesi aynı**, sayısı değişti (1,25 → 1,45): eşik hâlâ "botun
+süresi + insan payı". v0.3 botu pompa kullanmadığı ve rota değiştiremediği için
+o eksiklik payın bir kısmını kendiliğinden veriyordu. v0.4 botu o mekanikleri
+kullanıyor ve süreler bölümüne göre %20–50 düştü; aynı çarpan "hiçbir pompayı
+kaçırmayan makineyle eşleş" demek olurdu. Pay büyütülünce eşikler kabaca v0.3
+seviyesinde kaldı, ama artık tahmin değil ölçülmüş koşudan geliyorlar.
 
 Süre kare sayısından hesaplanır (kare / 60), gerçek zamandan değil — headless'ta
 `_process` deltası gerçek zamana bağlı, fizik karesi ise sabit.
@@ -228,17 +264,28 @@ Süre kare sayısından hesaplanır (kare / 60), gerçek zamandan değil — hea
 powershell -ExecutionPolicy Bypass -File tools\kilitli.ps1 -- --headless --path . --scene res://tools/rota.tscn
 ```
 
+Tanı kipi tek bölüm koşar, 30 karede bir iz basar ve **dosyayı yazmaz**:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File tools\kilitli.ps1 -- --headless --fixed-fps 60 --path . --scene res://tools/rota.tscn -- --tani 3
+```
+
 Çıktı `scripts/rota_verisi.gd` (üretilmiş dosya, elle düzenleme).
 `Bolumler.madalya_esikleri()` üretilmiş değeri tercih eder, yoksa tablodaki
 yedek değere düşer. Aynı veri **rota ipucunu** da besler.
 
-**Bot 14 bölümün 5'ini bitirebiliyor** (1, 2, 4, 6, 8). Kalan 9 bölümün süresi,
-bitirdiklerinden ölçülen rota hızından (sn/px) türetilir ve kayıtta
-`"tahmin": true` ile işaretlenir (`RotaVerisi.tahmin_mi()`).
+**Bot v0.4'te 14 bölümün 14'ünü de bitiriyor** (v0.3: 5). Ölçeğin 2 katından
+yavaş kalan bölümler yine tahmine devrediliyor — orada bot kötü oynamıştır,
+o süreyi altın eşiği yapmak bölümü bedava altın hâline getirir. Hangi bölümün
+ölçülmüş hangisinin tahmin olduğu kayıtta `"tahmin"` ile işaretli
+(`RotaVerisi.tahmin_mi()`), tablo turun raporunda.
 
-Bot tam bir insan oyuncu değil: halat pompasını kullanmıyor ve rotayı
-değiştirmiyor. Yani altın eşiği iyi bir oyuncu için ulaşılabilir, mükemmel
-oyuncu için bolca pay bırakır.
+Aynı koşu **altın hayaleti** de üretiyor: botun en iyi koşusunun 10 Hz konum
+örnekleri `"iz"` alanına yazılıyor, oyun ara değerle 60 Hz'e çıkarıyor.
+
+Bot hâlâ tam bir insan oyuncu değil: hareketli noktalarda zamanlamayı
+bekleyemiyor ve yüksek hızda savrulabiliyor (6. ve 7. bölüm), altın eşiği iyi
+bir oyuncu için ulaşılabilir kalıyor.
 
 **`--fixed-fps 60` şart:** headless'ta bile fizik kareleri gerçek zamanda akar
 (60 Hz), yani 2700 karelik bir koşu gerçekten 45 saniye sürer. Bayrak zamanı

@@ -101,16 +101,45 @@ Kaynak: `D:\Claude Projeleri\oyun-terminalleri\tasarim\kanca-rakip-analizi.md`
 - [x] Görsel kontrol iki düzen hatası yakaladı (madalya simgesi çakışması,
       ayarlar kutusunun 360 px'i taşması)
 
-## Sonraki tur — v0.4
+## Tur 3 — v0.4 "akıllı bot, altın hayalet, günlük meydan okuma" (2026-09-16)
+
+### Bot
+- [x] **Halat pompası:** güvenlik (yay dibi diken/zemin üstünde) + hız
+      (dipte kısalt, uçlarda uzat), 520 px/sn'de kesiliyor
+- [x] **Rota araması:** bitiremediği rotada en çok ölünen düğüme plan cezası,
+      Dijkstra yeniden (en çok 4 deneme)
+- [x] **Kurtarma kancası:** rota adımı menzilde değilken düşerken yoldaki
+      noktaya tutunma; bitişten ötedeki noktaya tutunmak yasak
+- [x] **İniş kontrolü:** balistik yol bitiş platformunu aşacaksa bırakma yok
+- [x] **14/14 bölüm gerçek koşuyla bitiyor** (v0.3: 5/14); 11 bölümün eşiği
+      ölçülmüş koşudan, 3'ü (2, 6, 7) aykırı değer kuralıyla tahmin
+- [x] Madalya çarpanları 1,25/1,70/2,30 → **1,45/1,95/2,60** (gerekçe README'de)
+- [x] Tanı kipi artık üretilmiş dosyayı yazmıyor; boş sonuç da dosyaya dokunmuyor
+
+### Hayalet
+- [x] Örnekleme 20 Hz → **10 Hz** (kayıt yarıya indi), aralık kayda yazılıyor
+- [x] **Altın hayalet:** botun koşusu (`RotaVerisi.iz`), altın madalyadan sonra
+- [x] Ayar üç seçenekli: Kapalı / En iyi koşun / Altın hayalet
+
+### Dokunmatik
+- [x] Ölümden sonra tek dokunuşluk **"Baştan başla"** düğmesi
+- [x] Yanlışlıkla tetiklenmeye karşı 0,7 sn bekleme + tam ekran değil küçük düğme
+
+### Günlük meydan okuma
+- [x] Tarihten tohum → bölüm + değiştirici (kısa halat / yan rüzgâr)
+- [x] Ayrı kayıt yuvası (`[gunluk]`), ana ilerlemeyi bozmuyor
+- [x] Menüde günün bölümü, değiştiricisi ve bugünkü en iyi süre
+
+## Sonraki tur — v0.5
 
 ### Önce yapılması gereken
-- [ ] **İnsan testi.** Hâlâ yapılmadı. v0.3'te özellikle şunlar merak konusu:
-      halat pompası fazla güçlü mü (bölümleri trivialize ediyor mu), kamera
-      uzaklaşması pixel art'ta titriyor mu, tek parmak şeması gerçek telefonda
-      ne hissettiriyor.
-- [ ] **Bot 14 bölümün yalnız 5'ini bitirebiliyor** (1, 2, 4, 6, 8); kalan 9'un
-      süresi ölçülmüş rota hızından tahmin. Botun rota değiştirebilmesi,
-      halat pompasını kullanması ve tehlikeden kaçınması gerek.
+- [ ] **İnsan testi.** Hâlâ yapılmadı. Merak konusu: halat pompası fazla güçlü
+      mü (bot onunla bölümleri yarı sürede bitiriyor), kamera uzaklaşması pixel
+      art'ta titriyor mu, tek parmak şeması gerçek telefonda ne hissettiriyor,
+      yeni (daha sıkı) altın eşikleri insan için ulaşılabilir mi.
+- [ ] **Bot 6. ve 7. bölümde kötü oynuyor** (ölçeğin 2 katından yavaş):
+      hareketli noktada zamanlama bekleyemiyor, dar geçitte savruluyor.
+      2. bölümde bitirebiliyor ama çok dolambaçlı.
 
 ### Oynanış
 - [ ] Duvara tutunma / duvardan sekme (dar geçitlerde ikinci bir seçenek)
@@ -118,6 +147,7 @@ Kaynak: `D:\Claude Projeleri\oyun-terminalleri\tasarim\kanca-rakip-analizi.md`
 - [ ] Bölüm sonu "en iyi 3 koşu" listesi
 - [ ] Toplanabilir (isteğe bağlı zor yol) — şu an bölümlerde hiç yok
 - [ ] Rüzgâr pompası: akıntıda doğru anda halat kısaltmaya bölüme özgü ödül
+- [ ] Günlük meydan okumaya üçüncü değiştirici (şu an iki tane)
 
 ### Görsel ve ses
 - [ ] Yağmur / şimşek katmanı (tema "fırtına" ama hava olayı yok)
@@ -138,9 +168,10 @@ Kaynak: `D:\Claude Projeleri\oyun-terminalleri\tasarim\kanca-rakip-analizi.md`
 ## Bilinen sınırlar
 
 - **İnsan testi yapılmadı.** Bütün denge kararları bot ölçümü ve statik analiz.
-- Madalya süreleri 5 bölümde gerçek bot koşusundan, 9 bölümde ölçülmüş rota
-  hızından tahmin (`"tahmin": true`). Bot pompayı kullanmıyor ve rota sabit —
-  iyi bir oyuncu altını rahat kırabilir.
+- Madalya süreleri 11 bölümde gerçek bot koşusundan, 3 bölümde (2, 6, 7)
+  ölçülmüş rota hızından tahmin (`"tahmin": true`) — bot oralarda kötü oynuyor.
+- Bot artık pompalıyor ve rota arıyor; altın eşikleri v0.3'e göre bazı
+  bölümlerde belirgin biçimde **sıkıldı**. İnsanla doğrulanmadı.
 - Web yapısı tek iş parçacıklı; Stream ses yolunun gecikme bedeli var
   (thread_support açılırsa itch.io'da SharedArrayBuffer kutusu şart olur).
 - Bölümlerde toplanabilir yok; hedef süre ve akış zinciri var.
