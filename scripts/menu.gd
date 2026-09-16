@@ -148,6 +148,7 @@ func _ayar_goster() -> void:
 	Ses.cal("menu")
 	_ana.visible = false
 	_secim.visible = false
+	AyarPanel.ana_kutuya_don(_ayar)
 	_ayar.visible = true
 	_ayar.find_child("GeriAyar", true, false).grab_focus()
 

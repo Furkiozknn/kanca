@@ -9,6 +9,7 @@ var _cfg := ConfigFile.new()
 
 func _ready() -> void:
 	_cfg.load(YOL)
+	Tuslar.uygula()
 	_pencere_uygula()   # Ses autoload'i henuz yok; ses duzeyini Ses kendi _ready'sinde okur
 
 # --- Sureler / ilerleme -----------------------------------------------
@@ -22,6 +23,18 @@ func sure_yaz(bolum: int, sure: float) -> bool:
 	if eski > 0.0 and sure >= eski:
 		return false
 	_cfg.set_value("sureler", str(bolum), sure)
+	_yaz()
+	return true
+
+## Ustalik zinciri: bolumde yere degmeden yapilan en uzun kanca dizisi.
+func akis(bolum: int) -> int:
+	return int(_cfg.get_value("akis", str(bolum), 0))
+
+## Yeni rekorsa kaydeder ve true doner.
+func akis_yaz(bolum: int, zincir: int) -> bool:
+	if zincir <= akis(bolum):
+		return false
+	_cfg.set_value("akis", str(bolum), zincir)
 	_yaz()
 	return true
 
@@ -45,6 +58,27 @@ func sifirla() -> void:
 	for no in range(1, 40):
 		DirAccess.remove_absolute(HAYALET_YOL % no)
 
+# --- Tus atamalari ----------------------------------------------------
+
+## Eylem -> fiziksel tus kodu. Bos sozluk = varsayilan atamalar.
+func tuslar() -> Dictionary:
+	var d: Dictionary = {}
+	if _cfg.has_section("tuslar"):
+		for eylem in _cfg.get_section_keys("tuslar"):
+			d[eylem] = int(_cfg.get_value("tuslar", eylem, 0))
+	return d
+
+func tus_yaz(eylem: String, kod: int) -> void:
+	_cfg.set_value("tuslar", eylem, kod)
+	_yaz()
+	Tuslar.uygula()
+
+func tuslari_sifirla() -> void:
+	if _cfg.has_section("tuslar"):
+		_cfg.erase_section("tuslar")
+		_yaz()
+	Tuslar.uygula()
+
 # --- Ayarlar ----------------------------------------------------------
 
 const VARSAYILAN := {
@@ -55,6 +89,9 @@ const VARSAYILAN := {
 	"tam_ekran": false,
 	"hayalet": true,
 	"sarsinti": true,
+	"rota_ipucu": true,          ## altin madalyadan sonra rota noktalarini isaretle
+	"dokunmatik": false,         ## tek parmak semasi (mobilde zaten acik)
+	"nisan_hassasiyet": 0.5,     ## 0 = genis nisan yardimi, 1 = dar ve tam nisan
 }
 
 func ayar(ad: String) -> Variant:
