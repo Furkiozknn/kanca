@@ -32,6 +32,11 @@ var kanca_nokta: Node2D = null
 var halat_boyu := 0.0
 ## Icinde bulunulan itici alanlarin toplami (bolum.gd doldurur).
 var ruzgar := Vector2.ZERO
+## Bolum boyunca suren sabit itme (gunluk meydan okuma degistiricisi).
+var sabit_ruzgar := Vector2.ZERO
+## Halatin uzayabilecegi en buyuk boy. Normalde Ayarlar.KANCA_AZAMI_HALAT;
+## gunluk "Kısa halat" degistiricisi bunu kisaltiyor (global sabite dokunmadan).
+var azami_halat := Ayarlar.KANCA_AZAMI_HALAT
 
 ## Kameranin uygulamasi icin (bolum.gd okur): ileri bakis ofseti ve yakinlik.
 var kamera_ileri := Vector2.ZERO
@@ -240,7 +245,7 @@ func _tutun() -> void:
 	kanca_nokta = _ucus_hedef
 	_ucus_hedef = null
 	halat_boyu = clampf(global_position.distance_to(kanca_nokta.global_position),
-		Ayarlar.KANCA_ASGARI_HALAT, Ayarlar.KANCA_AZAMI_HALAT)
+		Ayarlar.KANCA_ASGARI_HALAT, azami_halat)
 	if kanca_nokta.has_method("bagla"):
 		kanca_nokta.bagla(true)
 	Ses.cal("kanca_tak")
@@ -292,7 +297,7 @@ func _physics_process(delta: float) -> void:
 	else:
 		_yaya_fizigi(delta)
 
-	velocity += ruzgar * Ayarlar.RUZGAR_IVME * delta
+	velocity += (ruzgar + sabit_ruzgar) * Ayarlar.RUZGAR_IVME * delta
 	velocity = velocity.limit_length(Ayarlar.AZAMI_HIZ)
 	var dusus := velocity.y
 	move_and_slide()
@@ -367,7 +372,7 @@ func _kanca_fizigi(delta: float) -> void:
 	var eski_boy := halat_boyu
 	halat_boyu = clampf(
 		halat_boyu + boy_girdi * Ayarlar.HALAT_DEGISIM_HIZI * delta + _halat_dokunma,
-		Ayarlar.KANCA_ASGARI_HALAT, Ayarlar.KANCA_AZAMI_HALAT)
+		Ayarlar.KANCA_ASGARI_HALAT, azami_halat)
 	_halat_dokunma = 0.0
 
 	var gergin := fark.length() >= halat_boyu - 1.0

@@ -7,6 +7,9 @@ var _ayar: Control
 var _yardim: Label
 
 func _ready() -> void:
+	# Menuye donen her yol gunluk kipi kapatmali; burada da temizleniyor ki
+	# "Başla" hicbir kosulda gunluk degistiricisiyle acilmasin.
+	Gunluk.aktif = false
 	RenderingServer.set_default_clear_color(Ayarlar.RENK_ARKAPLAN)
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_arka_plan()
@@ -75,6 +78,7 @@ func _ana_panel() -> Control:
 	var acik := Kayit.acik_bolum()
 	kutu.add_child(_dugme("Basla", "Başla  —  %d. bölüm" % acik, _basla))
 	kutu.add_child(_dugme("Sec", "Bölüm Seç", _secim_goster))
+	kutu.add_child(_dugme("Gunluk", _gunluk_metni(), _gunluge_git))
 	kutu.add_child(_dugme("Ayar", "Ayarlar", _ayar_goster))
 	# Tarayicida quit() islevsiz; sekmeyi kapatmak kullanicinin isi.
 	if not OS.has_feature("web"):
@@ -141,6 +145,19 @@ func _ayar_paneli() -> Control:
 
 func _basla() -> void:
 	_bolume_git(Kayit.acik_bolum())
+
+## Gunun meydan okumasi: bolum + degistirici + bugunku en iyi sure.
+static func _gunluk_metni() -> String:
+	var sure := Kayit.gunluk_en_iyi(Gunluk.tohum())
+	var alt := "Henüz koşulmadı"
+	if sure > 0.0:
+		alt = "Bugünün en iyisi: %s" % Bolum._bicim(sure)
+	return "Günlük: %s\n%s" % [Gunluk.baslik(), alt]
+
+func _gunluge_git() -> void:
+	Gunluk.aktif = true
+	Ses.cal("menu")
+	Gecis.git(Bolumler.yol(Gunluk.bolum_no()))
 
 func _bolume_git(no: int) -> void:
 	Ses.cal("menu")
