@@ -623,11 +623,14 @@ func _test_hayalet_kaydi() -> void:
 # --- 11b. Akis (ustalik zinciri) kaydi --------------------------------
 
 func _test_akis_kaydi() -> void:
-	Kayit.akis_yaz(98, 1)
-	var arttirdi := Kayit.akis_yaz(98, 4)
-	var dusurmedi := not Kayit.akis_yaz(98, 3)
+	# Kayit kalici: onceki kosudan kalan degerin uzerine cikilmali, yoksa test
+	# ikinci calistirmada kendi kalintisina takilir.
+	var bas := Kayit.akis(98)
+	var arttirdi := Kayit.akis_yaz(98, bas + 3)
+	var dusurmedi := not Kayit.akis_yaz(98, bas + 1)
 	_bildir("akis kaydi yalniz rekor olunca guncelleniyor",
-		arttirdi and dusurmedi and Kayit.akis(98) == 4, "akis=%d" % Kayit.akis(98))
+		arttirdi and dusurmedi and Kayit.akis(98) == bas + 3,
+		"bas=%d akis=%d" % [bas, Kayit.akis(98)])
 
 # --- 11c. Tus atama ---------------------------------------------------
 

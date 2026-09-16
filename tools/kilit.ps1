@@ -15,6 +15,9 @@ function Kilit-Al {
     if (Test-Path $script:KILIT) {
       $yas = (Get-Date) - (Get-Item $script:KILIT).LastWriteTime
       $sahip = (Get-Content $script:KILIT -ErrorAction SilentlyContinue | Select-Object -First 1)
+      # NOT: burada YALNIZ sayiliyor. Godot sureci OLDURULMEZ - baska oyun
+      # oturumlarinin (yercekimi-cevir, derin-kazi, tek-tus-kosu) kosusunu
+      # kesmek yok. Kendi surecimiz Godot-Calistir icinde PID ile oldurulur.
       $godotVar = @(Get-Process -Name 'Godot*' -ErrorAction SilentlyContinue).Count -gt 0
       if ($sahip -eq $script:SLUG -and -not $godotVar) {
         # Kendi oldurulmus isimizden kalan kilit: Godot calismiyorsa hemen devral.

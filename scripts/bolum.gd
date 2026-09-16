@@ -615,8 +615,10 @@ func _arayuzu_kur() -> void:
 	_eniyi_etiket.position = Vector2(12, 30)
 	katman.add_child(_eniyi_etiket)
 
+	# Sureler ms hassasiyetine gecince "En iyi 00:08.800" uzadi; simge 92'de
+	# metnin uzerine biniyordu.
 	_madalya_gorsel = madalya_simgesi(Bolumler.madalya(bolum_no, en_iyi))
-	_madalya_gorsel.position = Vector2(92, 30)
+	_madalya_gorsel.position = Vector2(108, 30)
 	katman.add_child(_madalya_gorsel)
 
 	var baslik := _etiket("%d. %s" % [bolum_no, _veri["ad"]], 11, Ayarlar.RENK_METIN_SOLUK)

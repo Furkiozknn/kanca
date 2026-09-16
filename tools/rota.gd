@@ -1,7 +1,12 @@
 extends Node2D
 ## Rota planlayici + otomatik oynayan bot. Madalya surelerini ve rota ipucunu uretir.
 ##
-##   powershell -ExecutionPolicy Bypass -File tools\kilitli.ps1 -- --headless --path . --scene res://tools/rota.tscn
+##   powershell -ExecutionPolicy Bypass -File tools\kilitli.ps1 -- --headless --fixed-fps 60 --path . --scene res://tools/rota.tscn
+##
+## --fixed-fps 60 SART: headless'ta bile fizik kareleri GERCEK zamanda akiyor
+## (60 Hz), yani 2700 karelik bir kosu 45 saniye surer ve 14 bolum x 5 kosu
+## bir saati bulur. --fixed-fps zamani gercek saatten koparir, ayni kare
+## sayisi saniyeler icinde biter; olculen sure zaten kare sayisindan geliyor.
 ##
 ## Iki asama:
 ##   1. PLAN  - kanca noktalarindan graf kurulur (menzil + gorus hatti), baslangictan
@@ -22,15 +27,29 @@ const OYUNCU_YARI_BOY := 14.0
 const ZIPLA_YUKSEKLIGI := 45.0
 const INIS_MESAFESI := 300.0        ## son noktadan bitise inilebilecek mesafe
 const HOP_BEDELI := 70.0            ## her kanca degisiminin plan maliyeti (px cinsinden)
+const TUTMA_SINIRI := 2.5           ## uygun an gelmezse bu kadar sonra yine de birak
+const HATA_PAYI := 1.5              ## en iyinin bu katindan kotu kosu = bot hatasi
+const AYKIRI_KAT := 2.0             ## olcegin bu katindan yavas bolum = bot orada kotu oynadi
 
 ## Tepki gecikmesi araligi (sn): karar anindan eyleme.
 const GECIKME_ALT := 0.05
 const GECIKME_UST := 0.20
 
-## Madalya carpanlari: altin = en iyi kosu, gumus/bronz gecikmeli koslar uzerinden.
-const ALTIN_PAY := 1.08
-const GUMUS_PAY := 1.45
-const BRONZ_PAY := 1.95
+## Madalya carpanlari (gecikmeli koslarin ORTANCASI uzerinden).
+##
+## Bot hicbir kancayi kacirmiyor ve birakma anini hep tutturuyor; buna karsilik
+## halat pompasini kullanmiyor ve rotayi degistirmiyor. Yani "iyi ama mukemmel
+## olmayan" bir kosu. Altini bot suresine yapistirmak (x1,08) insana "makineyle
+## esles" demek olurdu - Neon White'in gelistiricilerinin dustugu tuzak.
+## Altin rotayi bilen bir oyuncuya dortte bir pay birakiyor.
+const ALTIN_PAY := 1.25
+const GUMUS_PAY := 1.70
+const BRONZ_PAY := 2.30
+
+## Tani kipi: yalniz ilk bolum, tek kosu, 30 karede bir iz. Calistirma:
+##   ... --scene res://tools/rota.tscn -- --tani [bolum_no]
+var _tani := false
+var _tani_bolum := 1
 
 var _sonuc: Dictionary = {}
 
@@ -39,16 +58,27 @@ func _ready() -> void:
 
 func _calistir() -> void:
 	await get_tree().process_frame
+	var kullanici := OS.get_cmdline_user_args()
+	_tani = kullanici.has("--tani")
+	for i in kullanici.size():
+		if kullanici[i] == "--tani" and i + 1 < kullanici.size():
+			_tani_bolum = int(kullanici[i + 1])
 	print("=== Kanca rota + bot kosusu ===")
 	print("bolum basina %d kosu, tepki gecikmesi %.2f-%.2f sn, azami %d kare" % [
 		KOSU_SAYISI, GECIKME_ALT, GECIKME_UST, AZAMI_KARE])
-	for no in range(1, Bolumler.sayi() + 1):
+	var bolumler := range(1, Bolumler.sayi() + 1)
+	if _tani:
+		bolumler = [_tani_bolum]
+		print("TANI KIPI: yalniz bolum %d, tek kosu" % _tani_bolum)
+	for no in bolumler:
 		var rota := _plan(no)
+		if _tani:
+			print("  rota: %s" % str(rota))
 		if rota.is_empty():
 			printerr("bolum %d: rota bulunamadi" % no)
 			continue
 		var sureler: Array[float] = []
-		for k in KOSU_SAYISI:
+		for k in (1 if _tani else KOSU_SAYISI):
 			var s := await _kos(no, rota, k)
 			if s > 0.0:
 				sureler.append(s)
@@ -57,7 +87,14 @@ func _calistir() -> void:
 			continue
 		sureler.sort()
 		var en_iyi: float = sureler[0]
-		var ortanca: float = sureler[sureler.size() / 2]
+		# Tepki gecikmesi kosuyu birkac yuzde uzatir; kacirilan kanca ya da
+		# olum kat kat uzatir. En iyinin HATA_PAYI katindan kotu kosular bot
+		# hatasidir, olculmek istenen sey degil - ortancaya girmesinler.
+		var temiz: Array[float] = []
+		for t: float in sureler:
+			if t <= en_iyi * HATA_PAYI:
+				temiz.append(t)
+		var ortanca: float = temiz[temiz.size() / 2]
 		_sonuc[no] = {
 			"sure": en_iyi,
 			"ortanca": ortanca,
@@ -71,9 +108,76 @@ func _calistir() -> void:
 		print("bolum %2d  %-16s kosu %d/%d  en iyi %.3f  ortanca %.3f  altin %.3f  nokta %d" % [
 			no, Bolumler.ad(no), sureler.size(), KOSU_SAYISI, en_iyi, ortanca,
 			ortanca * ALTIN_PAY, rota.size()])
+	_tahmin_et()
 	_yaz()
 	print("=== rota bitti: %d/%d bolum ===" % [_sonuc.size(), Bolumler.sayi()])
 	get_tree().quit(0 if _sonuc.size() == Bolumler.sayi() else 1)
+
+## Botun bitiremedigi bolumler icin sure TAHMINI.
+##
+## Bot kosan bolumlerden "rota px'i basina saniye" olculur; bitiremedigi
+## bolumun suresi kendi rota uzunlugundan cikarilir. Boylece esikler yine
+## olculmus fizige dayanir (bolum uzunlugu / sabit hiz formulu degil), ama
+## o bolumde gercekten kosulmus degildir - kayitta "tahmin": true ile isaretli.
+func _tahmin_et() -> void:
+	# Bolum basina sn/px oranlarinin ORTANCASI. Toplam/toplam kullanmak, botun
+	# takildigi tek bir bolumun butun olcegi kaydirmasina yol aciyordu.
+	var oranlar: Array[float] = []
+	for no: int in _sonuc:
+		var uz := _rota_uzunlugu(no, _sonuc[no]["nokta"])
+		if uz > 1.0:
+			oranlar.append(float(_sonuc[no]["ortanca"]) / uz)
+	if oranlar.is_empty():
+		printerr("tahmin yapilamadi: hicbir bolum bitirilemedi")
+		return
+	oranlar.sort()
+	var sn_px: float = oranlar[oranlar.size() / 2]
+	print("\ntahmin olcegi: %.5f sn/px (%d bolumun ortancasi, %.5f - %.5f)" % [
+		sn_px, oranlar.size(), oranlar[0], oranlar[oranlar.size() - 1]])
+
+	# Bitirdigi halde ortanca olcegin AYKIRI_KAT katindan yavas kalan bolumler:
+	# bot orada gercekten kotu oynamis (kacirilan kanca, tekrar tekrar olum).
+	# O sureyi altin esigi yapmak bolumu bedava altin haline getirir - onlar da
+	# tahmine devrediliyor.
+	for no: int in _sonuc.keys():
+		var uz := _rota_uzunlugu(no, _sonuc[no]["nokta"])
+		if uz > 1.0 and float(_sonuc[no]["ortanca"]) / uz > sn_px * AYKIRI_KAT:
+			print("bolum %2d  ortanca %.3f olcegin %.1f kati - tahmine devrediliyor" % [
+				no, float(_sonuc[no]["ortanca"]),
+				(float(_sonuc[no]["ortanca"]) / uz) / sn_px])
+			_sonuc.erase(no)
+
+	for no in range(1, Bolumler.sayi() + 1):
+		if _sonuc.has(no):
+			continue
+		var rota := _plan(no)
+		if rota.is_empty():
+			continue
+		var sure: float = _rota_uzunlugu(no, rota) * sn_px
+		_sonuc[no] = {
+			"sure": snappedf(sure, 0.001),
+			"ortanca": snappedf(sure, 0.001),
+			"tahmin": true,
+			"madalya": [
+				snappedf(sure * ALTIN_PAY, 0.001),
+				snappedf(sure * GUMUS_PAY, 0.001),
+				snappedf(sure * BRONZ_PAY, 0.001),
+			],
+			"nokta": rota,
+		}
+		print("bolum %2d  %-16s TAHMIN  %.3f  altin %.3f  nokta %d" % [
+			no, Bolumler.ad(no), sure, sure * ALTIN_PAY, rota.size()])
+
+## Baslangic -> rota noktalari -> bitis toplam yatay yolu (px).
+func _rota_uzunlugu(no: int, rota: Array) -> float:
+	var d := Bolumler.veri(no)
+	var yer: Vector2 = Vector2(d["basla"])
+	var toplam := 0.0
+	for p: Vector2 in rota:
+		toplam += yer.distance_to(p)
+		yer = p
+	toplam += yer.distance_to(Vector2(d["bitis"]))
+	return toplam
 
 # --- 1. Plan ----------------------------------------------------------
 
@@ -197,6 +301,9 @@ func _kos(no: int, rota: Array, tohum: int) -> float:
 	while kare < AZAMI_KARE:
 		await get_tree().physics_frame
 		kare += 1
+		# Bolum._dogur() olumden sonra girdi_aktif'i geri aciyor; bot o zaman
+		# klavyeyi (bos) okumaya baslayip yerinde ziplamaya basliyor.
+		oyuncu.girdi_aktif = false
 		if bool(bolum.get("_bitti")):
 			bitti = true
 			break
@@ -205,6 +312,11 @@ func _kos(no: int, rota: Array, tohum: int) -> float:
 		var hedef: Vector2 = rota[mini(hedef_i, rota.size() - 1)] if hedef_i < rota.size() \
 			else Vector2(Bolumler.veri(no)["bitis"])
 		var pos: Vector2 = oyuncu.global_position
+		if _tani and kare % 30 == 0:
+			print("    k=%4d pos=(%5.0f,%5.0f) v=(%5.0f,%5.0f) |v|=%3.0f kancali=%s hedef=%d/%d %s" % [
+				kare, pos.x, pos.y, oyuncu.velocity.x, oyuncu.velocity.y,
+				oyuncu.velocity.length(), str(oyuncu.kancali()), hedef_i, rota.size(),
+				str(hedef)])
 
 		# Olup kontrol noktasindan dogunca oyuncu geriye isiniyor; rota adimi
 		# ileride kalirsa bot bir daha hicbir seye kanca atamiyor.
@@ -220,15 +332,25 @@ func _kos(no: int, rota: Array, tohum: int) -> float:
 			var teget := Vector2(-disa.y, disa.x)
 			if teget.x < 0.0:
 				teget = -teget
-			# Pompala: mevcut salinimi buyut.
-			oyuncu.bot_yon = signf(oyuncu.velocity.dot(teget))
 			var sonraki: Vector2 = rota[hedef_i + 1] if hedef_i + 1 < rota.size() \
 				else Vector2(Bolumler.veri(no)["bitis"])
 			var yon := (sonraki - pos).normalized()
 			var hiz := oyuncu.velocity
-			var uygun: bool = hiz.length() >= Ayarlar.BIRAKMA_ESIGI \
-				and hiz.normalized().dot(yon) > 0.55 and pos.x > capa.x - 8.0
-			if gecikme <= 0.0 and (uygun or tutma > 2.5):
+			var yeterli: bool = hiz.length() >= Ayarlar.BIRAKMA_ESIGI
+			# Pompala: tegetsel hizin isaretine bas (sarkaci buyutmenin dogru
+			# yolu; tools/olcum.gd de ayni seyi yapiyor).
+			oyuncu.bot_yon = signf(hiz.dot(teget))
+			# Birakma: yeterince hizli, yon sonraki hedefe donuk, capayi gecmis
+			# ve asagi dalmiyor. Denenen alternatifler daha kotu sonuc verdi:
+			#   - hedefe dogru sabit girdi        -> 3/14 bolum
+			#   - yalniz yukselirken birakma      -> 1/14 bolum
+			#   - capa sarti olmadan              -> sarkac tam tur donuyor
+			var uygun: bool = yeterli \
+				and hiz.normalized().dot(yon) > 0.55 \
+				and pos.x > capa.x - 8.0 \
+				and hiz.y < 40.0
+			# Zorunlu birakma: uygun an hic gelmezse takili kalma.
+			if gecikme <= 0.0 and (uygun or tutma > TUTMA_SINIRI):
 				oyuncu.kanca_birak()
 				oyuncu.bot_yon = 1.0
 				hedef_i += 1
@@ -271,8 +393,10 @@ func _yaz() -> void:
 		for p: Vector2 in s["nokta"]:
 			noktalar.append("Vector2(%d, %d)" % [int(p.x), int(p.y)])
 		var m: Array = s["madalya"]
-		satirlar.append("\t%d: {\"sure\": %.3f, \"ortanca\": %.3f, \"madalya\": [%.3f, %.3f, %.3f], \"nokta\": [%s]}," % [
-			no, s["sure"], s["ortanca"], m[0], m[1], m[2], ", ".join(noktalar)])
+		var tahmin: bool = bool(s.get("tahmin", false))
+		satirlar.append("\t%d: {\"sure\": %.3f, \"ortanca\": %.3f, \"tahmin\": %s, \"madalya\": [%.3f, %.3f, %.3f], \"nokta\": [%s]}," % [
+			no, s["sure"], s["ortanca"], "true" if tahmin else "false",
+			m[0], m[1], m[2], ", ".join(noktalar)])
 
 	var f := FileAccess.open(CIKTI, FileAccess.READ)
 	if f == null:
@@ -281,11 +405,13 @@ func _yaz() -> void:
 	var metin := f.get_as_text()
 	f.close()
 	var bas := metin.find("const VERI := {")
-	var son := metin.find("}", bas)
+	# Kapanis parantezi SATIR BASINDA olan "}" - satir ici sozluklerin "}"
+	# karakterleri araya girmesin (ilk surumde dosyayi boyle bozdu).
+	var son := metin.find("\n}", bas)
 	if bas < 0 or son < 0:
 		printerr("rota_verisi.gd icinde VERI bloku bulunamadi")
 		return
-	var yeni := "const VERI := {\n%s\n" % "\n".join(satirlar)
+	var yeni := "const VERI := {\n%s" % "\n".join(satirlar)
 	metin = metin.substr(0, bas) + yeni + metin.substr(son)
 	var y := FileAccess.open(CIKTI, FileAccess.WRITE)
 	y.store_string(metin)

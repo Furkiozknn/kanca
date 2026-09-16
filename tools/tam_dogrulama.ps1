@@ -36,7 +36,9 @@ try {
   Adim 'varlik_sprite' @('--headless', '--path', $kok, '-s', 'res://tools/sprite_uret.gd')
   Adim 'varlik_ses'    @('--headless', '--path', $kok, '-s', 'res://tools/ses_uret.gd')
   Adim 'import'        @('--headless', '--path', $kok, '--import')
-  Adim 'rota'          @('--headless', '--path', $kok, '--scene', 'res://tools/rota.tscn') 900
+  # --fixed-fps: fizik kareleri gercek zamandan koparilir, yoksa bot kosusu
+  # bolum basina ~4 dakika surer (bkz. tools/rota.gd basligi).
+  Adim 'rota'          @('--headless', '--fixed-fps', '60', '--path', $kok, '--scene', 'res://tools/rota.tscn') 900
   Adim 'test'          @('--headless', '--path', $kok, '--scene', 'res://tests/test_kanca.tscn') 300
   Adim 'olcum'         @('--headless', '--path', $kok, '--scene', 'res://tools/olcum.tscn') 900
   Adim 'ekran'         @('--path', $kok, '--scene', 'res://tests/ekran.tscn') 300

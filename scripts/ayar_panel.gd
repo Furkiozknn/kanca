@@ -27,23 +27,25 @@ static func yap(geri: Callable, perde := false) -> Control:
 
 	var kutu := VBoxContainer.new()
 	kutu.name = "Kutu"
-	kutu.add_theme_constant_override("separation", 6)
+	# Taban cozunurluk 360 px: v0.3'te uc satir eklenince "Geri" ekrandan
+	# tasti, araliklar daraltildi.
+	kutu.add_theme_constant_override("separation", 3)
 	orta.add_child(kutu)
 
 	var baslik := Bolum.etiket_yap("AYARLAR", 20, Color(1, 1, 1))
 	baslik.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	kutu.add_child(baslik)
-	kutu.add_child(_bosluk(6))
+	kutu.add_child(_bosluk(3))
 	kutu.add_child(_kaydirac("Müzik", "muzik_ses", "muzik_acik"))
 	kutu.add_child(_kaydirac("Efekt", "efekt_ses", "efekt_acik"))
 	kutu.add_child(_oran("Nişan", "nisan_hassasiyet", "yardım", "tam nişan"))
-	kutu.add_child(_bosluk(6))
+	kutu.add_child(_bosluk(3))
 	kutu.add_child(_anahtar("Tam ekran", "tam_ekran"))
 	kutu.add_child(_anahtar("Hayalet (en iyi koşun)", "hayalet"))
 	kutu.add_child(_anahtar("Ekran sarsıntısı", "sarsinti"))
 	kutu.add_child(_anahtar("Rota ipucu (altın madalyadan sonra)", "rota_ipucu"))
 	kutu.add_child(_anahtar("Tek parmak şeması (dokunmatik)", "dokunmatik"))
-	kutu.add_child(_bosluk(8))
+	kutu.add_child(_bosluk(5))
 
 	# Tus atama ayri bir kutuda; ayni kok icinde gorunurluk degistiriliyor.
 	var tus_orta := CenterContainer.new()
@@ -106,7 +108,7 @@ static func _tus_kutusu(geri: Callable) -> Control:
 		satir.add_child(d)
 		kutu.add_child(satir)
 
-	kutu.add_child(_bosluk(6))
+	kutu.add_child(_bosluk(3))
 	var sifirla := Button.new()
 	sifirla.text = "Varsayılana dön"
 	sifirla.add_theme_font_size_override("font_size", 12)

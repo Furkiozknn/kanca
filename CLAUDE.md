@@ -99,7 +99,8 @@ powershell -ExecutionPolicy Bypass -File tools\kilitli.ps1 -- --headless --path 
 powershell -ExecutionPolicy Bypass -File tools\kilitli.ps1 -- --headless --path . --scene res://tools/olcum.tscn
 
 # Rota + madalya süreleri (scripts/rota_verisi.gd üretir) — TESTTEN ÖNCE
-powershell -ExecutionPolicy Bypass -File tools\kilitli.ps1 -- --headless --path . --scene res://tools/rota.tscn
+# --fixed-fps 60 şart: yoksa fizik gerçek zamanda akar, koşu saatlerce sürer.
+powershell -ExecutionPolicy Bypass -File tools\kilitli.ps1 -- --headless --fixed-fps 60 --path . --scene res://tools/rota.tscn
 
 # Ekran görüntüleri (headless DEĞİL)
 powershell -ExecutionPolicy Bypass -File tools\kilitli.ps1 -- --path . --scene res://tests/ekran.tscn
@@ -143,6 +144,10 @@ hiç Godot süreci yoksa hemen devralır. **Godot'u kilitsiz çalıştırma.**
    yüzden bot süreyi `Bolum._sure`'den değil **fizik karesi sayısından** ölçer
    (`kare / 60`). Aynı sebeple `KancaNoktasi` hareketi `_physics_process`'e
    taşındı — yoksa headless'ta hareketli noktalar uçuyordu.
+9b. **Headless fizik karesi gerçek zamanda akar** (60 Hz): `await physics_frame`
+   ile 2700 kare beklemek gerçekten 45 saniye sürer. Uzun simülasyonları
+   **`--fixed-fps 60`** ile çalıştır — zaman gerçek saatten kopar, ölçüm
+   kare sayısından geldiği için sonuç değişmez. `tools/rota.gd` bunu şart koşuyor.
 10. **`class_name` yeni dosyada tanımlıysa** o dosya bir kez import edilmeden
    (`--import`) diğer betiklerden görünmez: "Identifier not declared" parse
    hatası alırsın. Yeni bir `class_name` ekledikten sonra önce import et.

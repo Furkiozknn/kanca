@@ -17,7 +17,7 @@ const ZIPLA_TAMPON_SURESI := 0.12
 
 # --- Kanca (olcumle ayarlanan dortlu) ---
 var SALLANMA_IVMESI := 1250.0        ## tegetsel girdi ivmesi (sallanmayi buyutur)
-var SALLANMA_SONUMU := 0.05          ## saniye basina hiz kaybi orani
+var SALLANMA_SONUMU := 0.10          ## saniye basina hiz kaybi orani (v0.3: sert kisit kacagi kapatti)
 var BIRAKMA_CARPANI := 1.10          ## birakinca kucuk firlama bonusu
 var KANCA_MENZIL := 240.0            ## bu uzakligin otesine kanca atilamaz
 
