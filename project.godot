@@ -13,6 +13,8 @@ config/icon="res://icon.svg"
 
 Ayarlar="*res://scripts/ayarlar.gd"
 Kayit="*res://scripts/kayit.gd"
+Ses="*res://scripts/ses.gd"
+Gecis="*res://scripts/gecis.gd"
 
 [display]
 
@@ -34,6 +36,13 @@ textures/canvas_textures/default_texture_filter=0
 [physics]
 
 common/physics_ticks_per_second=60
+
+[audio]
+
+; Web'de varsayilan Sample yolu pitch_scale/volume_db/donguyu sessizce bozuyor.
+; Stream yolu ucu de duzeltir; ses duzeyi ayrica veri yoluna yaziliyor (scripts/ses.gd).
+general/default_playback_type.web=2
+driver/mix_rate.web=48000
 
 [input]
 

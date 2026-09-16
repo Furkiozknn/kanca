@@ -1,37 +1,64 @@
 extends Node2D
 class_name Bolum
-## Tek bir bolumun tamami: geometriyi Bolumler.VERI tablosundan kurar,
-## sureyi tutar, olum/bitis akisini ve arayuzu yonetir.
+## Tek bir bolumun tamami: geometriyi Bolumler.VERI tablosundan kurar, sureyi
+## tutar, olum/kontrol noktasi/bitis akisini, madalyayi, hayaleti ve arayuzu yonetir.
 ##
 ## Sahne dosyalari (scenes/bolumler/bolum_NN.tscn) sadece bolum_no tasir;
-## boylece 8 bolum tek kod yolundan uretilir ve veri tek yerde durur.
+## boylece 14 bolum tek kod yolundan uretilir ve veri tek yerde durur.
 
 const OYUNCU_SAHNE := preload("res://scenes/oyuncu.tscn")
 const MENU_YOLU := "res://scenes/menu.tscn"
+const DOKU_DIKEN := preload("res://assets/sprites/diken.png")
+const DOKU_BAYRAK := preload("res://assets/sprites/bayrak.png")
+const DOKU_KONTROL := preload("res://assets/sprites/kontrol.png")
+const DOKU_PARCACIK := preload("res://assets/sprites/parcacik.png")
+const DOKU_RUZGAR := preload("res://assets/sprites/ruzgar.png")
+const DOKU_MADALYA := preload("res://assets/sprites/madalya.png")
+const DOKU_GOK := preload("res://assets/sprites/arka_gok.png")
+const DOKU_BULUT := preload("res://assets/sprites/arka_bulut.png")
+const DOKU_UZAK := preload("res://assets/sprites/arka_uzak.png")
+const DOKU_YAKIN := preload("res://assets/sprites/arka_yakin.png")
 
 @export var bolum_no: int = 1
 
 var _veri: Dictionary = {}
 var _oyuncu: Oyuncu = null
+var _dunya: Node2D = null
+var _hayalet: Hayalet = null
+var _kamera: Camera2D = null
+
 var _sure: float = 0.0
 var _sayiyor: bool = false
 var _duraklatildi: bool = false
 var _bitti: bool = false
+var _oluyor: bool = false   ## olum islendi, yeniden dogus kare sonunda
+var _dogus := Vector2.ZERO
+var _sarsinti := 0.0
+var _sarsinti_t := 0.0
+var _kayit_sayaci := 0.0
+var _kayit := PackedVector2Array()
+var _parcacik_havuzu: Array[CPUParticles2D] = []
+var _parcacik_sira := 0
 
 var _sure_etiket: Label
 var _eniyi_etiket: Label
+var _madalya_gorsel: TextureRect
 var _duraklat_panel: Control
+var _ayar_panel: Control
 var _bitis_panel: Control
 var _bitis_metin: Label
 var _sonraki_dugme: Button
 
 func _ready() -> void:
+	add_to_group(&"bolum")
 	_veri = Bolumler.veri(bolum_no)
 	RenderingServer.set_default_clear_color(Ayarlar.RENK_ARKAPLAN)
-	_dunyayi_kur()
+	_arka_plani_kur()
+	_oyuncuyu_kur()
 	_arayuzu_kur()
-	_basa_al()
-	_alanlari_ac.call_deferred()
+	_hayaleti_kur()
+	Ses.muzik_cal("muzik")
+	_yeniden()
 
 ## Oyuncu dogru yere yerlestikten sonra tehlike/bitis alanlarini acar.
 ## (Yeni kurulan Area2D ayni karede bayat bir ortusmeyi body_entered sayabiliyor.)
@@ -42,67 +69,197 @@ func _alanlari_ac() -> void:
 	for a in find_children("", "Area2D", true, false):
 		a.monitoring = true
 
+# --- Arka plan --------------------------------------------------------
+
+func _arka_plani_kur() -> void:
+	# Gokyuzu: kameradan bagimsiz, ekrani kaplayan degrade.
+	var katman := CanvasLayer.new()
+	katman.layer = -10
+	add_child(katman)
+	var gok := TextureRect.new()
+	gok.texture = DOKU_GOK
+	gok.stretch_mode = TextureRect.STRETCH_SCALE
+	gok.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	gok.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	katman.add_child(gok)
+
+	# Parallaks: uzaktan yakina ucan kaya adalari + bulut bandi.
+	# modulate ile bilerek soluklastirildi - arka plan adalari oynanis zemini
+	# gibi okunmamali (bkz. sprite_uret.gd icindeki kenar rengi notu).
+	_parallaks(DOKU_UZAK, Vector2(0.20, 0.08), 320, Vector2(0, 8), -9, Vector2.ZERO, 0.55)
+	_parallaks(DOKU_BULUT, Vector2(0.35, 0.14), 256, Vector2(0, -50), -8, Vector2(-7.0, 0.0), 0.8)
+	_parallaks(DOKU_YAKIN, Vector2(0.55, 0.22), 320, Vector2(0, 76), -7, Vector2.ZERO, 0.7)
+
+func _parallaks(doku: Texture2D, olcek: Vector2, genislik: int, kaydir: Vector2,
+		z: int, akis: Vector2, saydam: float) -> void:
+	var p := Parallax2D.new()
+	p.scroll_scale = olcek
+	p.repeat_size = Vector2(genislik, 0)
+	p.repeat_times = 24
+	p.autoscroll = akis
+	p.z_index = z
+	add_child(p)
+	var s := Sprite2D.new()
+	s.texture = doku
+	s.centered = false
+	s.position = kaydir
+	s.modulate = Color(1, 1, 1, saydam)
+	p.add_child(s)
+
 # --- Dunya ------------------------------------------------------------
 
-func _dunyayi_kur() -> void:
-	var dunya := Node2D.new()
-	dunya.name = "Dunya"
-	add_child(dunya)
-
-	for r: Rect2 in _veri["zemin"]:
-		dunya.add_child(_kati_blok(r))
-	for r: Rect2 in _veri["diken"]:
-		dunya.add_child(_diken(r))
-	for p: Vector2 in _veri["kanca"]:
-		var nokta := KancaNoktasi.new()
-		nokta.position = p
-		dunya.add_child(nokta)
-
-	dunya.add_child(_bitis_bayragi(_veri["bitis"]))
-
+func _oyuncuyu_kur() -> void:
 	_oyuncu = OYUNCU_SAHNE.instantiate()
 	add_child(_oyuncu)
+	_kamera = _oyuncu.get_node("Kamera")
+	_oyuncu.kanca_takildi.connect(_kanca_takildi)
+	_oyuncu.kanca_koptu.connect(_kanca_koptu)
+	_oyuncu.yere_indi.connect(_yere_indi)
+	for i in 6:
+		var pc := _parcacik_yap()
+		add_child(pc)
+		_parcacik_havuzu.append(pc)
+
+## Dunyayi sifirdan kurar. Olumde de cagrilir: kirilan noktalar geri gelir.
+func _dunyayi_kur() -> void:
+	if _dunya != null:
+		# queue_free tek basina yetmez: dugum bir kare daha agacta kalir ve
+		# get_nodes_in_group eski kanca noktalarini da dondurur.
+		remove_child(_dunya)
+		_dunya.queue_free()
+	_dunya = Node2D.new()
+	_dunya.name = "Dunya"
+	add_child(_dunya)
+	move_child(_dunya, 0)
+
+	_zemini_dose()
+	for r: Rect2 in _veri["diken"]:
+		_dunya.add_child(_diken(Bolumler.karola(r), false))
+	for r: Rect2 in _veri["tavan_diken"]:
+		_dunya.add_child(_diken(Bolumler.karola(r), true))
+	for a: Dictionary in _veri["ruzgar"]:
+		_dunya.add_child(_ruzgar_alani(a["alan"], a["yon"]))
+	for p: Vector2 in _veri["kanca"]:
+		_dunya.add_child(KancaNoktasi.yap(p, KancaNoktasi.TUR_SABIT))
+	for i in (_veri["kanca_h"] as Array).size():
+		var h: Dictionary = _veri["kanca_h"][i]
+		var n := KancaNoktasi.yap(h["a"], KancaNoktasi.TUR_HAREKETLI)
+		n.a = h["a"]
+		n.b = h["b"]
+		n.faz = float(i) * 0.37
+		_dunya.add_child(n)
+	for p: Vector2 in _veri["kanca_k"]:
+		_dunya.add_child(KancaNoktasi.yap(p, KancaNoktasi.TUR_KIRILGAN))
+	for i in (_veri["kontrol"] as Array).size():
+		var kn := _kontrol_noktasi(_veri["kontrol"][i], i)
+		# Olumden sonra dunya yeniden kuruluyor; zaten aktiflesmis kontrol
+		# noktasi pasif gorunmesin.
+		if _dogus.distance_to(Vector2(_veri["kontrol"][i])) < 1.0:
+			(kn.get_node("Gorsel") as Sprite2D).frame = 1
+		_dunya.add_child(kn)
+	_dunya.add_child(_bitis_bayragi(_veri["bitis"]))
 	_kamera_sinirla()
 
-func _kati_blok(r: Rect2) -> StaticBody2D:
-	var govde := StaticBody2D.new()
-	govde.position = r.position + r.size * 0.5
-	var sekil := RectangleShape2D.new()
-	sekil.size = r.size
-	var carpisma := CollisionShape2D.new()
-	carpisma.shape = sekil
-	govde.add_child(carpisma)
-	govde.add_child(_dikdortgen(r.size, Ayarlar.RENK_ZEMIN))
-	# Ust kenar cizgisi: zeminin nerede bittigi net gorunsun.
-	var ust := _dikdortgen(Vector2(r.size.x, 4.0), Ayarlar.RENK_ZEMIN_UST)
-	ust.position = Vector2(0.0, -r.size.y * 0.5 + 2.0)
-	govde.add_child(ust)
-	return govde
+## Zemin dikdortgenleri TileMapLayer'a dosenir (gorsel + carpisma tek yerden).
+func _zemini_dose() -> void:
+	var kat := TileMapLayer.new()
+	kat.name = "Zemin"
+	kat.tile_set = KaroSeti.al()
+	kat.z_index = 1
+	for r: Rect2 in Bolumler.zeminler(bolum_no):
+		var tx0 := int(r.position.x) / KaroSeti.BOY
+		var ty0 := int(r.position.y) / KaroSeti.BOY
+		var tx1 := int(r.end.x) / KaroSeti.BOY - 1
+		var ty1 := int(r.end.y) / KaroSeti.BOY - 1
+		for ty in range(ty0, ty1 + 1):
+			for tx in range(tx0, tx1 + 1):
+				kat.set_cell(Vector2i(tx, ty), 0, KaroSeti.koord(tx, ty, tx0, ty0, tx1, ty1))
+	_dunya.add_child(kat)
 
-func _diken(r: Rect2) -> Area2D:
+func _diken(r: Rect2, tavan: bool) -> Area2D:
 	var alan := Area2D.new()
-	alan.position = r.position + r.size * 0.5
+	alan.position = r.position
 	alan.monitorable = false
 	alan.monitoring = false   # bayat ortusme tuzagi: ilk fizik karesinden sonra acilir
 	var sekil := RectangleShape2D.new()
 	sekil.size = r.size
 	var carpisma := CollisionShape2D.new()
 	carpisma.shape = sekil
+	carpisma.position = r.size * 0.5
 	alan.add_child(carpisma)
-	# Testere disleri
-	var noktalar := PackedVector2Array()
-	var dis_sayisi := maxi(1, int(r.size.x / 12.0))
-	var genislik := r.size.x / float(dis_sayisi)
-	for i in dis_sayisi:
-		var x := -r.size.x * 0.5 + i * genislik
-		noktalar.append(Vector2(x, r.size.y * 0.5))
-		noktalar.append(Vector2(x + genislik * 0.5, -r.size.y * 0.5))
-		noktalar.append(Vector2(x + genislik, r.size.y * 0.5))
-	var gorsel := Polygon2D.new()
-	gorsel.polygon = noktalar
-	gorsel.color = Ayarlar.RENK_DIKEN
-	alan.add_child(gorsel)
+	var adet := maxi(1, int(r.size.x / 16.0))
+	for i in adet:
+		var s := Sprite2D.new()
+		s.texture = DOKU_DIKEN
+		s.centered = false
+		s.flip_v = tavan
+		s.position = Vector2(i * 16.0, r.size.y - 8.0 if not tavan else 0.0)
+		alan.add_child(s)
+	alan.z_index = 2
 	alan.body_entered.connect(_tehlikeye_degdi)
+	return alan
+
+func _ruzgar_alani(r: Rect2, yon: Vector2) -> Area2D:
+	var alan := Area2D.new()
+	alan.position = r.position + r.size * 0.5
+	alan.monitorable = false
+	alan.monitoring = false
+	var sekil := RectangleShape2D.new()
+	sekil.size = r.size
+	var carpisma := CollisionShape2D.new()
+	carpisma.shape = sekil
+	alan.add_child(carpisma)
+
+	var perde := ColorRect.new()
+	perde.color = Color(Palet.RUZGAR, 0.08)
+	perde.size = r.size
+	perde.position = -r.size * 0.5
+	perde.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	alan.add_child(perde)
+
+	var pc := CPUParticles2D.new()
+	pc.texture = DOKU_RUZGAR
+	pc.amount = clampi(int(r.size.x * r.size.y / 900.0), 8, 40)
+	pc.lifetime = 1.1
+	pc.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
+	pc.emission_rect_extents = r.size * 0.5
+	pc.direction = yon.normalized()
+	pc.spread = 8.0
+	pc.initial_velocity_min = 150.0
+	pc.initial_velocity_max = 260.0
+	pc.scale_amount_min = 0.7
+	pc.scale_amount_max = 1.6
+	pc.color = Color(Palet.RUZGAR, 0.55)
+	alan.add_child(pc)
+
+	var birim := yon.normalized()
+	alan.body_entered.connect(func(g: Node2D) -> void:
+		if g == _oyuncu:
+			_oyuncu.ruzgar += birim)
+	alan.body_exited.connect(func(g: Node2D) -> void:
+		if g == _oyuncu:
+			_oyuncu.ruzgar -= birim)
+	alan.z_index = 0
+	return alan
+
+func _kontrol_noktasi(yer: Vector2, sira: int) -> Area2D:
+	var alan := Area2D.new()
+	alan.position = yer
+	alan.monitorable = false
+	alan.monitoring = false
+	var sekil := RectangleShape2D.new()
+	sekil.size = Vector2(24, 40)
+	var carpisma := CollisionShape2D.new()
+	carpisma.shape = sekil
+	alan.add_child(carpisma)
+	var s := Sprite2D.new()
+	s.texture = DOKU_KONTROL
+	s.hframes = 2
+	s.name = "Gorsel"
+	alan.add_child(s)
+	alan.name = "Kontrol%d" % sira
+	alan.z_index = 2
+	alan.body_entered.connect(_kontrole_degdi.bind(alan))
 	return alan
 
 func _bitis_bayragi(yer: Vector2) -> Area2D:
@@ -115,60 +272,156 @@ func _bitis_bayragi(yer: Vector2) -> Area2D:
 	var carpisma := CollisionShape2D.new()
 	carpisma.shape = sekil
 	alan.add_child(carpisma)
-	var direk := _dikdortgen(Vector2(3, 56), Ayarlar.RENK_BITIS)
-	alan.add_child(direk)
-	var bayrak := Polygon2D.new()
-	bayrak.polygon = PackedVector2Array([Vector2(2, -28), Vector2(22, -20), Vector2(2, -12)])
-	bayrak.color = Ayarlar.RENK_BITIS
-	alan.add_child(bayrak)
+	var s := Sprite2D.new()
+	s.texture = DOKU_BAYRAK
+	alan.add_child(s)
 	alan.name = "Bitis"
+	alan.z_index = 2
 	alan.body_entered.connect(_bitise_degdi)
 	return alan
 
-func _dikdortgen(boyut: Vector2, renk: Color) -> Polygon2D:
-	var p := Polygon2D.new()
-	var y := boyut * 0.5
-	p.polygon = PackedVector2Array([-y, Vector2(y.x, -y.y), y, Vector2(-y.x, y.y)])
-	p.color = renk
-	return p
-
 func _kamera_sinirla() -> void:
 	var sinir := Rect2(_veri["basla"], Vector2.ZERO)
-	for r: Rect2 in _veri["zemin"]:
+	for r: Rect2 in Bolumler.zeminler(bolum_no):
 		sinir = sinir.merge(r)
 	sinir = sinir.expand(_veri["bitis"] + Vector2(80, 0))
-	var kamera: Camera2D = _oyuncu.get_node("Kamera")
-	kamera.limit_left = int(sinir.position.x) - 40
-	kamera.limit_right = int(sinir.end.x) + 40
-	kamera.limit_top = int(sinir.position.y) - 140
-	kamera.limit_bottom = int(sinir.end.y) + 60
+	_kamera.limit_left = int(sinir.position.x) - 40
+	_kamera.limit_right = int(sinir.end.x) + 40
+	_kamera.limit_top = int(sinir.position.y) - 140
+	_kamera.limit_bottom = int(sinir.end.y) + 60
+
+# --- Parcacik ve sarsinti ---------------------------------------------
+
+func _parcacik_yap() -> CPUParticles2D:
+	var pc := CPUParticles2D.new()
+	pc.texture = DOKU_PARCACIK
+	pc.emitting = false
+	pc.one_shot = true
+	pc.explosiveness = 0.9
+	pc.lifetime = 0.5
+	pc.spread = 180.0
+	pc.gravity = Vector2(0, 420)
+	pc.initial_velocity_min = 60.0
+	pc.initial_velocity_max = 190.0
+	pc.scale_amount_min = 0.6
+	pc.scale_amount_max = 1.4
+	pc.z_index = 6
+	return pc
+
+## Kisa bir parcacik patlamasi. KancaNoktasi da kirilirken bunu cagirir.
+func parcacik_at(yer: Vector2, renk: Color, adet: int = 10) -> void:
+	var pc := _parcacik_havuzu[_parcacik_sira]
+	_parcacik_sira = (_parcacik_sira + 1) % _parcacik_havuzu.size()
+	pc.global_position = yer
+	pc.amount = maxi(adet, 1)
+	pc.color = renk
+	pc.restart()
+	pc.emitting = true
+
+func sars(guc: float) -> void:
+	if bool(Kayit.ayar("sarsinti")):
+		_sarsinti = maxf(_sarsinti, guc)
+
+# --- Oyuncu olaylari --------------------------------------------------
+
+func _kanca_takildi(yer: Vector2) -> void:
+	sars(1.6)
+	parcacik_at(yer, Palet.NOKTA_BAGLI, 6)
+
+func _kanca_koptu(hiz: Vector2) -> void:
+	if hiz.length() > 320.0:
+		parcacik_at(_oyuncu.global_position, Palet.HALAT, 8)
+
+func _yere_indi(dusus_hizi: float) -> void:
+	if dusus_hizi > 260.0:
+		parcacik_at(_oyuncu.global_position + Vector2(0, 12), Palet.KAYA_KENAR,
+			clampi(int(dusus_hizi / 60.0), 4, 14))
+		sars(minf(dusus_hizi / 260.0, 3.5))
 
 # --- Akis -------------------------------------------------------------
 
-func _basa_al() -> void:
+## Bolumu bastan baslatir: sure sifir, kontrol noktalari silinir, dunya yenilenir.
+func _yeniden() -> void:
+	_sure = 0.0
+	_dogus = _veri["basla"]
+	_kayit = PackedVector2Array()
+	_kayit_sayaci = 0.0
+	_oluyor = false
+	_dunyayi_kur()
+	_dogur()
+	if _hayalet != null:
+		_hayalet.basla()
+
+## Olum: kontrol noktasindan devam, sure isliyor (hiz oyunu - olum zaman kaybi).
+func _oldu() -> void:
+	# Dusus olumunde _process her karede tetikler, dikende sinyal birden cok
+	# kez gelebilir: yeniden dogus kare sonuna ertelendigi icin kilit sart.
+	if _bitti or _oluyor:
+		return
+	_oluyor = true
+	Ses.cal("olum")
+	parcacik_at(_oyuncu.global_position, Palet.ATKI, 18)
+	sars(5.0)
+	_sayiyor = true
+	_yeniden_dogur.call_deferred()
+	Gecis.yanip_son()
+
+## Olum sinyali Area2D'nin icinden geliyor; dunyayi kare sonunda yeniliyoruz.
+func _yeniden_dogur() -> void:
+	_dunyayi_kur()
+	_dogur()
+	_oluyor = false
+
+func _dogur() -> void:
 	_oyuncu.kanca_birak()
-	_oyuncu.global_position = _veri["basla"]
+	_oyuncu.ruzgar = Vector2.ZERO
+	_oyuncu.global_position = _dogus
 	_oyuncu.velocity = Vector2.ZERO
 	_oyuncu.girdi_aktif = true
 	_oyuncu.set_physics_process(true)
-	_sure = 0.0
+	_kamera.reset_smoothing()
 	_sayiyor = true
 	_bitti = false
 	_duraklatildi = false
 	_duraklat_panel.visible = false
+	_ayar_panel.visible = false
 	_bitis_panel.visible = false
 	_sure_yaz()
+	_alanlari_ac.call_deferred()
 
 func _process(delta: float) -> void:
 	if _sayiyor:
 		_sure += delta
 		_sure_yaz()
+		_kayit_sayaci += delta
+		if _kayit_sayaci >= Hayalet.ARALIK:
+			_kayit_sayaci -= Hayalet.ARALIK
+			_kayit.append(_oyuncu.global_position)
+	if _sarsinti > 0.0:
+		_sarsinti_t += delta
+		_sarsinti = move_toward(_sarsinti, 0.0, Ayarlar.SARSINTI_SONUMU * delta)
+		_kamera.offset = Vector2(
+			sin(_sarsinti_t * Ayarlar.SARSINTI_HIZ) * _sarsinti,
+			cos(_sarsinti_t * Ayarlar.SARSINTI_HIZ * 1.3) * _sarsinti)
+	elif _kamera.offset != Vector2.ZERO:
+		_kamera.offset = Vector2.ZERO
 	if not _bitti and not _duraklatildi and _oyuncu.global_position.y > Ayarlar.OLUM_Y:
-		_basa_al()
+		_oldu()
 
 func _tehlikeye_degdi(govde: Node2D) -> void:
 	if govde == _oyuncu and not _bitti:
-		_basa_al()
+		_oldu()
+
+func _kontrole_degdi(govde: Node2D, alan: Area2D) -> void:
+	if govde != _oyuncu or _bitti:
+		return
+	if _dogus.distance_to(alan.position) < 1.0:
+		return
+	_dogus = alan.position
+	var g: Sprite2D = alan.get_node("Gorsel")
+	g.frame = 1
+	Ses.cal("kontrol")
+	parcacik_at(alan.global_position, Palet.NOKTA_BAGLI, 10)
 
 func _bitise_degdi(govde: Node2D) -> void:
 	if govde != _oyuncu or _bitti:
@@ -178,14 +431,24 @@ func _bitise_degdi(govde: Node2D) -> void:
 	_oyuncu.girdi_aktif = false
 	_oyuncu.kanca_birak()
 	_oyuncu.set_physics_process(false)
+	Ses.cal("bitis")
+	parcacik_at(_oyuncu.global_position, Palet.BITIS, 24)
 
 	var rekor := Kayit.sure_yaz(bolum_no, _sure)
 	Kayit.bolum_ac(mini(bolum_no + 1, Bolumler.sayi()))
+	if rekor and bool(Kayit.ayar("hayalet")):
+		Kayit.hayalet_yaz(bolum_no, _kayit)
 
+	var madalya := Bolumler.madalya(bolum_no, _sure)
+	if madalya < 3:
+		Ses.cal("madalya")
+	var m: Array = _veri["madalya"]
 	var satirlar := [
 		"%d. bölüm — %s" % [bolum_no, Bolumler.ad(bolum_no)],
 		"Süre: %s" % _bicim(_sure),
 		"YENİ REKOR!" if rekor else "En iyi: %s" % _bicim(Kayit.en_iyi(bolum_no)),
+		"Madalya: %s" % Bolumler.MADALYA_ADI[madalya],
+		"Altın %s · Gümüş %s · Bronz %s" % [_bicim(m[0]), _bicim(m[1]), _bicim(m[2])],
 	]
 	_bitis_metin.text = "\n".join(PackedStringArray(satirlar))
 	_bitis_panel.visible = true
@@ -194,7 +457,9 @@ func _bitise_degdi(govde: Node2D) -> void:
 
 func _unhandled_input(olay: InputEvent) -> void:
 	if olay.is_action_pressed("duraklat"):
-		if _bitti:
+		if _ayar_panel.visible:
+			_ayarlardan_don()
+		elif _bitti:
 			_menuye()
 		else:
 			_duraklat_degistir()
@@ -208,21 +473,32 @@ func _unhandled_input(olay: InputEvent) -> void:
 
 func _duraklat_degistir() -> void:
 	_duraklatildi = not _duraklatildi
+	_ayar_panel.visible = false
 	_duraklat_panel.visible = _duraklatildi
 	_sayiyor = not _duraklatildi
 	_oyuncu.set_physics_process(not _duraklatildi)
+	Ses.cal("menu")
 	if _duraklatildi:
 		_duraklat_panel.find_child("Devam", true, false).grab_focus()
 
-func _yeniden() -> void:
-	_basa_al()
-
 func _sonraki() -> void:
 	if bolum_no < Bolumler.sayi():
-		get_tree().change_scene_to_file(Bolumler.yol(bolum_no + 1))
+		Gecis.git(Bolumler.yol(bolum_no + 1))
 
 func _menuye() -> void:
-	get_tree().change_scene_to_file(MENU_YOLU)
+	Gecis.git(MENU_YOLU)
+
+# --- Hayalet ----------------------------------------------------------
+
+func _hayaleti_kur() -> void:
+	if not bool(Kayit.ayar("hayalet")):
+		return
+	var ornekler := Kayit.hayalet_oku(bolum_no)
+	if ornekler.size() < 2:
+		return
+	_hayalet = Hayalet.new()
+	add_child(_hayalet)
+	_hayalet.kur(ornekler)
 
 # --- Arayuz -----------------------------------------------------------
 
@@ -243,15 +519,25 @@ func _arayuzu_kur() -> void:
 	_sure_etiket.position = Vector2(12, 8)
 	katman.add_child(_sure_etiket)
 
-	_eniyi_etiket = _etiket("En iyi  %s" % _bicim(Kayit.en_iyi(bolum_no)), 11, Color(0.7, 0.75, 0.85))
+	var en_iyi := Kayit.en_iyi(bolum_no)
+	_eniyi_etiket = _etiket("En iyi  %s" % _bicim(en_iyi), 11, Ayarlar.RENK_METIN)
 	_eniyi_etiket.position = Vector2(12, 30)
 	katman.add_child(_eniyi_etiket)
 
-	var baslik := _etiket("%d. %s" % [bolum_no, _veri["ad"]], 11, Color(0.7, 0.75, 0.85))
+	_madalya_gorsel = madalya_simgesi(Bolumler.madalya(bolum_no, en_iyi))
+	_madalya_gorsel.position = Vector2(92, 30)
+	katman.add_child(_madalya_gorsel)
+
+	var baslik := _etiket("%d. %s" % [bolum_no, _veri["ad"]], 11, Ayarlar.RENK_METIN_SOLUK)
 	baslik.position = Vector2(12, 46)
 	katman.add_child(baslik)
 
-	var yardim := _etiket("R: yeniden   Esc: duraklat", 10, Color(0.55, 0.6, 0.7))
+	var hedef: Array = _veri["madalya"]
+	var altin := _etiket("Altın hedefi  %s" % _bicim(hedef[0]), 10, Palet.ALTIN)
+	altin.position = Vector2(12, 62)
+	katman.add_child(altin)
+
+	var yardim := _etiket("R: yeniden   Esc: duraklat", 10, Ayarlar.RENK_METIN_SOLUK)
 	yardim.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
 	yardim.offset_left = -12.0
 	yardim.offset_right = -12.0
@@ -269,14 +555,15 @@ func _arayuzu_kur() -> void:
 		e.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		katman.add_child(e)
 
-	_duraklat_panel = _panel("DURAKLATILDI", [
+	_duraklat_panel = panel("DURAKLATILDI", [
 		{"ad": "Devam", "metin": "Devam", "islev": _duraklat_degistir},
 		{"ad": "Yeniden", "metin": "Bölümü yeniden başla", "islev": _yeniden},
+		{"ad": "Ayarlar", "metin": "Ayarlar", "islev": _ayarlara},
 		{"ad": "Menu", "metin": "Menüye dön", "islev": _menuye},
 	])
 	katman.add_child(_duraklat_panel)
 
-	_bitis_panel = _panel("BÖLÜM BİTTİ", [
+	_bitis_panel = panel("BÖLÜM BİTTİ", [
 		{"ad": "Sonraki", "metin": "Sonraki bölüm  (Enter)", "islev": _sonraki},
 		{"ad": "Yeniden", "metin": "Tekrar dene  (R)", "islev": _yeniden},
 		{"ad": "Menu", "metin": "Menüye dön  (Esc)", "islev": _menuye},
@@ -285,21 +572,54 @@ func _arayuzu_kur() -> void:
 	_bitis_metin = _bitis_panel.find_child("Baslik", true, false)
 	_sonraki_dugme = _bitis_panel.find_child("Sonraki", true, false)
 
+	# Ayarlar bolumu terk etmeden, duraklatma perdesinin uzerinde acilir.
+	_ayar_panel = AyarPanel.yap(_ayarlardan_don, true)
+	katman.add_child(_ayar_panel)
+
+func _ayarlara() -> void:
+	Ses.cal("menu")
+	_duraklat_panel.visible = false
+	_ayar_panel.visible = true
+	_ayar_panel.find_child("GeriAyar", true, false).grab_focus()
+
+func _ayarlardan_don() -> void:
+	Ses.cal("menu")
+	_ayar_panel.visible = false
+	_duraklat_panel.visible = true
+	_duraklat_panel.find_child("Devam", true, false).grab_focus()
+
 func _etiket(metin: String, boy: int, renk: Color) -> Label:
+	return etiket_yap(metin, boy, renk)
+
+# --- Ortak arayuz parcalari (menu.gd de kullanir) ----------------------
+
+static func etiket_yap(metin: String, boy: int, renk: Color) -> Label:
 	var e := Label.new()
 	e.text = metin
 	e.add_theme_font_size_override("font_size", boy)
 	e.add_theme_color_override("font_color", renk)
 	return e
 
-func _panel(baslik: String, dugmeler: Array) -> Control:
+## 0 altin, 1 gumus, 2 bronz, 3 = gorunmez.
+static func madalya_simgesi(no: int) -> TextureRect:
+	var t := TextureRect.new()
+	var atlas := AtlasTexture.new()
+	atlas.atlas = DOKU_MADALYA
+	atlas.region = Rect2(clampi(no, 0, 2) * 12, 0, 12, 12)
+	t.texture = atlas
+	t.custom_minimum_size = Vector2(12, 12)
+	t.visible = no < 3
+	t.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return t
+
+static func panel(baslik: String, dugmeler: Array) -> Control:
 	var kok := Control.new()
 	kok.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	kok.mouse_filter = Control.MOUSE_FILTER_STOP
 	kok.visible = false
 
 	var perde := ColorRect.new()
-	perde.color = Color(0.04, 0.05, 0.09, 0.82)
+	perde.color = Color(Palet.GOK_DIP, 0.85)
 	perde.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	kok.add_child(perde)
 
@@ -312,7 +632,7 @@ func _panel(baslik: String, dugmeler: Array) -> Control:
 	kutu.add_theme_constant_override("separation", 8)
 	orta.add_child(kutu)
 
-	var b := _etiket(baslik, 16, Color(1, 1, 1))
+	var b := etiket_yap(baslik, 16, Color(1, 1, 1))
 	b.name = "Baslik"
 	b.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	kutu.add_child(b)
