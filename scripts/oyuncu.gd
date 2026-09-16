@@ -251,7 +251,7 @@ func _tutun() -> void:
 func _physics_process(delta: float) -> void:
 	_fare_yasi += delta
 	_kojot_aday_yasi += delta
-	_dokunmatik = girdi_aktif and (bool(Kayit.ayar("dokunmatik")) or OS.has_feature("mobile"))
+	_dokunmatik = girdi_aktif and Ayarlar.dokunmatik_mi()
 	if kanca_nokta != null and not is_instance_valid(kanca_nokta):
 		kanca_nokta = null
 

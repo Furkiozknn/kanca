@@ -70,3 +70,25 @@ const RENK_NOKTA_VURGU := Palet.NOKTA_VURGU
 const RENK_NOKTA_BAGLI := Palet.NOKTA_BAGLI
 const RENK_METIN := Palet.METIN
 const RENK_METIN_SOLUK := Palet.METIN_SOLUK
+
+# --- Girdi semasi ---
+
+## Testlerin ezmesi icin: -1 otomatik, 0 zorla kapali, 1 zorla acik.
+var dokunmatik_zorla := -1
+
+## Tek parmak semasi acik mi. TEK KAYNAK - oyuncu girdisi, menu yardimi,
+## bolum ipuclari ve HUD bunu okur.
+##
+## Telefon tarayicisinda OS.has_feature("mobile") FALSE doner (web disa
+## aktarimi "web" + "web_android"/"web_ios" bildirir). Sadece "mobile"a
+## bakmak telefonda semayi hic acmiyordu - v0.3.1 yonetici bulgusu.
+## is_touchscreen_available() yalniz web'de sayilir: masaustu dokunmatik
+## ekranda fare de vardir, semayi zorla degistirmek orada geriye gidis olur.
+func dokunmatik_mi() -> bool:
+	if dokunmatik_zorla >= 0:
+		return dokunmatik_zorla == 1
+	if bool(Kayit.ayar("dokunmatik")):
+		return true
+	if OS.has_feature("mobile") or OS.has_feature("web_android") or OS.has_feature("web_ios"):
+		return true
+	return OS.has_feature("web") and DisplayServer.is_touchscreen_available()
