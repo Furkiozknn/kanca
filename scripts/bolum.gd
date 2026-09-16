@@ -550,6 +550,8 @@ func _unhandled_input(olay: InputEvent) -> void:
 	get_viewport().set_input_as_handled()
 
 func _duraklat_degistir() -> void:
+	if _bitti:
+		return   # dokunmatik Duraklat dugmesi bitis panelinin altinda kalir
 	_duraklatildi = not _duraklatildi
 	_ayar_panel.visible = false
 	_duraklat_panel.visible = _duraklatildi
@@ -601,17 +603,17 @@ func _arayuzu_kur() -> void:
 	katman.name = "Arayuz"
 	add_child(katman)
 
-	_sure_etiket = _etiket("", 16, Color(1, 1, 1))
+	_sure_etiket = _serit(_etiket("", 16, Color(1, 1, 1)))
 	_sure_etiket.position = Vector2(12, 8)
 	katman.add_child(_sure_etiket)
 
-	_akis_etiket = _etiket("", 12, Palet.ALTIN)
+	_akis_etiket = _serit(_etiket("", 12, Palet.ALTIN))
 	_akis_etiket.position = Vector2(12, 78)
 	_akis_etiket.visible = false
 	katman.add_child(_akis_etiket)
 
 	var en_iyi := Kayit.en_iyi(bolum_no)
-	_eniyi_etiket = _etiket("En iyi  %s" % _bicim(en_iyi), 11, Ayarlar.RENK_METIN)
+	_eniyi_etiket = _serit(_etiket("En iyi  %s" % _bicim(en_iyi), 11, Ayarlar.RENK_METIN))
 	_eniyi_etiket.position = Vector2(12, 30)
 	katman.add_child(_eniyi_etiket)
 
@@ -621,27 +623,41 @@ func _arayuzu_kur() -> void:
 	_madalya_gorsel.position = Vector2(108, 30)
 	katman.add_child(_madalya_gorsel)
 
-	var baslik := _etiket("%d. %s" % [bolum_no, _veri["ad"]], 11, Ayarlar.RENK_METIN_SOLUK)
+	var baslik := _serit(_etiket("%d. %s" % [bolum_no, _veri["ad"]], 11, Ayarlar.RENK_METIN_SOLUK))
 	baslik.position = Vector2(12, 46)
 	katman.add_child(baslik)
 
 	var hedef: Array = _veri["madalya"]
-	var altin := _etiket("Altın hedefi  %s" % _bicim(hedef[0]), 10, Palet.ALTIN)
+	var altin := _serit(_etiket("Altın hedefi  %s" % _bicim(hedef[0]), 10, Palet.ALTIN))
 	altin.position = Vector2(12, 62)
 	katman.add_child(altin)
 
-	var yardim := _etiket("R: yeniden   Esc: duraklat", 10, Ayarlar.RENK_METIN_SOLUK)
-	yardim.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
-	yardim.offset_left = -12.0
-	yardim.offset_right = -12.0
-	yardim.offset_top = 10.0
-	yardim.offset_bottom = 26.0
-	yardim.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	katman.add_child(yardim)
+	# Dokunmatikte R/Esc yok; ayni koseye gercek bir duraklat dugmesi konur.
+	if Ayarlar.dokunmatik_mi():
+		var durakla := Button.new()
+		durakla.name = "DuraklatDugme"
+		durakla.text = "Duraklat"
+		durakla.add_theme_font_size_override("font_size", 10)
+		durakla.pressed.connect(_duraklat_degistir)
+		durakla.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+		durakla.offset_left = -78.0
+		durakla.offset_top = 6.0
+		durakla.offset_right = -10.0
+		durakla.offset_bottom = 28.0
+		katman.add_child(durakla)
+	else:
+		var yardim := _serit(_etiket("R: yeniden   Esc: duraklat", 10, Ayarlar.RENK_METIN_SOLUK))
+		yardim.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+		yardim.offset_left = -152.0
+		yardim.offset_top = 8.0
+		yardim.offset_right = -12.0
+		yardim.offset_bottom = 24.0
+		yardim.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		katman.add_child(yardim)
 
-	var ipucu := String(_veri["ipucu"])
+	var ipucu := Bolumler.ipucu(bolum_no)
 	if ipucu != "":
-		var e := _etiket(ipucu, 11, Color(0.95, 0.9, 0.6))
+		var e := _serit(_etiket(ipucu, 11, Color(0.95, 0.9, 0.6)))
 		e.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
 		e.offset_top = -34.0
 		e.offset_bottom = -14.0
@@ -686,6 +702,22 @@ func _etiket(metin: String, boy: int, renk: Color) -> Label:
 	return etiket_yap(metin, boy, renk)
 
 # --- Ortak arayuz parcalari (menu.gd de kullanir) ----------------------
+
+## HUD metni dunya ciziminin onunde; koyu seffaf serit onu kanca noktasi gibi
+## sprite'larin uzerinde de okunur tutar (v0.3.1 web bulgusu).
+static func _serit(e: Label) -> Label:
+	var s := StyleBoxFlat.new()
+	s.bg_color = Color(0.04, 0.05, 0.10, 0.62)
+	s.content_margin_left = 4.0
+	s.content_margin_right = 4.0
+	s.content_margin_top = 1.0
+	s.content_margin_bottom = 1.0
+	s.corner_radius_top_left = 2
+	s.corner_radius_top_right = 2
+	s.corner_radius_bottom_left = 2
+	s.corner_radius_bottom_right = 2
+	e.add_theme_stylebox_override("normal", s)
+	return e
 
 static func etiket_yap(metin: String, boy: int, renk: Color) -> Label:
 	var e := Label.new()

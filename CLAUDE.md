@@ -151,6 +151,13 @@ hiç Godot süreci yoksa hemen devralır. **Godot'u kilitsiz çalıştırma.**
 10. **`class_name` yeni dosyada tanımlıysa** o dosya bir kez import edilmeden
    (`--import`) diğer betiklerden görünmez: "Identifier not declared" parse
    hatası alırsın. Yeni bir `class_name` ekledikten sonra önce import et.
+11. **Telefon tarayıcısında `OS.has_feature("mobile")` FALSE döner.** Web dışa
+   aktarımı `web` + `web_android`/`web_ios` bildirir. Girdi şemasını tek yerden
+   sor: **`Ayarlar.dokunmatik_mi()`** (oyuncu girdisi, menü yardımı, bölüm ipuçları
+   ve HUD aynı işlevi okur). Testlerde `Ayarlar.dokunmatik_zorla` ile ezilir.
+12. **HUD metni dünya çiziminin önünde ama saydam.** Yeni bir HUD etiketini
+   `Bolum._serit(...)` ile sar; yoksa bir kanca noktası sprite'ının üzerinde
+   okunmaz olur (v0.3.1 web bulgusu).
 
 ## Bu depoda yapılmayacaklar
 

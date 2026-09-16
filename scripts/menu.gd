@@ -4,6 +4,7 @@ extends Control
 var _ana: Control
 var _secim: Control
 var _ayar: Control
+var _yardim: Label
 
 func _ready() -> void:
 	RenderingServer.set_default_clear_color(Ayarlar.RENK_ARKAPLAN)
@@ -75,12 +76,20 @@ func _ana_panel() -> Control:
 	kutu.add_child(_dugme("Basla", "Başla  —  %d. bölüm" % acik, _basla))
 	kutu.add_child(_dugme("Sec", "Bölüm Seç", _secim_goster))
 	kutu.add_child(_dugme("Ayar", "Ayarlar", _ayar_goster))
-	kutu.add_child(_dugme("Cikis", "Çıkış", _cikis))
+	# Tarayicida quit() islevsiz; sekmeyi kapatmak kullanicinin isi.
+	if not OS.has_feature("web"):
+		kutu.add_child(_dugme("Cikis", "Çıkış", _cikis))
 	kutu.add_child(_bosluk(14))
-	kutu.add_child(_etiket(
-		"Fare: nişan  •  Sol tık: kanca  •  A/D: koş & salın\nBoşluk: zıpla  •  W/S: halatı kısalt/uzat  •  R: yeniden",
-		10, Ayarlar.RENK_METIN_SOLUK))
+	_yardim = _etiket(yardim_metni(), 10, Ayarlar.RENK_METIN_SOLUK)
+	_yardim.name = "Yardim"
+	kutu.add_child(_yardim)
 	return kok
+
+## Kontrol yardimi girdi semasina gore. Masaustu metni aynen korunur.
+static func yardim_metni() -> String:
+	if Ayarlar.dokunmatik_mi():
+		return "Dokun: nişan al ve kanca tak  •  Parmağı kaldır: bırak\nBasılıyken yukarı/aşağı kaydır: halatı kısalt/uzat  •  Koşu otomatik"
+	return "Fare: nişan  •  Sol tık: kanca  •  A/D: koş & salın\nBoşluk: zıpla  •  W/S: halatı kısalt/uzat  •  R: yeniden"
 
 func _secim_paneli() -> Control:
 	var p := _kutu_panel()
@@ -157,6 +166,8 @@ func _ana_goster() -> void:
 	_secim.visible = false
 	_ayar.visible = false
 	_ana.visible = true
+	# Ayarlardan tek parmak semasi degistirilmis olabilir.
+	_yardim.text = yardim_metni()
 	_ana.find_child("Basla", true, false).grab_focus()
 
 func _sifirla() -> void:

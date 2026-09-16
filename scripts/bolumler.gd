@@ -18,6 +18,7 @@ class_name Bolumler
 ##   kontrol     : Array[Vector2]           kontrol noktasi (olunce buradan devam)
 ##   madalya     : [altin, gumus, bronz] saniye - YEDEK deger; uretilmis rota
 ##                 verisi (scripts/rota_verisi.gd) varsa o kullanilir
+##   ipucu_dokunma : tek parmak semasinda gosterilen ipucu (yoksa ipucu kullanilir)
 ##   kisayol     : iyi bir sallanisla atlanabilen kisim (README icin)
 
 const KARO := 16
@@ -26,6 +27,7 @@ const VERI := [
 	{
 		"ad": "İlk Tutuş",
 		"ipucu": "Fare ile nişan al, SOL TIK basılı tut: kanca takılır. Bırakınca kopar.",
+		"ipucu_dokunma": "Parmağını basılı tut: nişan alır ve kanca takılır. Kaldırınca kopar.",
 		"basla": Vector2(64, 256),
 		"bitis": Vector2(1152, 272),
 		"zemin": [Rect2(0, 304, 432, 64), Rect2(704, 304, 528, 64)],
@@ -36,6 +38,7 @@ const VERI := [
 	{
 		"ad": "Halat Boyu",
 		"ipucu": "W/S halatı kısaltır-uzatır. Kısa halat daha hızlı döndürür.",
+		"ipucu_dokunma": "Basılıyken yukarı/aşağı kaydır: halatı kısaltır-uzatır. Kısa halat daha hızlı döndürür.",
 		"basla": Vector2(64, 256),
 		"bitis": Vector2(1536, 272),
 		"zemin": [Rect2(0, 304, 368, 64), Rect2(624, 304, 288, 64), Rect2(1168, 304, 448, 64)],
@@ -266,6 +269,13 @@ static func madalya_esikleri(bolum_no: int) -> Array:
 		return uretilmis
 	var d: Dictionary = VERI[clampi(bolum_no, 1, VERI.size()) - 1]
 	return d.get("madalya", BOS["madalya"])
+
+## Bolum ipucu. Tek parmak semasinda dokunma metni varsa o gosterilir.
+static func ipucu(bolum_no: int) -> String:
+	var d := veri(bolum_no)
+	if Ayarlar.dokunmatik_mi() and d.has("ipucu_dokunma"):
+		return String(d["ipucu_dokunma"])
+	return String(d["ipucu"])
 
 static func ad(bolum_no: int) -> String:
 	return String(VERI[clampi(bolum_no, 1, VERI.size()) - 1]["ad"])
