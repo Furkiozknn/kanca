@@ -95,8 +95,11 @@ Kaynak: `D:\Claude Projeleri\oyun-terminalleri\tasarim\kanca-rakip-analizi.md`
 - [x] Ustalık zinciri ("Akış ×N"): yere değmeden art arda kanca, süreden ayrı not
 
 ### Doğrulama
-- [x] 13 yeni test (toplam 58), import 0 hata, Windows + Web dışa aktarma
+- [x] 21 yeni test (45 → **66**), import 0 hata, Windows + Web dışa aktarma
+- [x] `SALLANMA_SONUMU` 0,05 → 0,10 (sert kısıt enerji kaçağını kapattı)
 - [x] Ekran görüntüleri yenilendi, `yayin/` güncellendi, `v0.3` etiketi
+- [x] Görsel kontrol iki düzen hatası yakaladı (madalya simgesi çakışması,
+      ayarlar kutusunun 360 px'i taşması)
 
 ## Sonraki tur — v0.4
 
@@ -105,8 +108,9 @@ Kaynak: `D:\Claude Projeleri\oyun-terminalleri\tasarim\kanca-rakip-analizi.md`
       halat pompası fazla güçlü mü (bölümleri trivialize ediyor mu), kamera
       uzaklaşması pixel art'ta titriyor mu, tek parmak şeması gerçek telefonda
       ne hissettiriyor.
-- [ ] **Bot rotayı değiştirebilsin.** Şu an sabit rota; başarısız olursa
-      alternatif denemiyor. Altın eşiği bu yüzden temkinli.
+- [ ] **Bot 14 bölümün yalnız 5'ini bitirebiliyor** (1, 2, 4, 6, 8); kalan 9'un
+      süresi ölçülmüş rota hızından tahmin. Botun rota değiştirebilmesi,
+      halat pompasını kullanması ve tehlikeden kaçınması gerek.
 
 ### Oynanış
 - [ ] Duvara tutunma / duvardan sekme (dar geçitlerde ikinci bir seçenek)
@@ -134,8 +138,9 @@ Kaynak: `D:\Claude Projeleri\oyun-terminalleri\tasarim\kanca-rakip-analizi.md`
 ## Bilinen sınırlar
 
 - **İnsan testi yapılmadı.** Bütün denge kararları bot ölçümü ve statik analiz.
-- Madalya süreleri artık gerçek bot koşusundan geliyor, ama bot pompayı
-  kullanmıyor ve rota sabit — iyi bir oyuncu altını rahat kırabilir.
+- Madalya süreleri 5 bölümde gerçek bot koşusundan, 9 bölümde ölçülmüş rota
+  hızından tahmin (`"tahmin": true`). Bot pompayı kullanmıyor ve rota sabit —
+  iyi bir oyuncu altını rahat kırabilir.
 - Web yapısı tek iş parçacıklı; Stream ses yolunun gecikme bedeli var
   (thread_support açılırsa itch.io'da SharedArrayBuffer kutusu şart olur).
 - Bölümlerde toplanabilir yok; hedef süre ve akış zinciri var.

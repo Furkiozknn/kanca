@@ -191,7 +191,8 @@ Seçilen değerler (`scripts/ayarlar.gd`):
 | Sabit | Değer | Neden |
 |---|---|---|
 | `SALLANMA_IVMESI` | 1250 | 500 px/sn'ye ~1,2 sn'de çıkıyor — iki salınımda hız hissi var, üçüncüde tavan. |
-| `SALLANMA_SONUMU` | 0,05 | 0,02'de sarkaç hiç durmuyor (kontrolsüz), 0,15'te pompalama boşa gidiyor. |
+| `SALLANMA_SONUMU` | **0,10** | v0.3'te sert halat kısıtı enerji kaçağını kapattı: aynı sayı artık çok daha az sönüm demek (girdisiz 4 sn sonra kalan enerji 0,05'te %71 → %86). 0,10 v0.2'nin amaçladığı %70 bandını geri veriyor, 500 px/sn'ye ulaşma maliyeti 0,03 sn. |
+| `SALLANMA_YERCEKIMI` | 1,30 | Salınım periyodu 2,52 → 2,20 sn (tepede asılı kalma gidiyor), 500 px/sn'ye hâlâ bir salınımda çıkılıyor. 1,50+ hız kurmayı belirgin yavaşlatıyor. |
 | `BIRAKMA_CARPANI` | 1,10 | Bırakma sonrası uçuş bir bölüm boşluğunu (≈300–380 px) rahat kapatıyor. |
 | `KANCA_MENZIL` | 240 | 14 bölümde nokta başına ortalama komşu sayısı makul; kopuk nokta yok. |
 
@@ -212,8 +213,13 @@ doğrulanmamıştı. v0.3'te `tools/rota.gd` bunu ölçüme çeviriyor:
    aşıldığında bırakır. Her karar anına 0,05–0,20 sn arası rastgele tepki
    gecikmesi eklenir (Neon White'ın "geliştirici kendi oyununda fazla iyi"
    sorununa karşı aynı çözüm).
-3. **Eşik.** Bölüm başına 5 koşu; altın = ortanca × 1,08, gümüş × 1,45,
-   bronz × 1,95, **ms hassasiyetinde**.
+3. **Eşik.** Bölüm başına 5 koşu; altın = ortanca × 1,25, gümüş × 1,70,
+   bronz × 2,30, **ms hassasiyetinde**. Botu birebir hedef yapmak
+   (× 1,08) Neon White'ın düştüğü tuzak olurdu — bot hiçbir kancayı kaçırmaz.
+
+Ölçüm üç kuralla gürültüden temizlenir: en iyinin 1,5 katından kötü koşular
+(kaçırılan kanca, ölüm) ortancaya girmez; ölçek bölüm oranlarının **ortancası**
+alınır; ölçeğin 2 katından yavaş kalan bölüm de tahmine devredilir.
 
 Süre kare sayısından hesaplanır (kare / 60), gerçek zamandan değil — headless'ta
 `_process` deltası gerçek zamana bağlı, fizik karesi ise sabit.
@@ -226,9 +232,17 @@ powershell -ExecutionPolicy Bypass -File tools\kilitli.ps1 -- --headless --path 
 `Bolumler.madalya_esikleri()` üretilmiş değeri tercih eder, yoksa tablodaki
 yedek değere düşer. Aynı veri **rota ipucunu** da besler.
 
+**Bot 14 bölümün 5'ini bitirebiliyor** (1, 2, 4, 6, 8). Kalan 9 bölümün süresi,
+bitirdiklerinden ölçülen rota hızından (sn/px) türetilir ve kayıtta
+`"tahmin": true` ile işaretlenir (`RotaVerisi.tahmin_mi()`).
+
 Bot tam bir insan oyuncu değil: halat pompasını kullanmıyor ve rotayı
 değiştirmiyor. Yani altın eşiği iyi bir oyuncu için ulaşılabilir, mükemmel
 oyuncu için bolca pay bırakır.
+
+**`--fixed-fps 60` şart:** headless'ta bile fizik kareleri gerçek zamanda akar
+(60 Hz), yani 2700 karelik bir koşu gerçekten 45 saniye sürer. Bayrak zamanı
+gerçek saatten koparır; ölçüm kare sayısından geldiği için sonuç değişmez.
 
 ## Ses
 
