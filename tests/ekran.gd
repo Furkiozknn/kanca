@@ -125,6 +125,13 @@ func _menu_cek() -> void:
 	for i in 6:
 		await get_tree().process_frame
 	_yaz(await _goruntu(), "res://docs/ekran/ayarlar.png")
+	# Tus atama kutusu: satirlar ekrana sigiyor mu, gozle kontrol edilsin.
+	var tus_dugmesi: Button = menu.find_child("TusAtama", true, false)
+	if tus_dugmesi != null:
+		tus_dugmesi.emit_signal("pressed")
+		for i in 6:
+			await get_tree().process_frame
+		_yaz(await _goruntu(), "res://docs/ekran/tus_atama.png")
 	katman.free()
 	await get_tree().process_frame
 
