@@ -35,6 +35,24 @@ Godot yolu: `C:\Users\furki\AppData\Local\Microsoft\WinGet\Links\godot.exe` (PAT
 | `yayin/` | itch.io paketi (sayfa metni, görseller, butler komutları). |
 | `build/` | Dışa aktarma çıktısı, `.gitignore`'da. |
 
+## Katman sırası (z_index)
+
+Yeni bir şey eklerken bu sıraya uy — yanlış katman sessizce oyuncuyu zeminin
+arkasında bırakır:
+
+| z | Ne |
+|---|---|
+| CanvasLayer −10 | Gökyüzü degradesi (kameradan bağımsız) |
+| −9 … −7 | Parallaks: uzak ada, bulut, yakın ada |
+| CanvasLayer −1 | Fırtına rüzgâr çizgileri (ekran uzayında) |
+| 1 | Zemin `TileMapLayer` |
+| 2 | Diken, tavan dikeni, bayrak, kontrol noktası |
+| 3 | Hayalet, rüzgâr alanı perdesi + parçacıkları |
+| **4** | **Oyuncu** |
+| 5 | Halat |
+| 6 | Kanca noktası |
+| 7 | Parçacıklar |
+
 ## Denge sabitleri nerede
 
 `scripts/ayarlar.gd` — **tek yer**. Sallanma dörtlüsü (`SALLANMA_IVMESI`,
@@ -67,9 +85,15 @@ powershell -ExecutionPolicy Bypass -File tools\kilitli.ps1 -- --headless --path 
 # Ekran görüntüleri (headless DEĞİL)
 powershell -ExecutionPolicy Bypass -File tools\kilitli.ps1 -- --path . --scene res://tests/ekran.tscn
 
-# Her şeyi sırayla (kilidi bir kez alır)
+# Her şeyi sırayla (kilidi bir kez alır): varlık → import → test → ölçüm → ekran → dışa aktarma
 powershell -ExecutionPolicy Bypass -File tools\tam_dogrulama.ps1
+
+# Bazı adımları atla
+powershell -ExecutionPolicy Bypass -File tools\tam_dogrulama.ps1 -Atla varlik_sprite,varlik_ses,olcum
 ```
+
+Adım adları: `varlik_sprite`, `varlik_ses`, `import`, `test`, `olcum`, `ekran`,
+`export_win`, `export_web`. Her adımın çıktısı `%TEMP%\kanca_<adim>.log`.
 
 ### Kilit kuralı
 

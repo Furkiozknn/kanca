@@ -7,10 +7,11 @@
 size = Vector2(12, 20)
 
 [node name="Oyuncu" type="CharacterBody2D"]
+z_index = 4
 script = ExtResource("1_kod")
 
 [node name="Halat" type="Line2D" parent="."]
-z_index = 4
+z_index = 5
 top_level = true
 width = 2.0
 default_color = Color(0.894, 0.651, 0.447, 1)

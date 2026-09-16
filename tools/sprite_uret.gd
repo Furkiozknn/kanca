@@ -351,22 +351,32 @@ func _kanca_noktalari() -> Image:
 	])
 
 # =====================================================================
-# Diken - 16x8 (yukari bakan; tavan icin flip_v)
+# Diken - 16x16 (yukari bakan; tavan icin flip_v)
 # =====================================================================
 
+## Karonun TAMAMINI doldurur (8 degil 16 px). Iki sebep:
+##   1. Carpisma alani veri tablosunda 16 px; 8 px cizmek gorunmeyen bir
+##      oldurme bandi birakiyordu.
+##   2. Azami hizda (900 px/sn) oyuncu karede 15 px gidiyor; 8 px'lik bant
+##      tunellemeye acik.
 func _diken() -> Image:
-	var img := _bos(16, 8)
+	var img := _bos(16, 16)
+	const UC := 12   ## sivri kisim, kalani taban bandi
 	for d in 2:
 		var x0 := d * 8
-		for y in 8:
-			var yari := clampi((y + 2) / 2, 1, 4)
+		for y in 16:
+			if y >= UC:
+				for x in 8:
+					var t: Color = Palet.CIZGI if (x == 0 or y == 15) else Palet.TEHLIKE
+					_nokta(img, x0 + x, y, t)
+				continue
+			var yari := clampi(int(float(y) * 4.0 / float(UC)) + 1, 1, 4)
 			for x in range(4 - yari, 4 + yari):
 				var renk: Color = Palet.TEHLIKE_ACIK if x < 4 else Palet.TEHLIKE
 				if x == 4 - yari or x == 4 + yari - 1:
 					renk = Palet.CIZGI
 				_nokta(img, x0 + x, y, renk)
 		_nokta(img, x0 + 3, 0, Palet.NOKTA_VURGU)
-		_nokta(img, x0 + 4, 0, Palet.CIZGI)
 	return img
 
 # =====================================================================

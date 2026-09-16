@@ -112,44 +112,55 @@ func _pompa_olc(ivme: float, sonum: float) -> Dictionary:
 
 ## Oyuncu tusu biraktiginda sallanma ne kadar yasiyor? Sonum tek basina
 ## burada goruluyor: pompalayan bot her ayarda tavana carpiyor, ama insan
-## surekli basmaz. 4 saniye girdisiz salinimdan sonra kalan tepe hiz.
+## surekli basmaz.
+##
+## HIZ DEGIL ENERJI olculuyor. Ilk denemede "4 sn sonraki tepe hiz" olculmustu
+## ve sonuc sacmaydi (sonum arttikca kalan enerji artiyor gorunuyordu): sarkacin
+## periyodu ayara gore degistigi icin olcum penceresi her seferinde salinimin
+## baska bir fazina denk geliyor. Mekanik enerji fazdan bagimsiz:
+##   E = v^2 / 2 + g * (halat_boyu - capa_altindaki_derinlik)
 func _tarama_serbest() -> void:
-	print("\n-- 2. SALLANMA_SONUMU: girdi birakildiktan sonra kalan enerji --")
-	print("%-8s %10s %10s %10s" % ["sonum", "bas_hiz", "4sn_tepe", "oran"])
+	print("\n-- 2. SALLANMA_SONUMU: 60 derecelik salinim, 4 sn sonra kalan ENERJI --")
+	print("%-8s %12s %12s %10s" % ["sonum", "bas_enerji", "4sn_enerji", "oran"])
 	Ayarlar.SALLANMA_IVMESI = 1250.0
 	for sonum: float in [0.0, 0.02, 0.05, 0.10, 0.15, 0.25]:
 		var s := await _serbest_olc(sonum)
-		print("%-8.2f %10.0f %10.0f %9.0f%%" % [
-			sonum, s["bas"], s["tepe"], 100.0 * s["tepe"] / maxf(s["bas"], 1.0)])
+		print("%-8.2f %12.0f %12.0f %9.0f%%" % [
+			sonum, s["bas"], s["son"], 100.0 * s["son"] / maxf(s["bas"], 1.0)])
 
+## Capaya gore mekanik enerji (kutle 1). Salinimin fazindan bagimsiz.
+func _enerji() -> float:
+	var derinlik := _oyuncu.global_position.y - _capa.global_position.y
+	var yukseklik := _oyuncu.halat_boyu - derinlik
+	return 0.5 * _oyuncu.velocity.length_squared() + Ayarlar.YERCEKIMI * yukseklik
+
+## Her satir AYNI baslangictan kalkar: 60 derecelik acidan, hiz sifir, girdi yok.
+## Ilk iki denemede once pompalayip sonra birakmistim; bot yuksek sonumde daha
+## uzun pompaliyor ve yayin baska bir noktasinda birakiyordu, dolayisiyla
+## satirlar karsilastirilamiyordu (sonum arttikca "kalan enerji" artiyor
+## gorunuyordu). Sabit baslangic bu karistiriciyi kaldiriyor.
 func _serbest_olc(sonum: float) -> Dictionary:
 	Ayarlar.SALLANMA_SONUMU = sonum
 	_kur()
-	await get_tree().physics_frame
-	_oyuncu.kanca_at_hemen(Vector2.UP)
-	# HEDEF_HIZ'e kadar pompala, sonra tusu birak.
-	for i in POMPA_KARE:
-		_bot_bas()
-		await get_tree().physics_frame
-		if not _oyuncu.kancali() or _oyuncu.velocity.length() >= HEDEF_HIZ:
-			break
-	var bas := _oyuncu.velocity.length()
+	var aci := deg_to_rad(60.0)
+	_oyuncu.global_position = Vector2(sin(aci), cos(aci)) * HALAT
+	_oyuncu.velocity = Vector2.ZERO
 	_oyuncu.bot_yon = 0.0
-	# 4 saniye girdisiz salin; tepe hiz SON salinimda olculur (hemen sonrasinda
-	# degil), yoksa birakma anindaki hizi olcmus oluruz.
-	var tepe := 0.0
+	await get_tree().physics_frame
+	_oyuncu.kanca_at_hemen(-_oyuncu.global_position.normalized())
+	_oyuncu.velocity = Vector2.ZERO
+	await get_tree().physics_frame
+	var bas := _enerji()
 	for i in 240:
 		await get_tree().physics_frame
 		if not _oyuncu.kancali():
 			break
-		if i >= 180:
-			tepe = maxf(tepe, _oyuncu.velocity.length())
-	return {"bas": bas, "tepe": tepe}
+	return {"bas": bas, "son": _enerji()}
 
 # --- 3. Birakma -------------------------------------------------------
 
 func _tarama_birakma() -> void:
-	print("\n-- 3. BIRAKMA_CARPANI (ivme=1250 sonum=0.05) --")
+	print("\n-- 3. BIRAKMA_CARPANI (yayin dibinde %.0f px/sn ile birakma) --" % BIRAKMA_HIZI)
 	print("%-8s %10s %10s %10s" % ["carpan", "birakma", "yatay_px", "sure"])
 	Ayarlar.SALLANMA_IVMESI = 1250.0
 	Ayarlar.SALLANMA_SONUMU = 0.05
@@ -157,27 +168,22 @@ func _tarama_birakma() -> void:
 		var s := await _birakma_olc(carpan)
 		print("%-8.2f %10.0f %10.0f %10.2f" % [carpan, s["hiz"], s["yatay"], s["sure"]])
 
-## Sarkaci pompalar, yayin en dibinde (vy ~ 0, vx > 0) birakir,
-## 200 px dusene kadar kat edilen yatay mesafeyi olcer.
+## Oyuncuyu yayin TAM DIBINE, bilinen bir hizla koyar; kancayi takip hemen
+## birakir ve 200 px dusene kadar kat edilen yatay mesafeyi olcer.
+##
+## Pompalayarak olcmeyi denedim, ise yaramadi: bot hiz tavanina (AZAMI_HIZ)
+## carpiyor, birakma carpani orada kirpiliyor ve butun satirlar ayni cikiyor.
+## Sabit baslangic hizi carpanin etkisini yalitiyor.
+const BIRAKMA_HIZI := 420.0
+
 func _birakma_olc(carpan: float) -> Dictionary:
 	Ayarlar.BIRAKMA_CARPANI = carpan
 	_kur()
+	_oyuncu.global_position = Vector2(0.0, HALAT)   # capanin tam altinda
+	_oyuncu.velocity = Vector2(BIRAKMA_HIZI, 0.0)   # yayin dibinde yatay
 	await get_tree().physics_frame
 	_oyuncu.kanca_at_hemen(Vector2.UP)
-
-	# Hiz tavanina (AZAMI_HIZ) kadar pompalarsak carpanin etkisi kirpilir ve
-	# butun satirlar ayni cikar; onun yerine orta bir hizda birakiyoruz.
-	for i in POMPA_KARE:
-		_bot_bas()
-		await get_tree().physics_frame
-		if not _oyuncu.kancali() or _oyuncu.velocity.length() >= 420.0:
-			break
-	# En dipteki saga giden ani bekle.
-	for i in 240:
-		_bot_bas()
-		await get_tree().physics_frame
-		if _oyuncu.velocity.x > 0.0 and absf(_oyuncu.velocity.y) < 25.0:
-			break
+	_oyuncu.velocity = Vector2(BIRAKMA_HIZI, 0.0)
 	_oyuncu.bot_yon = 0.0
 	_oyuncu.kanca_birak()
 	var hiz := _oyuncu.velocity.length()

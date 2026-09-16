@@ -38,7 +38,7 @@ static func yap(yer: Vector2, t: int = TUR_SABIT) -> KancaNoktasi:
 
 func _ready() -> void:
 	add_to_group(GRUP)
-	z_index = 5
+	z_index = 6
 	_gorsel = Sprite2D.new()
 	_gorsel.texture = DOKU
 	_gorsel.hframes = 3

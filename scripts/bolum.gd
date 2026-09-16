@@ -89,6 +89,30 @@ func _arka_plani_kur() -> void:
 	_parallaks(DOKU_UZAK, Vector2(0.20, 0.08), 320, Vector2(0, 8), -9, Vector2.ZERO, 0.55)
 	_parallaks(DOKU_BULUT, Vector2(0.35, 0.14), 256, Vector2(0, -50), -8, Vector2(-7.0, 0.0), 0.8)
 	_parallaks(DOKU_YAKIN, Vector2(0.55, 0.22), 320, Vector2(0, 76), -7, Vector2.ZERO, 0.7)
+	_firtina_cizgileri()
+
+## Tema "firtinali gokyuzu adalari": ekranda surekli suzulen ruzgar cizgileri.
+## Ekran uzayinda (CanvasLayer) duruyor - kamerayla kaymiyor, atmosfer katmani.
+func _firtina_cizgileri() -> void:
+	var katman := CanvasLayer.new()
+	katman.layer = -1
+	add_child(katman)
+	var pc := CPUParticles2D.new()
+	pc.texture = DOKU_RUZGAR
+	pc.position = Vector2(320, 150)
+	pc.amount = 16
+	pc.lifetime = 2.6
+	pc.preprocess = 2.6
+	pc.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
+	pc.emission_rect_extents = Vector2(420, 210)
+	pc.direction = Vector2(-1, 0.12)
+	pc.spread = 4.0
+	pc.initial_velocity_min = 70.0
+	pc.initial_velocity_max = 190.0
+	pc.scale_amount_min = 0.5
+	pc.scale_amount_max = 1.8
+	pc.color = Color(Palet.BULUT_ACIK, 0.22)
+	katman.add_child(pc)
 
 func _parallaks(doku: Texture2D, olcek: Vector2, genislik: int, kaydir: Vector2,
 		z: int, akis: Vector2, saydam: float) -> void:
@@ -187,13 +211,15 @@ func _diken(r: Rect2, tavan: bool) -> Area2D:
 	carpisma.shape = sekil
 	carpisma.position = r.size * 0.5
 	alan.add_child(carpisma)
+	# Diken dokusu 16x16 ve carpisma dikdortgeni de 16 yuksekliginde:
+	# gorunen sey ile olduren sey birebir ayni olsun.
 	var adet := maxi(1, int(r.size.x / 16.0))
 	for i in adet:
 		var s := Sprite2D.new()
 		s.texture = DOKU_DIKEN
 		s.centered = false
 		s.flip_v = tavan
-		s.position = Vector2(i * 16.0, r.size.y - 8.0 if not tavan else 0.0)
+		s.position = Vector2(i * 16.0, maxf(r.size.y - 16.0, 0.0) if not tavan else 0.0)
 		alan.add_child(s)
 	alan.z_index = 2
 	alan.body_entered.connect(_tehlikeye_degdi)
@@ -239,7 +265,7 @@ func _ruzgar_alani(r: Rect2, yon: Vector2) -> Area2D:
 	alan.body_exited.connect(func(g: Node2D) -> void:
 		if g == _oyuncu:
 			_oyuncu.ruzgar -= birim)
-	alan.z_index = 0
+	alan.z_index = 3   # karolarin (1) onunde, oyuncunun (4) arkasinda
 	return alan
 
 func _kontrol_noktasi(yer: Vector2, sira: int) -> Area2D:
@@ -256,6 +282,10 @@ func _kontrol_noktasi(yer: Vector2, sira: int) -> Area2D:
 	s.texture = DOKU_KONTROL
 	s.hframes = 2
 	s.name = "Gorsel"
+	# Kontrol noktalari platform ustunden 32 px yukarida taniml; sprite 24 px
+	# yuksek, tabani zemine otursun diye 8 px asagi kayiyor.
+	s.centered = false
+	s.position = Vector2(-8, 8)
 	alan.add_child(s)
 	alan.name = "Kontrol%d" % sira
 	alan.z_index = 2
@@ -274,6 +304,8 @@ func _bitis_bayragi(yer: Vector2) -> Area2D:
 	alan.add_child(carpisma)
 	var s := Sprite2D.new()
 	s.texture = DOKU_BAYRAK
+	s.centered = false          # direk tabani zemine otursun
+	s.position = Vector2(-8, 0)
 	alan.add_child(s)
 	alan.name = "Bitis"
 	alan.z_index = 2
@@ -305,7 +337,7 @@ func _parcacik_yap() -> CPUParticles2D:
 	pc.initial_velocity_max = 190.0
 	pc.scale_amount_min = 0.6
 	pc.scale_amount_max = 1.4
-	pc.z_index = 6
+	pc.z_index = 7
 	return pc
 
 ## Kisa bir parcacik patlamasi. KancaNoktasi da kirilirken bunu cagirir.

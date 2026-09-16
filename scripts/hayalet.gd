@@ -16,7 +16,7 @@ func _ready() -> void:
 	hframes = 10
 	frame = 8                          # sallanma karesi
 	modulate = Color(0.55, 0.8, 1.0, 0.42)
-	z_index = 3
+	z_index = 3   # oyuncunun (4) arkasinda
 	visible = false
 
 func kur(ornekler: PackedVector2Array) -> void:
