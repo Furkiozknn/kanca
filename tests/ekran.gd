@@ -43,6 +43,10 @@ func _cek() -> void:
 	_yaz(nisan, "res://docs/ekran/nisan.png")
 	_yaz(nisan, "res://yayin/ekran_2.png")
 
+	# v0.3.1: HUD dunya nesnelerinin onunde okunur mu + dokunmatik metinler.
+	_yaz(await _hud_cek(false), "res://docs/ekran/hud.png")
+	_yaz(await _hud_cek(true), "res://docs/ekran/hud_dokunmatik.png")
+
 	await _kapak_yap()
 	print("Ekran goruntuleri hazir: docs/ekran/ ve yayin/")
 	get_tree().quit()
@@ -105,6 +109,32 @@ func _nisan_cek(no: int) -> Image:
 	var im := await _goruntu()
 	bolum.free()
 	await get_tree().process_frame
+	return im
+
+## HUD dogrulamasi: oyuncuyu oyle koyar ki kanca noktalari tam HUD metinlerinin
+## arkasina duser (v0.3 web bulgusu: sag ustteki yazi bir nokta sprite'iyla
+## ust uste biniyordu). dokunmatik=true tek parmak metinlerini ve Duraklat
+## dugmesini gosterir.
+func _hud_cek(dokunmatik: bool) -> Image:
+	Ayarlar.dokunmatik_zorla = 1 if dokunmatik else 0
+	var bolum: Bolum = load(Bolumler.yol(1)).instantiate()
+	add_child(bolum)
+	for i in 12:
+		await get_tree().physics_frame
+	var oyuncu: Oyuncu = bolum.find_child("Oyuncu", true, false)
+	if oyuncu != null:
+		# (560,48) noktasi ekranin sag ust kosesine, (480,128) sol ust bloga duser.
+		oyuncu.global_position = Vector2(330, 212)
+		oyuncu.velocity = Vector2(120.0, 0.0)
+	bolum.set("_zincir", 3)
+	bolum.call("_akis_yaz")
+	for i in 6:
+		await get_tree().physics_frame
+	await get_tree().process_frame
+	var im := await _goruntu()
+	bolum.free()
+	await get_tree().process_frame
+	Ayarlar.dokunmatik_zorla = -1
 	return im
 
 func _menu_cek() -> void:

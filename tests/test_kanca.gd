@@ -43,6 +43,10 @@ func _calistir() -> void:
 	_test_rota_verisi()
 	_test_madalya_ms()
 	_test_gecilebilirlik()
+	_test_dokunma_metinleri()
+	_test_dokunmatik_algilama()
+	_test_simge_kapsami()
+	_test_web_cikis_dugmesi()
 	print("=== %d/%d gecti ===" % [_toplam - _kalan, _toplam])
 	get_tree().quit(_kalan)
 
@@ -760,3 +764,105 @@ func _test_gecilebilirlik() -> void:
 				kotu += " bosluk %d-%d;" % [int(gx0), int(gx1)]
 
 		_bildir("bolum %d: tum bosluklar kanca zinciriyle asilabilir" % no, kotu == "", kotu)
+
+
+# --- v0.3.1: web ve dokunmatik ayrintilari ---------------------------
+
+const MENU_BETIK := preload("res://scripts/menu.gd")
+
+## Dokunmatik semada menu yardimi ve bolum ipuclari dokunmayi anlatmali;
+## masaustunde metin aynen kalmali.
+func _test_dokunma_metinleri() -> void:
+	Ayarlar.dokunmatik_zorla = 0
+	var m_masa: String = MENU_BETIK.yardim_metni()
+	var i1_masa := Bolumler.ipucu(1)
+	var i2_masa := Bolumler.ipucu(2)
+	_bildir("masaustu menu yardimi fare/klavye anlatiyor",
+		m_masa.contains("Fare") and m_masa.contains("W/S"), m_masa)
+	_bildir("masaustu bolum ipuclari degismedi",
+		i1_masa == String(Bolumler.veri(1)["ipucu"]) and i2_masa == String(Bolumler.veri(2)["ipucu"]))
+
+	Ayarlar.dokunmatik_zorla = 1
+	var m_dokun: String = MENU_BETIK.yardim_metni()
+	var i1_dokun := Bolumler.ipucu(1)
+	var i2_dokun := Bolumler.ipucu(2)
+	_bildir("dokunmatik menu yardimi dokunmayi anlatiyor",
+		m_dokun.contains("Dokun") and m_dokun.contains("kayd")
+		and not m_dokun.contains("Fare") and not m_dokun.contains("W/S"), m_dokun)
+	_bildir("dokunmatik bolum ipuclarinda fare/klavye gecmiyor",
+		not i1_dokun.contains("Fare") and not i1_dokun.contains("TIK")
+		and not i2_dokun.contains("W/S"), i1_dokun + " | " + i2_dokun)
+	_bildir("dokunmatik ipucu masaustu metninden farkli",
+		i1_dokun != i1_masa and i2_dokun != i2_masa)
+	# Dokunma metni olmayan bolum yedege dusmeli.
+	_bildir("ipucu_dokunma yoksa normal ipucu kullanilir",
+		Bolumler.ipucu(3) == String(Bolumler.veri(3)["ipucu"]))
+
+	Ayarlar.dokunmatik_zorla = -1
+
+## Telefon tarayicisinda OS.has_feature("mobile") FALSE doner; sema orada da
+## acilmali. Ozellik sorgusu tek yerde oldugu icin burada ezip iki uctan da
+## deneyebiliyoruz (v0.3.1 yonetici bulgusu).
+func _test_dokunmatik_algilama() -> void:
+	var onceki: bool = bool(Kayit.ayar("dokunmatik"))
+	Kayit.ayar_yaz("dokunmatik", false)
+
+	_bildir("masaustunde otomatik sema kapali", not Ayarlar.dokunmatik_mi())
+	Kayit.ayar_yaz("dokunmatik", true)
+	_bildir("ayardan acilinca sema acik", Ayarlar.dokunmatik_mi())
+	Kayit.ayar_yaz("dokunmatik", onceki)
+
+	Ayarlar.dokunmatik_zorla = 1
+	_bildir("ezme acik: sema acik", Ayarlar.dokunmatik_mi())
+	Ayarlar.dokunmatik_zorla = 0
+	_bildir("ezme kapali: ayar acik olsa bile kapali",
+		not Ayarlar.dokunmatik_mi())
+	Ayarlar.dokunmatik_zorla = -1
+	_bildir("ezme geri alindi", Ayarlar.dokunmatik_zorla == -1
+		and bool(Kayit.ayar("dokunmatik")) == onceki)
+
+	# Telefon tarayicisi imzasi: sadece "mobile"a bakan eski kosul burada
+	# FALSE doner. Kodda web_android/web_ios/web+dokunmatik ekran da sayiliyor.
+	var kaynak := FileAccess.get_file_as_string("res://scripts/ayarlar.gd")
+	_bildir("web telefon ozellikleri kontrol ediliyor",
+		kaynak.contains("web_android") and kaynak.contains("web_ios")
+		and kaynak.contains("is_touchscreen_available"))
+
+## Web yapisinda sistem yazi tipi yok: gomulu yazi tipinde olmayan bir simge
+## kutu olarak cikar. Kodda gecen U+2000 ustu her karakter kapsanmali.
+## (ortak/simgeler/KULLANIM.md - ttf eklemek ancak burasi kaldiginda gerekir.)
+func _test_simge_kapsami() -> void:
+	var yazi := ThemeDB.fallback_font
+	var bulunan := ""
+	var eksik := ""
+	var nerede := ""
+	for yol in _metin_dosyalari():
+		var metin := FileAccess.get_file_as_string(yol)
+		for ch in metin:
+			var kod := ch.unicode_at(0)
+			if kod < 0x2000:
+				continue
+			if not bulunan.contains(ch):
+				bulunan += ch
+			if not yazi.has_char(kod) and not eksik.contains(ch):
+				eksik += ch
+				nerede += " U+%04X (%s)" % [kod, yol]
+	_bildir("kodda gecen U+2000 ustu simgeler gomulu yazi tipinde var",
+		eksik == "", nerede)
+	print("  bilgi  taranan simgeler: %s (%d cesit)" % [bulunan, bulunan.length()])
+
+func _metin_dosyalari() -> PackedStringArray:
+	var sonuc := PackedStringArray()
+	for klasor in ["res://scripts", "res://scenes", "res://scenes/bolumler"]:
+		for ad in DirAccess.get_files_at(klasor):
+			if ad.ends_with(".gd") or ad.ends_with(".tscn"):
+				sonuc.append(klasor + "/" + ad)
+	return sonuc
+
+## Tarayicida get_tree().quit() islevsiz: Cikis dugmesi yalniz masaustunde.
+func _test_web_cikis_dugmesi() -> void:
+	var m: Control = preload("res://scenes/menu.tscn").instantiate()
+	add_child(m)
+	var var_mi := m.find_child("Cikis", true, false) != null
+	_bildir("Cikis dugmesi web disinda var, webde yok", var_mi == not OS.has_feature("web"))
+	m.free()
