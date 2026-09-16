@@ -77,16 +77,43 @@ func _calistir() -> void:
 
 # --- 1. Plan ----------------------------------------------------------
 
+## Oyuncunun uzerinde durabilecegi platformun ust yuzeyinden ornek noktalar.
+## Kanca ilk atista baslangic noktasindan degil, platformda kosarken atiliyor -
+## bu yuzden grafin kaynagi tek nokta degil, platformun tamami.
+func _platform_ornekleri(p: Vector2, zeminler: Array[Rect2]) -> Array:
+	var altimdaki := Rect2()
+	var en_yakin := INF
+	for r: Rect2 in zeminler:
+		if p.x < r.position.x - 1.0 or p.x > r.end.x + 1.0:
+			continue
+		var bosluk := r.position.y - p.y
+		if bosluk < -1.0 or bosluk >= en_yakin:
+			continue
+		en_yakin = bosluk
+		altimdaki = r
+	if en_yakin == INF:
+		return [p - Vector2(0, OYUNCU_YARI_BOY + ZIPLA_YUKSEKLIGI)]
+	var y := altimdaki.position.y - OYUNCU_YARI_BOY - ZIPLA_YUKSEKLIGI
+	var ornekler: Array = []
+	var x := altimdaki.position.x
+	while x <= altimdaki.end.x:
+		ornekler.append(Vector2(x, y))
+		x += 16.0
+	return ornekler
+
 ## Baslangictan bitise en dusuk maliyetli kanca zinciri. Bos dizi = bulunamadi.
 func _plan(no: int) -> Array:
 	var d := Bolumler.veri(no)
 	var kanca := Bolumler.tum_kanca(no)
 	var zeminler := Bolumler.zeminler(no)
-	var basla: Vector2 = Vector2(d["basla"]) - Vector2(0, OYUNCU_YARI_BOY + ZIPLA_YUKSEKLIGI)
-	var bitis: Vector2 = Vector2(d["bitis"]) - Vector2(0, OYUNCU_YARI_BOY)
+	var basla: Vector2 = Vector2(d["basla"])
+	var bitis: Vector2 = Vector2(d["bitis"])
+	var bas_ornek := _platform_ornekleri(basla, zeminler)
+	var son_ornek := _platform_ornekleri(bitis, zeminler)
 	var zincir: float = Ayarlar.KANCA_MENZIL + Ayarlar.KANCA_AZAMI_HALAT * 0.7
 
-	# Dijkstra: dugumler kanca noktalari, kaynak baslangic, hedef bitis.
+	# Dijkstra: dugumler kanca noktalari. Kaynak = baslangic platformunun
+	# uzerinden erisilen her nokta (maliyet = kosu mesafesi + kanca mesafesi).
 	var maliyet: Array[float] = []
 	var onceki: Array[int] = []
 	maliyet.resize(kanca.size())
@@ -94,9 +121,11 @@ func _plan(no: int) -> Array:
 	for i in kanca.size():
 		maliyet[i] = INF
 		onceki[i] = -1
-		if basla.distance_to(kanca[i]) <= Ayarlar.KANCA_MENZIL \
-				and Bolumler.gorus_var(basla, kanca[i], zeminler):
-			maliyet[i] = basla.distance_to(kanca[i]) + HOP_BEDELI
+		for s: Vector2 in bas_ornek:
+			var uz := s.distance_to(kanca[i])
+			if uz > Ayarlar.KANCA_MENZIL or not Bolumler.gorus_var(s, kanca[i], zeminler):
+				continue
+			maliyet[i] = minf(maliyet[i], absf(s.x - basla.x) + uz + HOP_BEDELI)
 	var islendi: Array[bool] = []
 	islendi.resize(kanca.size())
 	islendi.fill(false)
@@ -119,18 +148,24 @@ func _plan(no: int) -> Array:
 				maliyet[j] = yeni
 				onceki[j] = en
 
+	# Hedef: bitis platformunun uzerine inilebilen son kanca noktasi
+	# (bayraga degil platforma inilir, sonra kosulur).
 	var son := -1
 	var en_iyi := INF
 	for i in kanca.size():
 		if maliyet[i] == INF:
 			continue
-		var uz := kanca[i].distance_to(bitis)
-		if uz > INIS_MESAFESI:
-			continue
-		if maliyet[i] + uz < en_iyi:
-			en_iyi = maliyet[i] + uz
-			son = i
+		for s: Vector2 in son_ornek:
+			var uz := kanca[i].distance_to(s)
+			if uz > INIS_MESAFESI:
+				continue
+			var toplam: float = maliyet[i] + uz + absf(bitis.x - s.x)
+			if toplam < en_iyi:
+				en_iyi = toplam
+				son = i
 	if son == -1:
+		printerr("  bolum %d: %d noktanin hicbirinden bitis platformuna inilemiyor" % [
+			no, kanca.size()])
 		return []
 	var yol: Array = []
 	var i2 := son
@@ -158,6 +193,7 @@ func _kos(no: int, rota: Array, tohum: int) -> float:
 	var tutma := 0.0
 	var kare := 0
 	var bitti := false
+	var onceki_pos: Vector2 = oyuncu.global_position
 	while kare < AZAMI_KARE:
 		await get_tree().physics_frame
 		kare += 1
@@ -169,6 +205,13 @@ func _kos(no: int, rota: Array, tohum: int) -> float:
 		var hedef: Vector2 = rota[mini(hedef_i, rota.size() - 1)] if hedef_i < rota.size() \
 			else Vector2(Bolumler.veri(no)["bitis"])
 		var pos: Vector2 = oyuncu.global_position
+
+		# Olup kontrol noktasindan dogunca oyuncu geriye isiniyor; rota adimi
+		# ileride kalirsa bot bir daha hicbir seye kanca atamiyor.
+		if onceki_pos.distance_to(pos) > 200.0 and pos.x < onceki_pos.x:
+			hedef_i = _rota_hizala(rota, pos)
+			gecikme = rastgele.randf_range(GECIKME_ALT, GECIKME_UST)
+		onceki_pos = pos
 
 		if oyuncu.kancali():
 			tutma += dt
@@ -208,6 +251,13 @@ func _kos(no: int, rota: Array, tohum: int) -> float:
 	bolum.free()
 	await get_tree().physics_frame
 	return float(kare) / 60.0 if bitti else 0.0
+
+## Olumden sonra: oyuncunun onundeki ilk rota adimina don.
+func _rota_hizala(rota: Array, pos: Vector2) -> int:
+	for i in rota.size():
+		if (rota[i] as Vector2).x >= pos.x - 40.0:
+			return i
+	return maxi(rota.size() - 1, 0)
 
 # --- 3. Yazma ---------------------------------------------------------
 
