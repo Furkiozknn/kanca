@@ -26,6 +26,7 @@ Godot yolu: `C:\Users\furki\AppData\Local\Microsoft\WinGet\Links\godot.exe` (PAT
 | Yol | Ne var |
 |---|---|
 | `scripts/` | Oyun kodu. Autoload'lar: `Ayarlar`, `Kayit`, `Ses`, `Gecis` (bu sırayla). |
+| `scripts/rota_verisi.gd` | **Üretilmiş** — `tools/rota.gd` yazar. Elle düzenleme. |
 | `scenes/` | `menu.tscn`, `oyuncu.tscn`, `bolumler/bolum_NN.tscn` (sadece `bolum_no` taşır). |
 | `assets/sprites/` | **Üretilmiş** PNG'ler — elle düzenleme, `tools/sprite_uret.gd`'yi düzenle. |
 | `assets/audio/` | **Üretilmiş** WAV'lar. `_ham/` rFXGen çıktısı, kök dizin işlenmiş efektler. |
@@ -53,12 +54,27 @@ arkasında bırakır:
 | 6 | Kanca noktası |
 | 7 | Parçacıklar |
 
+## Madalya süreleri ve rota
+
+Madalya eşikleri **elle yazılmaz**: `tools/rota.gd` her bölümü bot ile gerçek
+fizikte koşar (rastgele tepki gecikmeleriyle) ve `scripts/rota_verisi.gd`
+dosyasını üretir. `Bolumler.madalya_esikleri()` üretilmiş değeri tercih eder,
+yoksa `Bolumler.VERI[...]["madalya"]` yedeğine düşer. Aynı veri rota ipucunu
+(altın madalyadan sonra işaretlenen noktalar) da besler.
+
+Bölüm geometrisini değiştirdiysen `rota` adımını **testten önce** çalıştır —
+testler üretilmiş veriyi denetliyor.
+
 ## Denge sabitleri nerede
 
 `scripts/ayarlar.gd` — **tek yer**. Sallanma dörtlüsü (`SALLANMA_IVMESI`,
 `SALLANMA_SONUMU`, `BIRAKMA_CARPANI`, `KANCA_MENZIL`) bilerek `const` değil `var`:
 `tools/olcum.gd` bunları tarayarak ölçüm yapabilsin diye. Bu yüzden başka bir
 betikte `const X := Ayarlar.KANCA_MENZIL` yazma — parse hatası verir.
+
+v0.3 ile eklenen `SALLANMA_YERCEKIMI` de aynı sebeple `var` (ölçüm botu tarıyor).
+Hedefleme puanlaması (`NISAN_PUAN_*`), tampon/kojot süreleri, pompa verimi,
+bırakma eşiği ve kamera ayarları da `ayarlar.gd` içinde.
 
 Renkler `scripts/palet.gd` (Endesga 32 alt kümesi). Yeni renk eklemeden önce
 paletteki bir rengi kullanmayı dene.
@@ -82,6 +98,9 @@ powershell -ExecutionPolicy Bypass -File tools\kilitli.ps1 -- --headless --path 
 # Ölçüm botu (sallanma sabitlerini tarar)
 powershell -ExecutionPolicy Bypass -File tools\kilitli.ps1 -- --headless --path . --scene res://tools/olcum.tscn
 
+# Rota + madalya süreleri (scripts/rota_verisi.gd üretir) — TESTTEN ÖNCE
+powershell -ExecutionPolicy Bypass -File tools\kilitli.ps1 -- --headless --path . --scene res://tools/rota.tscn
+
 # Ekran görüntüleri (headless DEĞİL)
 powershell -ExecutionPolicy Bypass -File tools\kilitli.ps1 -- --path . --scene res://tests/ekran.tscn
 
@@ -92,8 +111,8 @@ powershell -ExecutionPolicy Bypass -File tools\tam_dogrulama.ps1
 powershell -ExecutionPolicy Bypass -File tools\tam_dogrulama.ps1 -Atla varlik_sprite,varlik_ses,olcum
 ```
 
-Adım adları: `varlik_sprite`, `varlik_ses`, `import`, `test`, `olcum`, `ekran`,
-`export_win`, `export_web`. Her adımın çıktısı `%TEMP%\kanca_<adim>.log`.
+Adım adları: `varlik_sprite`, `varlik_ses`, `import`, `rota`, `test`, `olcum`,
+`ekran`, `export_win`, `export_web`. Her adımın çıktısı `%TEMP%\kanca_<adim>.log`.
 
 ### Kilit kuralı
 
@@ -118,6 +137,15 @@ hiç Godot süreci yoksa hemen devralır. **Godot'u kilitsiz çalıştırma.**
    `monitoring = false` ile kur, bir fizik karesi sonra aç (`_alanlari_ac`).
 7. **Autoload sırası:** `Kayit`, `Ses`'ten önce yüklenir; `Kayit._ready()` içinden
    `Ses`'e dokunma.
+8. **`Rect2.intersects_segment` Godot 4'te yok** (Godot 3'te vardı). Doğru parçası
+   – dikdörtgen kesişimi için `Bolumler.kesisiyor()` (slab yöntemi) kullan.
+9. **Headless'ta `_process` deltası gerçek zamandır**, fizik karesi değil. Bu
+   yüzden bot süreyi `Bolum._sure`'den değil **fizik karesi sayısından** ölçer
+   (`kare / 60`). Aynı sebeple `KancaNoktasi` hareketi `_physics_process`'e
+   taşındı — yoksa headless'ta hareketli noktalar uçuyordu.
+10. **`class_name` yeni dosyada tanımlıysa** o dosya bir kez import edilmeden
+   (`--import`) diğer betiklerden görünmez: "Identifier not declared" parse
+   hatası alırsın. Yeni bir `class_name` ekledikten sonra önce import et.
 
 ## Bu depoda yapılmayacaklar
 

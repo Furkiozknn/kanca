@@ -61,43 +61,82 @@
 - [x] 4 ekran görüntüsü 1280×720, kapak 630×500 (motor içinden)
 - [x] Windows + Web dışa aktarma, `v0.2` etiketi
 
-## Sonraki tur — v0.3
+## Tur 2 — v0.3 "rakip analizinden iyileştirmeler" (2026-09-16)
+
+Kaynak: `D:\Claude Projeleri\oyun-terminalleri\tasarim\kanca-rakip-analizi.md`
+
+### Hedefleme
+- [x] Puanlama: nişan hizası ×3 − uzaklık/menzil + hız yönüne uyum
+- [x] Görüş hattı (`intersect_ray`) — duvarın arkasındaki nokta aday değil
+- [x] Hedef önizlemesi: seçili nokta parlar + kesik çizgi, menzil dışı gri
+- [x] Kanca tamponu 0,12 sn + kojot-kanca 0,12 sn (menzil payı ×1,2)
+- [x] Nişan hassasiyeti ayarı (geniş yardım ↔ tam nişan)
+
+### Sallanma hissi
+- [x] Sert halat kısıtı: konum yansıtma **+ kalan radyal hızın silinmesi**
+- [x] Sallanırken yerçekimi ×1,3 (ölçümle seçildi, `SALLANMA_YERCEKIMI`)
+- [x] Halat pompası: gergin halatı kısaltmak açı momentumunu koruyor
+- [x] Bırakma bonusu yalnız eşik üstünde (×1,10 + altın parçacık + `firla` sesi)
+- [x] İleri bakan kamera: hız yönüne ofset + yüksek hızda %9 uzaklaşma
+
+### Süre ve rota
+- [x] `tools/rota.gd` — rota planlayıcı (Dijkstra) + gerçek fizikte oynayan bot
+- [x] Madalya süreleri bot koşusundan, rastgele tepki gecikmesiyle, **ms hassasiyetinde**
+- [x] `scripts/rota_verisi.gd` üretilmiş dosya; `Bolumler.madalya_esikleri()` onu tercih ediyor
+- [x] Süre gösterimi ms (`00:06.284`)
+
+### Girdi
+- [x] Mobil tek parmak şeması (koşu otomatik, dokun = kanca/zıpla, bırak = fırla,
+      dikey kaydırma = halat boyu); masaüstünde ayardan denenebiliyor
+- [x] Tuş atama ekranı (`scripts/tuslar.gd`, `scripts/tus_dugmesi.gd`) — fare/gamepad korunuyor
+
+### Farklılaştıranlar
+- [x] Rota ipucu: altın madalyadan sonra rotanın kullandığı noktalar işaretli
+- [x] Ustalık zinciri ("Akış ×N"): yere değmeden art arda kanca, süreden ayrı not
+
+### Doğrulama
+- [x] 13 yeni test (toplam 58), import 0 hata, Windows + Web dışa aktarma
+- [x] Ekran görüntüleri yenilendi, `yayin/` güncellendi, `v0.3` etiketi
+
+## Sonraki tur — v0.4
 
 ### Önce yapılması gereken
-- [ ] **İnsan testi.** Bot "geçilebilir ve hızlanabilir" diyor; "iyi hissettiriyor"
-      sorusu hâlâ açık. Özellikle: kanca uçuş süresi 55 ms yeterince his veriyor mu,
-      rüzgâr alanları kontrolü elden alıyor mu, kırılgan noktalar sinir bozucu mu.
-- [ ] **Madalya süreleri elle ayarlanmalı.** Şu anki değerler bölüm uzunluğundan
-      hesaplandı (≈300 px/sn ortalama + 1,5 sn), gerçek koşuyla doğrulanmadı.
-      Altın hedefleri muhtemelen fazla cömert.
+- [ ] **İnsan testi.** Hâlâ yapılmadı. v0.3'te özellikle şunlar merak konusu:
+      halat pompası fazla güçlü mü (bölümleri trivialize ediyor mu), kamera
+      uzaklaşması pixel art'ta titriyor mu, tek parmak şeması gerçek telefonda
+      ne hissettiriyor.
+- [ ] **Bot rotayı değiştirebilsin.** Şu an sabit rota; başarısız olursa
+      alternatif denemiyor. Altın eşiği bu yüzden temkinli.
 
 ### Oynanış
 - [ ] Duvara tutunma / duvardan sekme (dar geçitlerde ikinci bir seçenek)
 - [ ] Kanca noktasına çekilme (winch) — halatı hızlı kısaltma tuşu
 - [ ] Bölüm sonu "en iyi 3 koşu" listesi
 - [ ] Toplanabilir (isteğe bağlı zor yol) — şu an bölümlerde hiç yok
+- [ ] Rüzgâr pompası: akıntıda doğru anda halat kısaltmaya bölüme özgü ödül
 
 ### Görsel ve ses
 - [ ] Yağmur / şimşek katmanı (tema "fırtına" ama hava olayı yok)
 - [ ] Kanca noktalarına idle animasyonu (hafif salınım)
 - [ ] Bölüme göre müzik değişimi (şu an tek parça)
 - [ ] Rüzgâr için sürekli ambiyans sesi
+- [ ] Akış zinciri için yükselen perde (zincir uzadıkça ses tizleşsin)
 
 ### İçerik
 - [ ] 14 → 20 bölüm; son 3'ü gerçekten zor
 - [ ] Öğelerin ikinci seviye kullanımları (hareketli + rüzgâr, kırılgan + tavan dikeni)
 
 ### Mobil ve yayın
-- [ ] Dokunmatik kontrol (ekrana dokunulan yere nişan, tek parmak kanca)
-- [ ] Android dışa aktarma
+- [ ] Android dışa aktarma (tek parmak şeması hazır, dışa aktarma yok)
+- [ ] Dokunmatik için büyük dokunma alanları / duraklat düğmesi
 - [ ] itch.io'ya yükleme — **Furki'nin onayı gerekiyor**, komutlar `yayin/` altında hazır
 
 ## Bilinen sınırlar
 
 - **İnsan testi yapılmadı.** Bütün denge kararları bot ölçümü ve statik analiz.
-- **Madalya süreleri formülle üretildi**, gerçek koşuyla doğrulanmadı.
+- Madalya süreleri artık gerçek bot koşusundan geliyor, ama bot pompayı
+  kullanmıyor ve rota sabit — iyi bir oyuncu altını rahat kırabilir.
 - Web yapısı tek iş parçacıklı; Stream ses yolunun gecikme bedeli var
   (thread_support açılırsa itch.io'da SharedArrayBuffer kutusu şart olur).
-- Bölümlerde toplanabilir yok; tek hedef süre.
-- Çıkışta 2 ObjectDB sızıntısı uyarısı var (önbelleğe alınan TileSet) — zararsız,
-  ama v0.3'te `KaroSeti._onbellek` sahne değişiminde temizlenebilir.
+- Bölümlerde toplanabilir yok; hedef süre ve akış zinciri var.
+- Çıkışta 2 ObjectDB sızıntısı uyarısı var (önbelleğe alınan TileSet) — zararsız.

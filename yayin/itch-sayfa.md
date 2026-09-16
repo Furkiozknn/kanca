@@ -27,8 +27,17 @@ and a ghost of your own best run to chase.
 - **Medals and ghosts:** gold/silver/bronze times per level, and your best run
   replays beside you as a translucent ghost (can be turned off).
 - **Checkpoints** in the long levels — the clock keeps running, so dying still costs you.
+- **Flow chain:** every anchor you catch without touching the ground extends your
+  chain. It is scored separately from time — the fastest run is not always the
+  most stylish one.
+- **Route hint:** once you earn gold on a level, the anchors the reference route
+  uses are marked, so "how is that even possible" has an answer.
+- **Target times are measured, not guessed.** A bot plays every level in the real
+  physics with randomised reaction delays; the medals come from those runs,
+  down to the millisecond.
 - Hand-made pixel art on a single limited palette, procedurally generated chiptune.
-- Full keyboard + mouse and gamepad support. Turkish interface.
+- Keyboard + mouse, gamepad, and a **one-finger touch scheme** for phones.
+  Rebindable keys and adjustable aim assist. Turkish interface.
 
 **Controls**
 
@@ -43,8 +52,14 @@ and a ghost of your own best run to chase.
 | Pause | `Esc` | `Start` |
 
 If you are not aiming, the hook automatically picks the best anchor in the
-direction you are facing. The candidate anchor in range glows white; the one
-you are attached to glows gold.
+direction you are facing — scored by how well it lines up with your aim, how far
+it is, and where you are already moving; anchors behind a wall are never picked.
+The selected anchor glows white with a dashed line to it, the one you are
+attached to glows gold, and out-of-range anchors go grey.
+
+**One finger (touch):** running is automatic, tap to hook (or jump if there is no
+anchor), lift to release, and slide up/down while holding to shorten or lengthen
+the rope. You can try it on desktop from Settings.
 
 **Notes**
 
@@ -78,8 +93,15 @@ hedef süre ve kovalayacağın kendi en iyi koşunun hayaleti.
   yanında yarı saydam hayalet olarak tekrar oynuyor (kapatılabilir).
 - **Kontrol noktaları** uzun bölümlerde — ama sayaç durmuyor, ölmek yine de
   süre kaybı.
+- **Akış zinciri:** yere değmeden yakaladığın her nokta zinciri uzatır. Süreden
+  ayrı notlanır — en hızlı koşu her zaman en şık koşu değildir.
+- **Rota ipucu:** bir bölümde altın madalyayı aldığında referans rotanın
+  kullandığı noktalar işaretlenir; "bu nasıl mümkün" sorusunun cevabı görünür.
+- **Hedef süreler tahmin değil, ölçüm.** Bir bot her bölümü gerçek fizikte,
+  rastgele tepki gecikmeleriyle oynuyor; madalyalar o koşulardan, ms hassasiyetinde.
 - Tek sınırlı palette elle üretilmiş pixel art, kodla üretilmiş chiptune müzik.
-- Klavye + fare ve gamepad desteği. Türkçe arayüz.
+- Klavye + fare, gamepad ve telefon için **tek parmak şeması**. Tuş atama ve
+  ayarlanabilir nişan yardımı. Türkçe arayüz.
 
 **Kontroller**
 
@@ -93,8 +115,14 @@ hedef süre ve kovalayacağın kendi en iyi koşunun hayaleti.
 | Bölümü yeniden başla | `R` | `X` |
 | Duraklat | `Esc` | `Start` |
 
-Nişan almıyorsan kanca, baktığın yöndeki en uygun noktaya kendiliğinden gider.
-Menzildeki aday nokta beyaz, bağlı olduğun nokta altın rengi yanar.
+Nişan almıyorsan kanca, baktığın yöndeki en uygun noktaya kendiliğinden gider:
+nişan hizası, uzaklık ve mevcut hız yönüne göre puanlanır; duvarın arkasındaki
+nokta hiç seçilmez. Seçili nokta beyaz yanar ve araya kesik çizgi çekilir, bağlı
+olduğun nokta altın rengi olur, menzil dışındakiler grileşir.
+
+**Tek parmak (dokunmatik):** koşu otomatik, dokun = kanca (hedef yoksa zıplama),
+parmağı kaldır = bırak, basılıyken yukarı/aşağı kaydır = halat boyu.
+Masaüstünde Ayarlar'dan denenebilir.
 
 **Notlar**
 
@@ -115,6 +143,7 @@ Menzildeki aday nokta beyaz, bağlı olduğun nokta altın rengi yanar.
 | Pricing | Free (donations off) |
 | Genre | Platformer |
 | Tags | pixel-art, speedrun, grappling-hook, physics, precision-platformer, godot, 2d, singleplayer |
+| Input | Keyboard, Mouse, Gamepad, Touchscreen |
 | Cover image | `yayin/kapak.png` (630×500) |
 | Screenshots | `yayin/ekran_1.png` … `ekran_4.png` (1280×720) |
 | Embed | 1280×720, "Click to run" **kapalı**, fullscreen butonu **açık** |
