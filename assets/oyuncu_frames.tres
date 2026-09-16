@@ -1,0 +1,82 @@
+[gd_resource type="SpriteFrames" load_steps=10 format=3]
+
+[ext_resource type="Texture2D" path="res://assets/sprites/oyuncu.png" id="1_tex"]
+
+[sub_resource type="AtlasTexture" id="Atlas_idle0"]
+atlas = ExtResource("1_tex")
+region = Rect2(0, 0, 16, 24)
+
+[sub_resource type="AtlasTexture" id="Atlas_idle1"]
+atlas = ExtResource("1_tex")
+region = Rect2(16, 0, 16, 24)
+
+[sub_resource type="AtlasTexture" id="Atlas_yuru0"]
+atlas = ExtResource("1_tex")
+region = Rect2(32, 0, 16, 24)
+
+[sub_resource type="AtlasTexture" id="Atlas_yuru1"]
+atlas = ExtResource("1_tex")
+region = Rect2(48, 0, 16, 24)
+
+[sub_resource type="AtlasTexture" id="Atlas_yuru2"]
+atlas = ExtResource("1_tex")
+region = Rect2(64, 0, 16, 24)
+
+[sub_resource type="AtlasTexture" id="Atlas_yuru3"]
+atlas = ExtResource("1_tex")
+region = Rect2(80, 0, 16, 24)
+
+[sub_resource type="AtlasTexture" id="Atlas_zipla0"]
+atlas = ExtResource("1_tex")
+region = Rect2(96, 0, 16, 24)
+
+[sub_resource type="AtlasTexture" id="Atlas_dus0"]
+atlas = ExtResource("1_tex")
+region = Rect2(112, 0, 16, 24)
+
+[resource]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("Atlas_idle0")
+}, {
+"duration": 1.0,
+"texture": SubResource("Atlas_idle1")
+}],
+"loop": true,
+"name": &"idle",
+"speed": 3.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("Atlas_yuru0")
+}, {
+"duration": 1.0,
+"texture": SubResource("Atlas_yuru1")
+}, {
+"duration": 1.0,
+"texture": SubResource("Atlas_yuru2")
+}, {
+"duration": 1.0,
+"texture": SubResource("Atlas_yuru3")
+}],
+"loop": true,
+"name": &"yuru",
+"speed": 10.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("Atlas_zipla0")
+}],
+"loop": false,
+"name": &"zipla",
+"speed": 5.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("Atlas_dus0")
+}],
+"loop": false,
+"name": &"dus",
+"speed": 5.0
+}]

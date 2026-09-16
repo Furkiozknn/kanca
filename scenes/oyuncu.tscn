@@ -1,0 +1,27 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/oyuncu.gd" id="1_kod"]
+[ext_resource type="SpriteFrames" path="res://assets/oyuncu_frames.tres" id="2_kareler"]
+
+[sub_resource type="RectangleShape2D" id="1_govde"]
+size = Vector2(12, 20)
+
+[node name="Oyuncu" type="CharacterBody2D"]
+script = ExtResource("1_kod")
+
+[node name="Halat" type="Line2D" parent="."]
+z_index = 4
+top_level = true
+width = 2.0
+default_color = Color(0.95, 0.85, 0.45, 1)
+
+[node name="Gorsel" type="AnimatedSprite2D" parent="."]
+sprite_frames = ExtResource("2_kareler")
+animation = &"idle"
+
+[node name="Carpisma" type="CollisionShape2D" parent="."]
+shape = SubResource("1_govde")
+
+[node name="Kamera" type="Camera2D" parent="."]
+position_smoothing_enabled = true
+position_smoothing_speed = 6.0
