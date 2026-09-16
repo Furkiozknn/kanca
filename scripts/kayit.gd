@@ -87,7 +87,7 @@ const VARSAYILAN := {
 	"muzik_acik": true,
 	"efekt_acik": true,
 	"tam_ekran": false,
-	"hayalet": true,
+	"hayalet_kip": 1,            ## 0 kapali, 1 kendi en iyi kosun, 2 altin hayalet (bot)
 	"sarsinti": true,
 	"rota_ipucu": true,          ## altin madalyadan sonra rota noktalarini isaretle
 	"dokunmatik": false,         ## tek parmak semasi (mobilde zaten acik)
@@ -116,22 +116,42 @@ func _pencere_uygula() -> void:
 
 # --- Hayalet ----------------------------------------------------------
 
-## Hayalet kaydi: sabit araliklarla alinmis konum ornekleri.
-func hayalet_oku(bolum: int) -> PackedVector2Array:
+## Hayalet kaydi: {"aralik": sn, "ornekler": PackedVector2Array}.
+## Aralik dosyaya YAZILIR - Hayalet.ARALIK degistiginde (v0.4'te 20 -> 10 Hz)
+## eski kayitlar yari hizda oynamasin. Surumsuz eski dosya yok sayilir.
+func hayalet_oku(bolum: int) -> Dictionary:
 	var f := FileAccess.open(HAYALET_YOL % bolum, FileAccess.READ)
 	if f == null:
-		return PackedVector2Array()
+		return {}
 	var v: Variant = f.get_var()
 	f.close()
-	return v if v is PackedVector2Array else PackedVector2Array()
+	if v is Dictionary and (v as Dictionary).get("ornekler") is PackedVector2Array:
+		return v
+	return {}
 
-func hayalet_yaz(bolum: int, ornekler: PackedVector2Array) -> void:
+func hayalet_yaz(bolum: int, ornekler: PackedVector2Array, aralik: float) -> void:
 	var f := FileAccess.open(HAYALET_YOL % bolum, FileAccess.WRITE)
 	if f == null:
 		push_warning("Hayalet yazilamadi: bolum %d" % bolum)
 		return
-	f.store_var(ornekler)
+	f.store_var({"aralik": aralik, "ornekler": ornekler})
 	f.close()
+
+# --- Gunluk meydan okuma ----------------------------------------------
+
+## Gunluk kayitlar ayri bolumde: ana ilerlemeyi (sureler/akis/acik) bozmaz.
+## Anahtar gunun tohumu, boylece dunun rekoru bugunku bolumle karismaz.
+func gunluk_en_iyi(tohum: int) -> float:
+	return float(_cfg.get_value("gunluk", str(tohum), 0.0))
+
+## Yeni rekorsa kaydeder ve true doner.
+func gunluk_yaz(tohum: int, sure: float) -> bool:
+	var eski := gunluk_en_iyi(tohum)
+	if eski > 0.0 and sure >= eski:
+		return false
+	_cfg.set_value("gunluk", str(tohum), sure)
+	_yaz()
+	return true
 
 # --- Ic ---------------------------------------------------------------
 

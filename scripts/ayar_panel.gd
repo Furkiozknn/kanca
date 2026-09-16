@@ -41,7 +41,8 @@ static func yap(geri: Callable, perde := false) -> Control:
 	kutu.add_child(_oran("Nişan", "nisan_hassasiyet", "yardım", "tam nişan"))
 	kutu.add_child(_bosluk(3))
 	kutu.add_child(_anahtar("Tam ekran", "tam_ekran"))
-	kutu.add_child(_anahtar("Hayalet (en iyi koşun)", "hayalet"))
+	kutu.add_child(_secim("Hayalet", "hayalet_kip",
+		["Kapalı", "En iyi koşun", "Altın hayalet (bot)"]))
 	kutu.add_child(_anahtar("Ekran sarsıntısı", "sarsinti"))
 	kutu.add_child(_anahtar("Rota ipucu (altın madalyadan sonra)", "rota_ipucu"))
 	kutu.add_child(_anahtar("Tek parmak şeması (dokunmatik)", "dokunmatik"))
@@ -126,6 +127,28 @@ static func _tus_kutusu(geri: Callable) -> Control:
 	g.pressed.connect(geri)
 	kutu.add_child(g)
 	return kutu
+
+## Coktan secmeli ayar (deger = secenegin sirasi). Hayalet kaynagi icin:
+## acik/kapali yetmiyor, ucuncu bir secenek var (botun altin kosusu).
+## Satir sayisi artmasin diye ayri bir anahtar degil, tek OptionButton.
+static func _secim(baslik: String, ad: String, secenekler: Array) -> Control:
+	var satir := HBoxContainer.new()
+	satir.add_theme_constant_override("separation", 8)
+	var e := Bolum.etiket_yap(baslik, 12, Ayarlar.RENK_METIN)
+	e.custom_minimum_size = Vector2(56, 0)
+	satir.add_child(e)
+	var s := OptionButton.new()
+	s.name = ad
+	s.add_theme_font_size_override("font_size", 11)
+	s.custom_minimum_size = Vector2(190, 0)
+	for metin: String in secenekler:
+		s.add_item(metin)
+	s.selected = clampi(int(Kayit.ayar(ad)), 0, secenekler.size() - 1)
+	s.item_selected.connect(func(i: int) -> void:
+		Kayit.ayar_yaz(ad, i)
+		Ses.cal("menu"))
+	satir.add_child(s)
+	return satir
 
 ## Etiketli oran kaydiraci (uclarinda ne anlama geldigi yazili).
 static func _oran(baslik: String, ad: String, sol: String, sag: String) -> Control:

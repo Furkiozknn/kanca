@@ -42,6 +42,15 @@ var _parcacik_sira := 0
 var _zincir := 0            ## yere degmeden art arda kac kanca (ustalik zinciri)
 var _en_uzun_zincir := 0
 
+## Dokunmatikte olumden sonra beliren tek dokunusluk "Bastan basla" dugmesi.
+## Kisa bir bekleme var: olum aninda ekranda olan parmak yanlislikla basmasin.
+const YENIDEN_BEKLEME := 0.7         ## olumden sonra dugme bu sure boyunca kapali
+const YENIDEN_GORUNME := 4.0         ## dugme bu kadar gorunur kalir
+
+var _gunluk := false                 ## bu kosu gunluk meydan okuma mi
+var _yeniden_dugme: Button = null
+var _yeniden_sayac := 0.0            ## >0 iken dugme gorunur; ilk YENIDEN_BEKLEME'de kapali
+
 var _sure_etiket: Label
 var _akis_etiket: Label
 var _eniyi_etiket: Label
@@ -54,12 +63,16 @@ var _sonraki_dugme: Button
 
 func _ready() -> void:
 	add_to_group(&"bolum")
+	_gunluk = Gunluk.aktif
 	_veri = Bolumler.veri(bolum_no)
 	RenderingServer.set_default_clear_color(Ayarlar.RENK_ARKAPLAN)
 	_arka_plani_kur()
 	_oyuncuyu_kur()
 	_arayuzu_kur()
-	_hayaleti_kur()
+	if _gunluk:
+		Gunluk.uygula(_oyuncu)
+	else:
+		_hayaleti_kur()
 	Ses.muzik_cal("muzik")
 	_yeniden()
 
@@ -193,7 +206,7 @@ func _dunyayi_kur() -> void:
 func _rota_ipucunu_isaretle() -> void:
 	if not bool(Kayit.ayar("rota_ipucu")):
 		return
-	if Bolumler.madalya(bolum_no, Kayit.en_iyi(bolum_no)) != 0:
+	if not altin_kazanildi(bolum_no):
 		return
 	var rota := RotaVerisi.nokta(bolum_no)
 	if rota.is_empty():
@@ -420,6 +433,7 @@ func _yeniden() -> void:
 	_oluyor = false
 	_zincir = 0
 	_en_uzun_zincir = 0
+	_yeniden_dugmesini_gizle()
 	_dunyayi_kur()
 	_dogur()
 	if _hayalet != null:
@@ -437,6 +451,7 @@ func _oldu() -> void:
 	parcacik_at(_oyuncu.global_position, Palet.ATKI, 18)
 	sars(5.0)
 	_sayiyor = true
+	_yeniden_sayac = YENIDEN_GORUNME
 	_yeniden_dogur.call_deferred()
 	Gecis.yanip_son()
 
@@ -481,6 +496,9 @@ func _process(delta: float) -> void:
 			cos(_sarsinti_t * Ayarlar.SARSINTI_HIZ * 1.3) * _sarsinti)
 	_kamera.offset = sars_ofset + _oyuncu.kamera_ileri
 	_kamera.zoom = Vector2.ONE * _oyuncu.kamera_yakinlik
+	if _yeniden_sayac > 0.0:
+		_yeniden_sayac -= delta
+		_yeniden_dugmesini_guncelle()
 	if not _bitti and not _duraklatildi and _oyuncu.global_position.y > Ayarlar.OLUM_Y:
 		_oldu()
 
@@ -510,11 +528,31 @@ func _bitise_degdi(govde: Node2D) -> void:
 	Ses.cal("bitis")
 	parcacik_at(_oyuncu.global_position, Palet.BITIS, 24)
 
+	_yeniden_dugmesini_gizle()
+
+	# Gunluk kosu ayri yuvaya yazilir: en iyi sureyi, acik bolumu, akis rekorunu
+	# ve hayaleti BOZMAZ - degistiriciyle kosulmus bir sure normal tabloya girmemeli.
+	if _gunluk:
+		var g_rekor := Kayit.gunluk_yaz(Gunluk.tohum(), _sure)
+		var g_satirlar := [
+			"GÜNLÜK MEYDAN OKUMA",
+			Gunluk.baslik(),
+			"Süre: %s" % _bicim(_sure),
+			"YENİ REKOR!" if g_rekor else "Bugünün en iyisi: %s" % _bicim(
+				Kayit.gunluk_en_iyi(Gunluk.tohum())),
+			"Akış: ×%d" % _en_uzun_zincir,
+		]
+		_bitis_metin.text = "\n".join(PackedStringArray(g_satirlar))
+		_bitis_panel.visible = true
+		_sonraki_dugme.disabled = true
+		_bitis_panel.find_child("Yeniden", true, false).grab_focus()
+		return
+
 	var akis_rekor := Kayit.akis_yaz(bolum_no, _en_uzun_zincir)
 	var rekor := Kayit.sure_yaz(bolum_no, _sure)
 	Kayit.bolum_ac(mini(bolum_no + 1, Bolumler.sayi()))
-	if rekor and bool(Kayit.ayar("hayalet")):
-		Kayit.hayalet_yaz(bolum_no, _kayit)
+	if rekor and int(Kayit.ayar("hayalet_kip")) > 0:
+		Kayit.hayalet_yaz(bolum_no, _kayit, Hayalet.ARALIK)
 
 	var madalya := Bolumler.madalya(bolum_no, _sure)
 	if madalya < 3:
@@ -553,6 +591,7 @@ func _duraklat_degistir() -> void:
 	if _bitti:
 		return   # dokunmatik Duraklat dugmesi bitis panelinin altinda kalir
 	_duraklatildi = not _duraklatildi
+	_yeniden_dugmesini_guncelle()
 	_ayar_panel.visible = false
 	_duraklat_panel.visible = _duraklatildi
 	_sayiyor = not _duraklatildi
@@ -566,19 +605,66 @@ func _sonraki() -> void:
 		Gecis.git(Bolumler.yol(bolum_no + 1))
 
 func _menuye() -> void:
+	Gunluk.aktif = false
 	Gecis.git(MENU_YOLU)
+
+# --- Dokunmatik yeniden baslatma --------------------------------------
+
+## Telefonda olumden sonra bolumu bastan almanin tek yolu Duraklat -> "Bölümü
+## yeniden başla" idi (iki dokunus). Olumun ardindan ekranin ust ortasinda
+## tek dokunusluk bir dugme beliriyor.
+##
+## Yanlislikla tetiklenmesin diye iki onlem var: (1) dugme ilk
+## YENIDEN_BEKLEME saniyesinde KAPALI - olum aninda ekranda olan parmak
+## uzerine denk gelirse bir sey olmaz, (2) ekranin tamami degil, kucuk bir
+## dugme; tek parmak semasinin kanca dokunusuyla cakismiyor.
+func _yeniden_dugmesini_guncelle() -> void:
+	if _yeniden_dugme == null:
+		return
+	var gorunur := _yeniden_sayac > 0.0 and not _bitti and not _duraklatildi
+	_yeniden_dugme.visible = gorunur
+	_yeniden_dugme.disabled = _yeniden_sayac > YENIDEN_GORUNME - YENIDEN_BEKLEME
+
+func _yeniden_dugmesini_gizle() -> void:
+	_yeniden_sayac = 0.0
+	if _yeniden_dugme != null:
+		_yeniden_dugme.visible = false
+
+func _dokunmatik_yeniden() -> void:
+	if _yeniden_dugme != null and _yeniden_dugme.disabled:
+		return
+	Ses.cal("menu")
+	_yeniden()
 
 # --- Hayalet ----------------------------------------------------------
 
+## Hayalet kaynagi ayardan gelir: 1 = kendi en iyi kosun, 2 = ALTIN HAYALET
+## (botun kosusu). Altin hayalet yalniz o bolumde altin madalya kazanildiysa
+## acilir - "nereden gidilirmis"in cevabi odul olmali, basta verilen bir sey degil.
+## Veri yoksa (bot o bolumu bitirememisse) sessizce kendi kosuna duser.
 func _hayaleti_kur() -> void:
-	if not bool(Kayit.ayar("hayalet")):
+	var kip := int(Kayit.ayar("hayalet_kip"))
+	if kip <= 0:
 		return
-	var ornekler := Kayit.hayalet_oku(bolum_no)
+	if kip >= 2 and altin_kazanildi(bolum_no):
+		var altin := RotaVerisi.iz(bolum_no)
+		if altin.size() >= 2:
+			_hayalet = Hayalet.new()
+			add_child(_hayalet)
+			# Botun izi 10 Hz: tools/rota.gd IZ_ARALIK_KARE = 6 kare.
+			_hayalet.kur(altin, Hayalet.ARALIK, true)
+			return
+	var kayit := Kayit.hayalet_oku(bolum_no)
+	var ornekler: PackedVector2Array = kayit.get("ornekler", PackedVector2Array())
 	if ornekler.size() < 2:
 		return
 	_hayalet = Hayalet.new()
 	add_child(_hayalet)
-	_hayalet.kur(ornekler)
+	_hayalet.kur(ornekler, float(kayit.get("aralik", Hayalet.ARALIK)))
+
+## O bolumde altin madalya kazanildi mi (rota ipucu ve altin hayalet bunu sorar).
+static func altin_kazanildi(no: int) -> bool:
+	return Bolumler.madalya(no, Kayit.en_iyi(no)) == 0
 
 # --- Arayuz -----------------------------------------------------------
 
@@ -612,7 +698,7 @@ func _arayuzu_kur() -> void:
 	_akis_etiket.visible = false
 	katman.add_child(_akis_etiket)
 
-	var en_iyi := Kayit.en_iyi(bolum_no)
+	var en_iyi := Kayit.gunluk_en_iyi(Gunluk.tohum()) if _gunluk else Kayit.en_iyi(bolum_no)
 	_eniyi_etiket = _serit(_etiket("En iyi  %s" % _bicim(en_iyi), 11, Ayarlar.RENK_METIN))
 	_eniyi_etiket.position = Vector2(12, 30)
 	katman.add_child(_eniyi_etiket)
@@ -623,7 +709,11 @@ func _arayuzu_kur() -> void:
 	_madalya_gorsel.position = Vector2(108, 30)
 	katman.add_child(_madalya_gorsel)
 
-	var baslik := _serit(_etiket("%d. %s" % [bolum_no, _veri["ad"]], 11, Ayarlar.RENK_METIN_SOLUK))
+	var baslik_metni := "%d. %s" % [bolum_no, _veri["ad"]]
+	if _gunluk:
+		baslik_metni = "GÜNLÜK · %s" % String(Gunluk.degistirici()["ad"])
+	var baslik := _serit(_etiket(baslik_metni, 11,
+		Palet.ALTIN if _gunluk else Ayarlar.RENK_METIN_SOLUK))
 	baslik.position = Vector2(12, 46)
 	katman.add_child(baslik)
 
@@ -654,6 +744,20 @@ func _arayuzu_kur() -> void:
 		yardim.offset_bottom = 24.0
 		yardim.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		katman.add_child(yardim)
+
+	if Ayarlar.dokunmatik_mi():
+		_yeniden_dugme = Button.new()
+		_yeniden_dugme.name = "YenidenDugme"
+		_yeniden_dugme.text = "Baştan başla"
+		_yeniden_dugme.add_theme_font_size_override("font_size", 12)
+		_yeniden_dugme.pressed.connect(_dokunmatik_yeniden)
+		_yeniden_dugme.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
+		_yeniden_dugme.offset_left = -56.0
+		_yeniden_dugme.offset_top = 44.0
+		_yeniden_dugme.offset_right = 56.0
+		_yeniden_dugme.offset_bottom = 70.0
+		_yeniden_dugme.visible = false
+		katman.add_child(_yeniden_dugme)
 
 	var ipucu := Bolumler.ipucu(bolum_no)
 	if ipucu != "":
