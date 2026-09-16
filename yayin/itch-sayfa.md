@@ -25,16 +25,22 @@ and a ghost of your own best run to chase.
 - **14 hand-tuned levels**, each introducing one idea: moving anchors, single-use
   brittle anchors that snap when you let go, updraft currents, ceiling spikes.
 - **Medals and ghosts:** gold/silver/bronze times per level, and your best run
-  replays beside you as a translucent ghost (can be turned off).
+  replays beside you as a translucent ghost. Once you earn gold on a level you
+  can switch the ghost to the **golden ghost** — the reference run itself — and
+  watch the line you are missing.
+- **Daily challenge:** one level picked by the date plus a small modifier
+  (short rope, or a constant side wind). Same for everyone, changes every day,
+  scored in its own slot so it never touches your main progress.
 - **Checkpoints** in the long levels — the clock keeps running, so dying still costs you.
 - **Flow chain:** every anchor you catch without touching the ground extends your
   chain. It is scored separately from time — the fastest run is not always the
   most stylish one.
 - **Route hint:** once you earn gold on a level, the anchors the reference route
   uses are marked, so "how is that even possible" has an answer.
-- **Target times are measured, not guessed.** A bot plays every level in the real
-  physics with randomised reaction delays; the medals come from those runs,
-  down to the millisecond.
+- **Target times are measured, not guessed.** A bot plays **all fourteen levels**
+  in the real physics with randomised reaction delays — it pumps the rope,
+  re-routes when a line fails and grabs a rescue anchor mid-fall; the medals
+  come from those runs, down to the millisecond.
 - Hand-made pixel art on a single limited palette, procedurally generated chiptune.
 - Keyboard + mouse, gamepad, and a **one-finger touch scheme** for phones.
   Rebindable keys and adjustable aim assist. Turkish interface.
@@ -59,7 +65,8 @@ attached to glows gold, and out-of-range anchors go grey.
 
 **One finger (touch):** running is automatic, tap to hook (or jump if there is no
 anchor), lift to release, and slide up/down while holding to shorten or lengthen
-the rope. You can try it on desktop from Settings.
+the rope. After a death a single-tap **restart** button appears. You can try the
+whole scheme on desktop from Settings.
 
 **Notes**
 
@@ -90,15 +97,22 @@ hedef süre ve kovalayacağın kendi en iyi koşunun hayaleti.
   kanca noktaları, bıraktığın an kırılan tek kullanımlık noktalar, yukarı iten
   rüzgâr akıntıları, dikenli tavanlar.
 - **Madalya ve hayalet:** bölüm başına altın/gümüş/bronz süre, ve en iyi koşun
-  yanında yarı saydam hayalet olarak tekrar oynuyor (kapatılabilir).
+  yanında yarı saydam hayalet olarak tekrar oynuyor. Bir bölümde altın
+  madalyayı aldıysan hayaleti **altın hayalete** çevirebilirsin: referans
+  koşunun kendisi yanında koşar.
+- **Günlük meydan okuma:** tarihe göre seçilen bir bölüm ve küçük bir
+  değiştirici (kısa halat ya da sürekli yan rüzgâr). Herkeste aynı, her gün
+  değişir, kendi kayıt yuvasında — ana ilerlemeye dokunmaz.
 - **Kontrol noktaları** uzun bölümlerde — ama sayaç durmuyor, ölmek yine de
   süre kaybı.
 - **Akış zinciri:** yere değmeden yakaladığın her nokta zinciri uzatır. Süreden
   ayrı notlanır — en hızlı koşu her zaman en şık koşu değildir.
 - **Rota ipucu:** bir bölümde altın madalyayı aldığında referans rotanın
   kullandığı noktalar işaretlenir; "bu nasıl mümkün" sorusunun cevabı görünür.
-- **Hedef süreler tahmin değil, ölçüm.** Bir bot her bölümü gerçek fizikte,
-  rastgele tepki gecikmeleriyle oynuyor; madalyalar o koşulardan, ms hassasiyetinde.
+- **Hedef süreler tahmin değil, ölçüm.** Bir bot **14 bölümün tamamını** gerçek
+  fizikte, rastgele tepki gecikmeleriyle oynuyor — halatı pompalıyor, tıkandığı
+  rotayı değiştiriyor, düşerken ara noktaya tutunuyor; madalyalar o koşulardan,
+  ms hassasiyetinde.
 - Tek sınırlı palette elle üretilmiş pixel art, kodla üretilmiş chiptune müzik.
 - Klavye + fare, gamepad ve telefon için **tek parmak şeması**. Tuş atama ve
   ayarlanabilir nişan yardımı. Türkçe arayüz.
@@ -121,7 +135,8 @@ nokta hiç seçilmez. Seçili nokta beyaz yanar ve araya kesik çizgi çekilir, 
 olduğun nokta altın rengi olur, menzil dışındakiler grileşir.
 
 **Tek parmak (dokunmatik):** koşu otomatik, dokun = kanca (hedef yoksa zıplama),
-parmağı kaldır = bırak, basılıyken yukarı/aşağı kaydır = halat boyu.
+parmağı kaldır = bırak, basılıyken yukarı/aşağı kaydır = halat boyu. Öldükten
+sonra tek dokunuşluk **"Baştan başla"** düğmesi beliriyor.
 Masaüstünde Ayarlar'dan denenebilir.
 
 **Notlar**
@@ -142,7 +157,7 @@ Masaüstünde Ayarlar'dan denenebilir.
 | Release status | Released |
 | Pricing | Free (donations off) |
 | Genre | Platformer |
-| Tags | pixel-art, speedrun, grappling-hook, physics, precision-platformer, godot, 2d, singleplayer |
+| Tags | pixel-art, speedrun, grappling-hook, physics, precision-platformer, godot, 2d, singleplayer, daily-challenge |
 | Input | Keyboard, Mouse, Gamepad, Touchscreen |
 | Cover image | `yayin/kapak.png` (630×500) |
 | Screenshots | `yayin/ekran_1.png` … `ekran_4.png` (1280×720) |

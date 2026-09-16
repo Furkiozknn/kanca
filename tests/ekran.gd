@@ -47,6 +47,11 @@ func _cek() -> void:
 	_yaz(await _hud_cek(false), "res://docs/ekran/hud.png")
 	_yaz(await _hud_cek(true), "res://docs/ekran/hud_dokunmatik.png")
 
+	# v0.4: altin hayalet, gunluk meydan okuma, dokunmatik yeniden baslatma.
+	_yaz(await _altin_hayalet_cek(), "res://docs/ekran/hayalet_altin.png")
+	_yaz(await _gunluk_cek(), "res://docs/ekran/gunluk.png")
+	_yaz(await _yeniden_dugmesi_cek(), "res://docs/ekran/yeniden_dokunmatik.png")
+
 	await _kapak_yap()
 	print("Ekran goruntuleri hazir: docs/ekran/ ve yayin/")
 	get_tree().quit()
@@ -131,6 +136,70 @@ func _hud_cek(dokunmatik: bool) -> Image:
 	for i in 6:
 		await get_tree().physics_frame
 	await get_tree().process_frame
+	var im := await _goruntu()
+	bolum.free()
+	await get_tree().process_frame
+	Ayarlar.dokunmatik_zorla = -1
+	return im
+
+## Altin hayalet: botun izi oynarken oyuncunun arkasinda altin renkli bir
+## siluet gorunmeli. Kayit dosyasina DOKUNMADAN kuruluyor - ekran araci
+## oyuncunun rekorlarini degistirmemeli.
+func _altin_hayalet_cek() -> Image:
+	var no := 1
+	var bolum: Bolum = load(Bolumler.yol(no)).instantiate()
+	add_child(bolum)
+	for i in 12:
+		await get_tree().physics_frame
+	var iz := RotaVerisi.iz(no)
+	var oyuncu: Oyuncu = bolum.find_child("Oyuncu", true, false)
+	if iz.size() > 12 and oyuncu != null:
+		var h := Hayalet.new()
+		bolum.add_child(h)
+		h.kur(iz, Hayalet.ARALIK, true)
+		# Hayaleti izinin ortasina getir, oyuncuyu da yanina koy.
+		h._process(Hayalet.ARALIK * float(iz.size()) * 0.45)
+		oyuncu.global_position = h.position + Vector2(-46, 26)
+		oyuncu.velocity = Vector2(420.0, -80.0)
+	for i in 4:
+		await get_tree().physics_frame
+	await get_tree().process_frame
+	var im := await _goruntu()
+	bolum.free()
+	await get_tree().process_frame
+	return im
+
+## Gunluk meydan okuma: HUD'da "GÜNLÜK · <degistirici>" seridi gorunmeli.
+func _gunluk_cek() -> Image:
+	Gunluk.tohum_zorla = 20260916
+	Gunluk.aktif = true
+	var bolum: Bolum = load(Bolumler.yol(Gunluk.bolum_no())).instantiate()
+	add_child(bolum)
+	for i in 12:
+		await get_tree().process_frame
+	_sallandir(bolum, Gunluk.bolum_no())
+	for i in 24:
+		await get_tree().process_frame
+	var im := await _goruntu()
+	bolum.free()
+	await get_tree().process_frame
+	Gunluk.aktif = false
+	Gunluk.tohum_zorla = 0
+	return im
+
+## Dokunmatikte olumden sonra beliren tek dokunusluk "Baştan başla" dugmesi.
+func _yeniden_dugmesi_cek() -> Image:
+	Ayarlar.dokunmatik_zorla = 1
+	var bolum: Bolum = load(Bolumler.yol(1)).instantiate()
+	add_child(bolum)
+	for i in 12:
+		await get_tree().physics_frame
+	bolum.call("_oldu")
+	# Beklemeyi bitir ki dugme ACIK haliyle goruntuye girsin.
+	bolum.set("_yeniden_sayac", Bolum.YENIDEN_GORUNME - Bolum.YENIDEN_BEKLEME - 0.01)
+	bolum.call("_yeniden_dugmesini_guncelle")
+	for i in 4:
+		await get_tree().process_frame
 	var im := await _goruntu()
 	bolum.free()
 	await get_tree().process_frame

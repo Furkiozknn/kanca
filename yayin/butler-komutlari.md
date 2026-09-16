@@ -38,10 +38,10 @@ powershell -ExecutionPolicy Bypass -File tools\tam_dogrulama.ps1
 cd D:\Repolar\kanca
 
 # Web (tarayıcıda oynanan sürüm)
-butler push build\web furkiozknn/kanca:html5 --userversion 0.3.0
+butler push build\web furkiozknn/kanca:html5 --userversion 0.4.0
 
 # Windows masaüstü
-butler push build\windows furkiozknn/kanca:windows --userversion 0.3.0
+butler push build\windows furkiozknn/kanca:windows --userversion 0.4.0
 ```
 
 ## Yükleme sonrası
@@ -62,7 +62,7 @@ itch.io sayfasında elle yapılacaklar:
 
 ## Sürüm etiketi
 
-Depo yerelde `v0.3` etiketiyle işaretli:
+Depo yerelde `v0.4` etiketiyle işaretli:
 
 ```powershell
 git -C D:\Repolar\kanca tag -l

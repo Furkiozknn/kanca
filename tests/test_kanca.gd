@@ -38,6 +38,13 @@ func _calistir() -> void:
 	_test_yerlesim()
 	_test_madalya()
 	_test_hayalet_kaydi()
+	_test_hayalet_ara_deger()
+	_test_altin_hayalet()
+	_test_gunluk_tohum()
+	_test_gunluk_degistirici()
+	_test_gunluk_kayit()
+	await _test_gunluk_bolum_akisi()
+	await _test_dokunmatik_yeniden()
 	_test_akis_kaydi()
 	_test_tus_atama()
 	_test_rota_verisi()
@@ -618,11 +625,62 @@ func _test_madalya() -> void:
 
 func _test_hayalet_kaydi() -> void:
 	var ornek := PackedVector2Array([Vector2(1, 2), Vector2(3, 4), Vector2(5, 6)])
-	Kayit.hayalet_yaz(99, ornek)
+	Kayit.hayalet_yaz(99, ornek, Hayalet.ARALIK)
 	var geri := Kayit.hayalet_oku(99)
-	_bildir("hayalet kaydi yazilip geri okunuyor", geri == ornek,
-		"yazilan=%d okunan=%d" % [ornek.size(), geri.size()])
+	_bildir("hayalet kaydi yazilip geri okunuyor",
+		geri.get("ornekler", PackedVector2Array()) == ornek,
+		"yazilan=%d" % ornek.size())
+	# Aralik dosyaya yaziliyor: ornekleme hizi degisirse eski kayit yari
+	# hizda oynamasin (v0.4'te 20 -> 10 Hz).
+	_bildir("hayalet kaydi ornekleme araligini tasiyor",
+		absf(float(geri.get("aralik", 0.0)) - Hayalet.ARALIK) < 0.0001,
+		"aralik=%s" % str(geri.get("aralik", null)))
+	# Surumsuz (v0.3) dosya yok sayilmali, yanlis hizda oynatilmamali.
+	var f := FileAccess.open(Kayit.HAYALET_YOL % 99, FileAccess.WRITE)
+	f.store_var(ornek)
+	f.close()
+	_bildir("eski surumsuz hayalet dosyasi yok sayiliyor",
+		Kayit.hayalet_oku(99).is_empty(), "eski dosya kabul edildi")
 	DirAccess.remove_absolute(Kayit.HAYALET_YOL % 99)
+
+## Hayalet 10 Hz ornekle kaydedilip ara degerle oynatiliyor: iki ornek
+## arasindaki konum dogrusal ara deger olmali.
+func _test_hayalet_ara_deger() -> void:
+	var h := Hayalet.new()
+	add_child(h)
+	h.kur(PackedVector2Array([Vector2(0, 0), Vector2(100, 0), Vector2(100, 100)]))
+	var basladi := h.visible and h.position == Vector2.ZERO
+	h._process(Hayalet.ARALIK * 0.5)          # ilk araligin ortasi
+	var orta_dogru := h.position.is_equal_approx(Vector2(50, 0))
+	h._process(Hayalet.ARALIK)                # 1,5 aralik: ikinci parcanin ortasi
+	var ikinci_dogru := h.position.is_equal_approx(Vector2(100, 50))
+	h._process(Hayalet.ARALIK * 3.0)          # kayit bitti
+	var bitti := not h.visible
+	h.free()
+	_bildir("hayalet ornekler arasinda ara deger uretiyor",
+		basladi and orta_dogru and ikinci_dogru, "orta=%s" % str(orta_dogru))
+	_bildir("hayalet kayit bitince gizleniyor", bitti)
+
+## Altin hayalet: bot izi uretilmis bolumlerde okunabilmeli ve makul olmali
+## (10 Hz oldugu icin ornek sayisi ~ bot suresi x 10).
+func _test_altin_hayalet() -> void:
+	var izli := 0
+	var bozuk := ""
+	for no in range(1, Bolumler.sayi() + 1):
+		var iz := RotaVerisi.iz(no)
+		if iz.is_empty():
+			if not RotaVerisi.tahmin_mi(no):
+				bozuk += " b%d:gercek kosu ama iz yok;" % no
+			continue
+		izli += 1
+		var beklenen := RotaVerisi.sure(no) * 10.0
+		if absf(float(iz.size()) - beklenen) > beklenen * 0.35 + 3.0:
+			bozuk += " b%d:%d ornek, ~%.0f bekleniyordu;" % [no, iz.size(), beklenen]
+		var d := Bolumler.veri(no)
+		if iz[0].distance_to(Vector2(d["basla"])) > 120.0:
+			bozuk += " b%d:iz baslangicta baslamiyor;" % no
+	_bildir("altin hayalet izi tutarli (%d bolumde var)" % izli, bozuk == "" and izli > 0,
+		bozuk if bozuk != "" else "hic iz yok")
 
 # --- 11b. Akis (ustalik zinciri) kaydi --------------------------------
 
@@ -860,6 +918,161 @@ func _metin_dosyalari() -> PackedStringArray:
 	return sonuc
 
 ## Tarayicida get_tree().quit() islevsiz: Cikis dugmesi yalniz masaustunde.
+## Gunluk meydan okuma: tohum tarihten geliyor, ayni tohum ayni bolum +
+## degistiriciyi vermeli; ardisik gunler ayni bolume yapismamali.
+func _test_gunluk_tohum() -> void:
+	var eski := Gunluk.tohum_zorla
+	Gunluk.tohum_zorla = 20260916
+	var bolum_a := Gunluk.bolum_no()
+	var deg_a := Gunluk.degistirici_no()
+	var kararli: bool = Gunluk.bolum_no() == bolum_a and Gunluk.degistirici_no() == deg_a
+	# 30 ardisik gun: bolumler dagilmali (ardisik tohumlarin hash'i karistiriliyor).
+	var bolumler: Dictionary = {}
+	var aralikta := true
+	for gun in 30:
+		Gunluk.tohum_zorla = 20260901 + gun
+		var b := Gunluk.bolum_no()
+		bolumler[b] = true
+		if b < 1 or b > Bolumler.sayi():
+			aralikta = false
+		if Gunluk.degistirici_no() >= Gunluk.DEGISTIRICILER.size():
+			aralikta = false
+	Gunluk.tohum_zorla = eski
+	_bildir("gunluk tohum ayni gun ayni bolumu veriyor", kararli)
+	_bildir("gunluk bolum/degistirici gecerli aralikta", aralikta)
+	_bildir("gunluk 30 gunde en az 5 farkli bolum veriyor", bolumler.size() >= 5,
+		"%d farkli bolum" % bolumler.size())
+
+## Degistirici oyuncuya uygulaniyor ve GLOBAL sabitlere dokunmuyor
+## (dokunsa normal bolumlere sizardi - Ayarlar autoload).
+func _test_gunluk_degistirici() -> void:
+	var eski := Gunluk.tohum_zorla
+	var eski_menzil: float = Ayarlar.KANCA_MENZIL
+	var uygulandi := true
+	for kip in Gunluk.DEGISTIRICILER.size():
+		# O degistiriciyi veren bir tohum bul.
+		var bulundu := false
+		for gun in 60:
+			Gunluk.tohum_zorla = 20260101 + gun
+			if Gunluk.degistirici_no() == kip:
+				bulundu = true
+				break
+		if not bulundu:
+			uygulandi = false
+			continue
+		var o := _oyuncu_yap(Vector2.ZERO)
+		Gunluk.uygula(o)
+		if kip == 0 and o.azami_halat >= Ayarlar.KANCA_AZAMI_HALAT:
+			uygulandi = false
+		if kip == 1 and o.sabit_ruzgar == Vector2.ZERO:
+			uygulandi = false
+		o.free()
+	Gunluk.tohum_zorla = eski
+	_bildir("gunluk degistiricisi oyuncuya uygulaniyor", uygulandi)
+	_bildir("gunluk degistiricisi global sabitlere dokunmuyor",
+		is_equal_approx(Ayarlar.KANCA_MENZIL, eski_menzil))
+
+## Gunluk kosu ana ilerlemeyi bozmamali: ayri yuvaya yaziliyor.
+func _test_gunluk_kayit() -> void:
+	var eski := Gunluk.tohum_zorla
+	Gunluk.tohum_zorla = 19990101              # gercek bir gunle carpismayan tohum
+	var bas := Kayit.gunluk_en_iyi(Gunluk.tohum())
+	var hedef := (bas - 1.0) if bas > 0.0 else 9.5
+	var yazdi := Kayit.gunluk_yaz(Gunluk.tohum(), hedef)
+	var kotuyu_yazmadi := not Kayit.gunluk_yaz(Gunluk.tohum(), hedef + 5.0)
+	var ayri: bool = Kayit.en_iyi(Gunluk.bolum_no()) != hedef
+	Gunluk.tohum_zorla = eski
+	_bildir("gunluk suresi ayri yuvaya yaziliyor", yazdi and kotuyu_yazmadi and ayri,
+		"yazdi=%s ayri=%s" % [str(yazdi), str(ayri)])
+
+## Gunluk kipte bitirilen bir bolum ANA ILERLEMEYE dokunmamali: en iyi sure,
+## acilan bolum, akis rekoru ve hayalet degismemeli. Bu ozelligin butun sozu bu.
+func _test_gunluk_bolum_akisi() -> void:
+	var eski_tohum := Gunluk.tohum_zorla
+	Gunluk.tohum_zorla = 19990102
+	var no := Gunluk.bolum_no()
+	var onceki_sure := Kayit.en_iyi(no)
+	var onceki_acik := Kayit.acik_bolum()
+	var onceki_akis := Kayit.akis(no)
+
+	Gunluk.aktif = true
+	var bolum: Bolum = load(Bolumler.yol(no)).instantiate()
+	add_child(bolum)
+	for i in 3:
+		await get_tree().physics_frame
+	var oyuncu: Oyuncu = bolum.find_child("Oyuncu", true, false)
+	bolum.set("_sure", 4.25)
+	bolum.set("_en_uzun_zincir", 9)
+	bolum.call("_bitise_degdi", oyuncu)
+	await get_tree().physics_frame
+
+	var gunluk_yazildi: bool = Kayit.gunluk_en_iyi(Gunluk.tohum()) > 0.0
+	var sure_bozulmadi: bool = is_equal_approx(Kayit.en_iyi(no), onceki_sure)
+	var ilerleme_bozulmadi: bool = Kayit.acik_bolum() == onceki_acik
+	var akis_bozulmadi: bool = Kayit.akis(no) == onceki_akis
+	var bitti: bool = bool(bolum.get("_bitti"))
+	bolum.free()
+	for i in 2:
+		await get_tree().physics_frame
+	Gunluk.aktif = false
+	Gunluk.tohum_zorla = eski_tohum
+
+	_bildir("gunluk bitisi gunluk yuvasina yaziliyor", gunluk_yazildi and bitti)
+	_bildir("gunluk bitisi en iyi sureyi bozmuyor", sure_bozulmadi,
+		"%.3f -> %.3f" % [onceki_sure, Kayit.en_iyi(no)])
+	_bildir("gunluk bitisi bolum acmiyor", ilerleme_bozulmadi,
+		"%d -> %d" % [onceki_acik, Kayit.acik_bolum()])
+	_bildir("gunluk bitisi akis rekorunu bozmuyor", akis_bozulmadi,
+		"%d -> %d" % [onceki_akis, Kayit.akis(no)])
+
+## Dokunmatikte olumden sonra tek dokunusluk yeniden baslatma dugmesi.
+func _test_dokunmatik_yeniden() -> void:
+	Ayarlar.dokunmatik_zorla = 0
+	var masaustu: Bolum = load(Bolumler.yol(1)).instantiate()
+	add_child(masaustu)
+	# 3 kare: _alanlari_ac() await'ini bitirsin. Hemen free etmek "class instance
+	# is gone" hatasi bastiriyor (test geciyor ama log kirleniyor).
+	for i in 3:
+		await get_tree().physics_frame
+	var masaustunde_yok: bool = masaustu.find_child("YenidenDugme", true, false) == null
+	masaustu.free()
+	await get_tree().physics_frame
+
+	Ayarlar.dokunmatik_zorla = 1
+	var bolum: Bolum = load(Bolumler.yol(1)).instantiate()
+	add_child(bolum)
+	for i in 3:
+		await get_tree().physics_frame
+	var dugme: Button = bolum.find_child("YenidenDugme", true, false)
+	var basta_gizli: bool = dugme != null and not dugme.visible
+	bolum.call("_oldu")
+	bolum.call("_yeniden_dugmesini_guncelle")
+	# Olumden hemen sonra: gorunur ama KAPALI (ekrandaki parmak tetiklemesin).
+	var olumde_kapali: bool = dugme != null and dugme.visible and dugme.disabled
+	var bekleme_sonrasi := false
+	var yeniden_basladi := false
+	if dugme != null:
+		bolum.set("_yeniden_sayac", Bolum.YENIDEN_GORUNME - Bolum.YENIDEN_BEKLEME - 0.01)
+		bolum.call("_yeniden_dugmesini_guncelle")
+		bekleme_sonrasi = dugme.visible and not dugme.disabled
+		bolum.set("_sure", 5.0)
+		dugme.emit_signal("pressed")
+		await get_tree().physics_frame
+		yeniden_basladi = float(bolum.get("_sure")) < 1.0 and not dugme.visible
+	# _yeniden() -> _dogur() -> _alanlari_ac.call_deferred(): o await bitmeden
+	# free etmek "class instance is gone" hatasi bastiriyor.
+	for i in 3:
+		await get_tree().physics_frame
+	bolum.free()
+	await get_tree().physics_frame
+	Ayarlar.dokunmatik_zorla = -1
+
+	_bildir("masaustunde yeniden dugmesi yok", masaustunde_yok)
+	_bildir("dokunmatikte dugme basta gizli", basta_gizli)
+	_bildir("olumden hemen sonra dugme kapali (yanlislikla basilamaz)", olumde_kapali)
+	_bildir("bekleme bitince dugme aciliyor", bekleme_sonrasi)
+	_bildir("dugme bolumu bastan baslatiyor", yeniden_basladi)
+
 func _test_web_cikis_dugmesi() -> void:
 	var m: Control = preload("res://scenes/menu.tscn").instantiate()
 	add_child(m)
