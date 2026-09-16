@@ -4,11 +4,12 @@ extends Node2D
 ##
 ##   powershell -ExecutionPolicy Bypass -File tools\kilitli.ps1 -- --headless --path . --scene res://tools/olcum.tscn
 ##
-## Dort tarama:
+## Bes tarama:
 ##   1. SALLANMA_IVMESI x SALLANMA_SONUMU  -> hedef hiza ulasma suresi
 ##   2. SALLANMA_SONUMU (girdisiz)         -> tus birakilinca kalan enerji
 ##   3. BIRAKMA_CARPANI                    -> birakma sonrasi ucus mesafesi
 ##   4. KANCA_MENZIL                       -> 14 bolumde zincir baglanabilirligi
+##   5. SALLANMA_YERCEKIMI                 -> salinim periyodu, tepe hiz, enerji kacagi
 ##
 ## Bot "iyi oyuncu" taklidi yapar: her karede tegetsel hizin isaretine basar
 ## (sarkaci pompalamanin dogru yolu).
@@ -35,6 +36,7 @@ func _calistir() -> void:
 	await _tarama_serbest()
 	await _tarama_birakma()
 	_tarama_menzil()
+	await _tarama_yercekimi()
 
 	print("=== olcum bitti ===")
 	get_tree().quit(0)
@@ -199,6 +201,66 @@ func _birakma_olc(carpan: float) -> Dictionary:
 		"yatay": absf(_oyuncu.global_position.x - bas.x),
 		"sure": float(kare) / 60.0,
 	}
+
+# --- 5. Sallanma yercekimi carpani ------------------------------------
+
+## v0.3: sallanirken yercekimi bir carpanla uygulaniyor. Agir yercekimi yayin
+## dibinde daha cok hiz ve daha kisa periyot verir ("tepede asili kalma" azalir),
+## ama fazlasi sarkaci kontrol edilemez yapar.
+##
+## Ayrica sert halat kisitinin (v0.3) enerji kacagini kapatip kapatmadigini
+## gosterir: girdisiz birakilan 60 derecelik salinimin 4 sn sonra kalan enerjisi
+## v0.2'de sonum sifirken bile %15 kayiptaydi.
+func _tarama_yercekimi() -> void:
+	print("\n-- 5. SALLANMA_YERCEKIMI (pompalayan bot + girdisiz enerji) --")
+	print("%-8s %8s %8s %10s %10s" % ["carpan", "t(500)", "t(800)", "periyot", "enerji%"])
+	Ayarlar.SALLANMA_IVMESI = 1250.0
+	Ayarlar.SALLANMA_SONUMU = 0.05
+	for carpan: float in [1.0, 1.15, 1.3, 1.5, 1.8]:
+		Ayarlar.SALLANMA_YERCEKIMI = carpan
+		var pompa := await _pompa_olc(1250.0, 0.05)
+		var periyot := await _periyot_olc()
+		Ayarlar.SALLANMA_YERCEKIMI = carpan
+		var serbest := await _serbest_olc(0.05)
+		print("%-8.2f %8s %8s %10.2f %9.0f%%" % [
+			carpan,
+			"-" if pompa["t_hedef"] < 0.0 else "%.2f" % pompa["t_hedef"],
+			"-" if pompa["t_yuksek"] < 0.0 else "%.2f" % pompa["t_yuksek"],
+			periyot,
+			100.0 * serbest["son"] / maxf(serbest["bas"], 1.0)])
+	Ayarlar.SALLANMA_YERCEKIMI = 1.3
+
+## 60 derecelik salinimin bir tam periyodu (sn): capanin altindan gecis sayilir.
+func _periyot_olc() -> float:
+	Ayarlar.SALLANMA_SONUMU = 0.0
+	_kur()
+	var aci := deg_to_rad(60.0)
+	_oyuncu.global_position = Vector2(sin(aci), cos(aci)) * HALAT
+	_oyuncu.velocity = Vector2.ZERO
+	_oyuncu.bot_yon = 0.0
+	await get_tree().physics_frame
+	_oyuncu.kanca_at_hemen(-_oyuncu.global_position.normalized())
+	_oyuncu.velocity = Vector2.ZERO
+	var gecis := 0
+	var ilk := -1
+	var son := -1
+	var onceki := _oyuncu.global_position.x
+	for i in 600:
+		await get_tree().physics_frame
+		if not _oyuncu.kancali():
+			break
+		var x := _oyuncu.global_position.x
+		if signf(x) != signf(onceki) and absf(x - onceki) > 0.5:
+			gecis += 1
+			if ilk < 0:
+				ilk = i
+			son = i
+		onceki = x
+	Ayarlar.SALLANMA_SONUMU = 0.05
+	if gecis < 3 or son <= ilk:
+		return 0.0
+	# Iki gecis = yarim periyot.
+	return 2.0 * float(son - ilk) / float(gecis - 1) / 60.0
 
 # --- 4. Menzil --------------------------------------------------------
 

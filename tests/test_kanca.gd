@@ -18,6 +18,14 @@ func _calistir() -> void:
 	await get_tree().process_frame
 	print("=== Kanca testleri ===")
 	await _test_menzil()
+	await _test_hedefleme_puani()
+	await _test_gorus_hatti()
+	await _test_hiz_yonu()
+	await _test_kanca_tamponu()
+	await _test_kojot_kanca()
+	await _test_birakma_bonusu()
+	await _test_pompa()
+	await _test_kamera_ileri()
 	await _test_ucus_suresi()
 	await _test_halat_kisiti()
 	await _test_momentum()
@@ -30,6 +38,10 @@ func _calistir() -> void:
 	_test_yerlesim()
 	_test_madalya()
 	_test_hayalet_kaydi()
+	_test_akis_kaydi()
+	_test_tus_atama()
+	_test_rota_verisi()
+	_test_madalya_ms()
 	_test_gecilebilirlik()
 	print("=== %d/%d gecti ===" % [_toplam - _kalan, _toplam])
 	get_tree().quit(_kalan)
@@ -54,6 +66,233 @@ func _nokta_yap(yer: Vector2, tur: int = KancaNoktasi.TUR_SABIT) -> KancaNoktasi
 	add_child(n)
 	n.global_position = yer
 	return n
+
+## Gorus hattini kesen kati blok.
+func _duvar_yap(r: Rect2) -> StaticBody2D:
+	var g := StaticBody2D.new()
+	var sekil := RectangleShape2D.new()
+	sekil.size = r.size
+	var cs := CollisionShape2D.new()
+	cs.shape = sekil
+	cs.position = r.position + r.size * 0.5
+	g.add_child(cs)
+	add_child(g)
+	return g
+
+# --- 1b. Hedefleme puanlamasi -----------------------------------------
+
+## Puan = hiza*3 - uzaklik/menzil + hiz yonu uyumu. Hizali uzak nokta,
+## hizasiz yakin noktayi yenmeli; esit hizada yakin olan kazanmali.
+func _test_hedefleme_puani() -> void:
+	var o := _oyuncu_yap(Vector2.ZERO)
+	o.set_physics_process(false)
+	var hizali := _nokta_yap(Vector2(0.0, -200.0))
+	var egik := _nokta_yap(Vector2(40.0, -40.0))
+	await get_tree().physics_frame
+	var secim := o.en_iyi_nokta(Vector2.UP)
+	_bildir("hizali uzak nokta, hizasiz yakin noktayi yener", secim == hizali,
+		"secim=%s" % (str(secim.global_position) if secim != null else "yok"))
+
+	egik.queue_free()
+	var daha_yakin := _nokta_yap(Vector2(0.0, -90.0))
+	await get_tree().physics_frame
+	var secim2 := o.en_iyi_nokta(Vector2.UP)
+	_bildir("esit hizada yakin olan kazanir", secim2 == daha_yakin,
+		"secim=%s" % (str(secim2.global_position) if secim2 != null else "yok"))
+
+	o.queue_free()
+	hizali.queue_free()
+	daha_yakin.queue_free()
+	await get_tree().physics_frame
+
+# --- 1c. Gorus hatti --------------------------------------------------
+
+## Arada kati zemin varsa kanca takilmamali (duvarin arkasina tutunma).
+func _test_gorus_hatti() -> void:
+	var o := _oyuncu_yap(Vector2.ZERO)
+	o.set_physics_process(false)
+	var n := _nokta_yap(Vector2(0.0, -150.0))
+	var duvar := _duvar_yap(Rect2(-40.0, -90.0, 80.0, 16.0))
+	await get_tree().physics_frame
+	await get_tree().physics_frame
+	var engelli := o.kanca_at_hemen(Vector2.UP)
+	o.kanca_birak()
+
+	duvar.queue_free()
+	await get_tree().physics_frame
+	await get_tree().physics_frame
+	var acik := o.kanca_at_hemen(Vector2.UP)
+
+	_bildir("arada duvar varsa kanca takilmaz", not engelli, "takildi")
+	_bildir("duvar kalkinca ayni noktaya takilir", acik, "takilmadi")
+
+	o.queue_free()
+	n.queue_free()
+	await get_tree().physics_frame
+
+# --- 1d. Hiz yonu uyumu -----------------------------------------------
+
+## Nisana esit uzaklikta iki nokta varsa, hiz yonundeki secilmeli.
+func _test_hiz_yonu() -> void:
+	var o := _oyuncu_yap(Vector2.ZERO)
+	o.set_physics_process(false)
+	var sol := _nokta_yap(Vector2(-100.0, -130.0))
+	var sag := _nokta_yap(Vector2(100.0, -130.0))
+	await get_tree().physics_frame
+
+	o.velocity = Vector2(500.0, 0.0)
+	var saga := o.en_iyi_nokta(Vector2.UP)
+	o.velocity = Vector2(-500.0, 0.0)
+	var sola := o.en_iyi_nokta(Vector2.UP)
+
+	_bildir("hiz yonundeki nokta seciliyor (saga giderken sag)", saga == sag,
+		"secim=%s" % (str(saga.global_position) if saga != null else "yok"))
+	_bildir("hiz yonundeki nokta seciliyor (sola giderken sol)", sola == sol,
+		"secim=%s" % (str(sola.global_position) if sola != null else "yok"))
+
+	o.queue_free()
+	sol.queue_free()
+	sag.queue_free()
+	await get_tree().physics_frame
+
+# --- 1e. Kanca tamponu ------------------------------------------------
+
+## Basis saklanir: tampon suresi icinde hedef belirirse kanca takilir.
+func _test_kanca_tamponu() -> void:
+	var o := _oyuncu_yap(Vector2.ZERO)
+	await get_tree().physics_frame
+	o.kanca_tamponla(Vector2.UP)
+	await get_tree().physics_frame
+	var n := _nokta_yap(o.global_position + Vector2(0.0, -120.0))
+	for i in 4:
+		await get_tree().physics_frame
+	var tamponla_takildi: bool = o.kancali() or o.uculuyor()
+	o.kanca_birak()
+	n.queue_free()
+	await get_tree().physics_frame
+
+	# Tampon suresi gectikten sonra beliren hedef takilmamali.
+	o.velocity = Vector2.ZERO
+	o.kanca_tamponla(Vector2.UP)
+	for i in int(Ayarlar.KANCA_TAMPON_SURESI * 60.0) + 4:
+		await get_tree().physics_frame
+	var gec := _nokta_yap(o.global_position + Vector2(0.0, -120.0))
+	for i in 4:
+		await get_tree().physics_frame
+	var gec_takildi: bool = o.kancali() or o.uculuyor()
+
+	_bildir("basis tamponlanir: %.2f sn icinde beliren hedefe takilir"
+		% Ayarlar.KANCA_TAMPON_SURESI, tamponla_takildi, "takilmadi")
+	_bildir("tampon suresi gecince eski basis kanca atmaz", not gec_takildi, "takildi")
+
+	o.queue_free()
+	gec.queue_free()
+	await get_tree().physics_frame
+
+# --- 1f. Kojot-kanca --------------------------------------------------
+
+## Hedef menzilden az once cikmissa kisa bir sure daha tutulabilir.
+func _test_kojot_kanca() -> void:
+	var o := _oyuncu_yap(Vector2.ZERO)
+	o.set_physics_process(false)
+	var n := _nokta_yap(Vector2(0.0, -(Ayarlar.KANCA_MENZIL - 20.0)))
+	await get_tree().physics_frame
+
+	o.aday_guncelle(Vector2.UP)
+	# Menzilin biraz disina cik (kojot payi icinde).
+	o.global_position = Vector2(0.0, 60.0)
+	var kojotla := o.kanca_at_hemen(Vector2.UP)
+	o.kanca_birak()
+
+	# Kojot penceresi gecsin.
+	o.set_physics_process(true)
+	for i in int(Ayarlar.KANCA_KOJOT_SURESI * 60.0) + 6:
+		await get_tree().physics_frame
+	o.set_physics_process(false)
+	o.global_position = Vector2(0.0, 60.0)
+	var sonra := o.kanca_at_hemen(Vector2.UP)
+
+	_bildir("kojot-kanca: menzilden yeni cikan hedefe hala takilir", kojotla, "takilmadi")
+	_bildir("kojot suresi bitince takilmaz", not sonra, "takildi")
+
+	o.queue_free()
+	n.queue_free()
+	await get_tree().physics_frame
+
+# --- 1g. Birakma bonusu -----------------------------------------------
+
+## Esik ustu hizda birakmak BIRAKMA_CARPANI kadar odullendirilir, altinda degil.
+func _test_birakma_bonusu() -> void:
+	var capa := _nokta_yap(Vector2(0.0, -150.0))
+	var o := _oyuncu_yap(Vector2.ZERO)
+	o.set_physics_process(false)
+	await get_tree().physics_frame
+
+	o.kanca_at_hemen(Vector2.UP)
+	var hizli_once := Vector2(Ayarlar.BIRAKMA_ESIGI + 80.0, 0.0)
+	o.velocity = hizli_once
+	o.kanca_birak()
+	var hizli_sonra := o.velocity.length()
+
+	o.kanca_at_hemen(Vector2.UP)
+	var yavas_once := Vector2(Ayarlar.BIRAKMA_ESIGI - 120.0, 0.0)
+	o.velocity = yavas_once
+	o.kanca_birak()
+	var yavas_sonra := o.velocity.length()
+
+	_bildir("esik ustu birakmada hiz bonusu var",
+		absf(hizli_sonra - hizli_once.length() * Ayarlar.BIRAKMA_CARPANI) < 1.0,
+		"%.1f -> %.1f (beklenen %.1f)" % [hizli_once.length(), hizli_sonra,
+			hizli_once.length() * Ayarlar.BIRAKMA_CARPANI])
+	_bildir("esik alti birakmada hiza dokunulmaz",
+		absf(yavas_sonra - yavas_once.length()) < 1.0,
+		"%.1f -> %.1f" % [yavas_once.length(), yavas_sonra])
+
+	o.queue_free()
+	capa.queue_free()
+	await get_tree().physics_frame
+
+# --- 1h. Pompa (halat kisaltma) ---------------------------------------
+
+## Gergin halati kisaltmak aci momentumunu korur: tegetsel hiz artar.
+func _test_pompa() -> void:
+	var hizlar: Array[float] = []
+	for pompa in [false, true]:
+		var capa := _nokta_yap(Vector2(0.0, -140.0))
+		var o := _oyuncu_yap(Vector2.ZERO)
+		await get_tree().physics_frame
+		o.kanca_at_hemen(Vector2.UP)
+		o.velocity = Vector2(300.0, 0.0)
+		for i in 30:
+			if pompa:
+				o.halat_degistir(-2.0)
+			await get_tree().physics_frame
+		hizlar.append(o.velocity.length())
+		o.queue_free()
+		capa.queue_free()
+		await get_tree().physics_frame
+
+	_bildir("halati kisaltmak sallanmayi hizlandirir (pompa)",
+		hizlar[1] > hizlar[0] * 1.15,
+		"pompasiz=%.1f pompali=%.1f" % [hizlar[0], hizlar[1]])
+
+# --- 1i. Ileri bakan kamera -------------------------------------------
+
+func _test_kamera_ileri() -> void:
+	var o := _oyuncu_yap(Vector2(0.0, -400.0))
+	await get_tree().physics_frame
+	var duruyor := absf(o.kamera_ileri.x)
+	for i in 40:
+		o.velocity.x = 600.0
+		await get_tree().physics_frame
+
+	_bildir("kamera hiz yonune bakiyor", o.kamera_ileri.x > 50.0 and duruyor < 5.0,
+		"duruyor=%.1f hizli=%.1f" % [duruyor, o.kamera_ileri.x])
+	_bildir("yuksek hizda goruntu hafif uzaklasiyor",
+		o.kamera_yakinlik < 0.99 and o.kamera_yakinlik > 1.0 - Ayarlar.KAMERA_UZAKLASMA - 0.01,
+		"yakinlik=%.3f" % o.kamera_yakinlik)
+	o.queue_free()
+	await get_tree().physics_frame
 
 # --- 1. Menzil --------------------------------------------------------
 
@@ -195,15 +434,15 @@ func _test_hareketli() -> void:
 	var n := _nokta_yap(Vector2(0.0, -120.0), KancaNoktasi.TUR_HAREKETLI)
 	n.a = Vector2(-80.0, -120.0)
 	n.b = Vector2(80.0, -120.0)
-	await get_tree().process_frame
+	await get_tree().physics_frame
 	var bas := n.global_position
 	var en_sol := bas.x
 	var en_sag := bas.x
-	# Headless'ta process kareleri gercek zamandan cok daha hizli akiyor, bu yuzden
-	# "5 saniye = 300 kare" varsayimi tutmaz: tam tur tamamlanana kadar don.
+	# Nokta artik fizik karesinde hareket ediyor (sabit 60 Hz); yine de guvenli
+	# bir ust sinirla tam tur tamamlanana kadar don.
 	var kare := 0
 	while kare < 20000:
-		await get_tree().process_frame
+		await get_tree().physics_frame
 		kare += 1
 		en_sol = minf(en_sol, n.global_position.x)
 		en_sag = maxf(en_sag, n.global_position.x)
@@ -380,6 +619,89 @@ func _test_hayalet_kaydi() -> void:
 	_bildir("hayalet kaydi yazilip geri okunuyor", geri == ornek,
 		"yazilan=%d okunan=%d" % [ornek.size(), geri.size()])
 	DirAccess.remove_absolute(Kayit.HAYALET_YOL % 99)
+
+# --- 11b. Akis (ustalik zinciri) kaydi --------------------------------
+
+func _test_akis_kaydi() -> void:
+	Kayit.akis_yaz(98, 1)
+	var arttirdi := Kayit.akis_yaz(98, 4)
+	var dusurmedi := not Kayit.akis_yaz(98, 3)
+	_bildir("akis kaydi yalniz rekor olunca guncelleniyor",
+		arttirdi and dusurmedi and Kayit.akis(98) == 4, "akis=%d" % Kayit.akis(98))
+
+# --- 11c. Tus atama ---------------------------------------------------
+
+func _test_tus_atama() -> void:
+	var eski := Kayit.tuslar()
+	Kayit.tus_yaz("zipla", KEY_K)
+	var yazildi := false
+	for olay: InputEvent in InputMap.action_get_events("zipla"):
+		if olay is InputEventKey and (olay as InputEventKey).physical_keycode == KEY_K:
+			yazildi = true
+	# Fare/gamepad atamalari ozel tustan etkilenmemeli.
+	var kanca_fare := false
+	for olay: InputEvent in InputMap.action_get_events("kanca_at"):
+		if olay is InputEventMouseButton:
+			kanca_fare = true
+	Kayit.tuslari_sifirla()
+	var sifirlandi: bool = Kayit.tuslar().is_empty() and Tuslar.tus_adi("zipla") != "K"
+	for eylem: String in eski:
+		Kayit.tus_yaz(eylem, int(eski[eylem]))
+
+	_bildir("ozel tus atamasi InputMap'e yaziliyor", yazildi, "zipla=K yazilamadi")
+	_bildir("ozel tus fare atamasini silmiyor", kanca_fare, "kanca_at fare atamasi kayboldu")
+	_bildir("varsayilana donunce ozel atama kalmiyor", sifirlandi,
+		"zipla=%s" % Tuslar.tus_adi("zipla"))
+
+# --- 11d. Uretilmis rota verisi ---------------------------------------
+
+## tools/rota.gd her bolum icin bot kosusu + rota uretiyor. Rotanin her adimi
+## gercek bir kanca noktasi olmali, ardisik noktalar zincir menzilinde ve
+## aralarinda kati zemin olmadan gorunur olmali.
+func _test_rota_verisi() -> void:
+	var zincir: float = Ayarlar.KANCA_MENZIL + Ayarlar.KANCA_AZAMI_HALAT * 0.7
+	var bozuk := ""
+	for no in range(1, Bolumler.sayi() + 1):
+		var rota := RotaVerisi.nokta(no)
+		if rota.is_empty():
+			bozuk += " b%d:rota yok;" % no
+			continue
+		var kanca := Bolumler.tum_kanca(no)
+		var zeminler := Bolumler.zeminler(no)
+		for i in rota.size():
+			var p: Vector2 = rota[i]
+			var var_mi := false
+			for k: Vector2 in kanca:
+				if k.distance_to(p) < 1.5:
+					var_mi = true
+					break
+			if not var_mi:
+				bozuk += " b%d:%s kanca noktasi degil;" % [no, str(p)]
+			if i > 0:
+				var onceki: Vector2 = rota[i - 1]
+				if onceki.distance_to(p) > zincir:
+					bozuk += " b%d:%s-%s cok uzak;" % [no, str(onceki), str(p)]
+				elif not Bolumler.gorus_var(onceki, p, zeminler):
+					bozuk += " b%d:%s-%s arasi kapali;" % [no, str(onceki), str(p)]
+		if RotaVerisi.sure(no) <= 0.0:
+			bozuk += " b%d:bot suresi yok;" % no
+	_bildir("uretilmis rota verisi tutarli (%d bolum)" % Bolumler.sayi(), bozuk == "", bozuk)
+
+## Madalya esikleri bot kosusundan uretildigi icin ms hassasiyetinde olmali.
+func _test_madalya_ms() -> void:
+	var bozuk := ""
+	for no in range(1, Bolumler.sayi() + 1):
+		var m := RotaVerisi.madalya(no)
+		if m.size() != 3:
+			bozuk += " b%d:esik uretilmemis;" % no
+			continue
+		var ms_var := false
+		for d: float in m:
+			if absf(d - roundf(d * 10.0) / 10.0) > 0.0001:
+				ms_var = true
+		if not ms_var:
+			bozuk += " b%d:ms hassasiyeti yok (%s);" % [no, str(m)]
+	_bildir("madalya esikleri ms hassasiyetinde", bozuk == "", bozuk)
 
 # --- 12. Gecilebilirlik -----------------------------------------------
 

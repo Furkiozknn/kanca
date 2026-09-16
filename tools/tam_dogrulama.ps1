@@ -2,7 +2,9 @@
 #   powershell -ExecutionPolicy Bypass -File tools\tam_dogrulama.ps1
 #   powershell -ExecutionPolicy Bypass -File tools\tam_dogrulama.ps1 -Atla varlik,ekran
 #
-# Adimlar: varlik (sprite+ses) -> import -> test -> olcum -> ekran -> disa aktarma
+# Adimlar: varlik (sprite+ses) -> import -> rota -> test -> olcum -> ekran -> disa aktarma
+# 'rota' madalya surelerini ve rota ipucunu uretir; testler bu veriyi kontrol
+# ettigi icin testten ONCE calisir.
 # Her adimin ciktisi $env:TEMP\kanca_<adim>.log dosyasina yazilir; ozet ekrana basilir.
 param([string[]] $Atla = @())
 
@@ -34,6 +36,7 @@ try {
   Adim 'varlik_sprite' @('--headless', '--path', $kok, '-s', 'res://tools/sprite_uret.gd')
   Adim 'varlik_ses'    @('--headless', '--path', $kok, '-s', 'res://tools/ses_uret.gd')
   Adim 'import'        @('--headless', '--path', $kok, '--import')
+  Adim 'rota'          @('--headless', '--path', $kok, '--scene', 'res://tools/rota.tscn') 900
   Adim 'test'          @('--headless', '--path', $kok, '--scene', 'res://tests/test_kanca.tscn') 300
   Adim 'olcum'         @('--headless', '--path', $kok, '--scene', 'res://tools/olcum.tscn') 900
   Adim 'ekran'         @('--path', $kok, '--scene', 'res://tests/ekran.tscn') 300

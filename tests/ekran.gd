@@ -13,6 +13,7 @@ extends Node2D
 const BOLUMLER := [1, 6, 9, 13]          ## yayin gorsellerine giren bolumler
 const EK_BOLUMLER := [3, 10, 14]         ## sadece docs/ekran altina
 const KAPAK_BOLUM := 13
+const NISAN_BOLUM := 6                   ## nisan onizlemesi goruntusu
 
 func _ready() -> void:
 	_cek()
@@ -35,6 +36,12 @@ func _cek() -> void:
 	for no: int in EK_BOLUMLER:
 		var im := await _bolum_cek(no)
 		_yaz(im, "res://docs/ekran/bolum_%02d.png" % no)
+
+	# v0.3: nisan onizlemesi (kesik cizgi, menzil disi gri) + akis sayaci.
+	# Yayin gorsellerinden ikincisi bunun yerini aliyor.
+	var nisan := await _nisan_cek(NISAN_BOLUM)
+	_yaz(nisan, "res://docs/ekran/nisan.png")
+	_yaz(nisan, "res://yayin/ekran_2.png")
 
 	await _kapak_yap()
 	print("Ekran goruntuleri hazir: docs/ekran/ ve yayin/")
@@ -75,6 +82,30 @@ func _sallandir(bolum: Bolum, no: int) -> void:
 	oyuncu.global_position = hedef + Vector2(-70.0, 110.0)
 	oyuncu.velocity = Vector2(360.0, -60.0)
 	oyuncu.kanca_at_hemen((hedef - oyuncu.global_position).normalized())
+
+## Kanca atmadan, aday nokta secili haldeyken goruntu: kesik nisan cizgisi,
+## menzil disi noktalarin soluk hali ve "Akis xN" sayaci gorunur.
+func _nisan_cek(no: int) -> Image:
+	var bolum: Bolum = load(Bolumler.yol(no)).instantiate()
+	add_child(bolum)
+	for i in 12:
+		await get_tree().physics_frame
+	var oyuncu: Oyuncu = bolum.find_child("Oyuncu", true, false)
+	var noktalar := Bolumler.tum_kanca(no)
+	if oyuncu != null and noktalar.size() >= 2:
+		var hedef: Vector2 = noktalar[1]
+		# Nokta yukari-ileri yonde kalsin: nisan yoksa bakis yonu + yukari secilir.
+		oyuncu.global_position = hedef + Vector2(-110.0, 120.0)
+		oyuncu.velocity = Vector2(280.0, -90.0)
+	bolum.set("_zincir", 4)
+	bolum.call("_akis_yaz")
+	for i in 6:
+		await get_tree().physics_frame
+	await get_tree().process_frame
+	var im := await _goruntu()
+	bolum.free()
+	await get_tree().process_frame
+	return im
 
 func _menu_cek() -> void:
 	# Control'un capalari, ust ogesi Node2D olursa sifir dikdortgene cozulur.
