@@ -49,6 +49,17 @@ static func yap(geri: Callable, perde := false) -> Control:
 	kutu.add_child(_bosluk(5))
 
 	# Tus atama ayri bir kutuda; ayni kok icinde gorunurluk degistiriliyor.
+	# Dokunmatikte HIC KURULMAZ: telefonda klavye yok, atanacak tus da yok
+	# ("Tuşa bas: değiştir" ekrani orada anlamsiz).
+	if Ayarlar.dokunmatik_mi():
+		var d2 := Button.new()
+		d2.name = "GeriAyar"
+		d2.text = "Geri"
+		d2.add_theme_font_size_override("font_size", 13)
+		d2.pressed.connect(geri)
+		kutu.add_child(d2)
+		return kok
+
 	var tus_orta := CenterContainer.new()
 	tus_orta.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	tus_orta.name = "TusKutusu"
@@ -73,7 +84,7 @@ static func yap(geri: Callable, perde := false) -> Control:
 
 	var d := Button.new()
 	d.name = "GeriAyar"
-	d.text = "Geri  (Esc)"
+	d.text = Ayarlar.kisayol("Geri", "Esc")
 	d.add_theme_font_size_override("font_size", 13)
 	d.pressed.connect(geri)
 	kutu.add_child(d)

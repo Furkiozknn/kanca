@@ -113,9 +113,9 @@ func _secim_paneli() -> Control:
 		izgara.add_child(_bolum_dugmesi(no, no <= acik))
 
 	kutu.add_child(_bosluk(6))
-	kutu.add_child(_etiket("Madalya: altın / gümüş / bronz hedef süreler bölüm içinde yazılı.",
+	kutu.add_child(_etiket("Madalya: altın / gümüş / bronz hedef süreler bölüm içinde yazılı.\nAkış ×N: yere değmeden art arda en uzun kanca zinciri.",
 		10, Ayarlar.RENK_METIN_SOLUK))
-	kutu.add_child(_dugme("Geri", "Geri  (Esc)", _ana_goster))
+	kutu.add_child(_dugme("Geri", Ayarlar.kisayol("Geri", "Esc"), _ana_goster))
 	kutu.add_child(_dugme("Sifirla", "Kayıtları sıfırla", _sifirla))
 	return kok
 
@@ -136,6 +136,20 @@ func _bolum_dugmesi(no: int, acik: bool) -> Control:
 		m.offset_right = -3.0
 		m.offset_bottom = 15.0
 		d.add_child(m)
+	# Akis rekoru (v0.5): sag alt kosede "×N". Madalya simgesiyle ayni
+	# koseye koymamak icin altta; ikiden kisa zincir gosterilmez (HUD da oyle).
+	var zincir := Kayit.akis(no)
+	if zincir >= 2:
+		var a := Bolum.etiket_yap("×%d" % zincir, 10, Palet.ALTIN)
+		a.name = "Akis"
+		a.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
+		a.offset_left = -30.0
+		a.offset_top = -16.0
+		a.offset_right = -4.0
+		a.offset_bottom = -2.0
+		a.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		a.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		d.add_child(a)
 	return d
 
 func _ayar_paneli() -> Control:

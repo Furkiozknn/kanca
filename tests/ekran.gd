@@ -16,6 +16,7 @@ const KAPAK_BOLUM := 13
 const NISAN_BOLUM := 6                   ## nisan onizlemesi goruntusu
 
 func _ready() -> void:
+	Kayit.salt_okunur = true   # arac oyuncunun kaydina yazmasin
 	_cek()
 
 func _cek() -> void:
@@ -52,6 +53,12 @@ func _cek() -> void:
 	_yaz(await _gunluk_cek(), "res://docs/ekran/gunluk.png")
 	_yaz(await _yeniden_dugmesi_cek(), "res://docs/ekran/yeniden_dokunmatik.png")
 	_yaz(await _telefon_cek(), "res://docs/ekran/telefon.png")
+
+	# v0.5: bolum secme ekraninda akis rozeti (kayda dokunmadan, bellekte) ve
+	# dokunmatikte tus eksiz "Geri" / bitis paneli.
+	_yaz(await _secim_cek(false), "res://docs/ekran/bolum_sec_akis.png")
+	_yaz(await _secim_cek(true), "res://docs/ekran/bolum_sec_dokunmatik.png")
+	_yaz(await _bitis_cek(true), "res://docs/ekran/bitis_dokunmatik.png")
 
 	await _kapak_yap()
 	print("Ekran goruntuleri hazir: docs/ekran/ ve yayin/")
@@ -259,6 +266,56 @@ func _menu_cek() -> void:
 		_yaz(await _goruntu(), "res://docs/ekran/tus_atama.png")
 	katman.free()
 	await get_tree().process_frame
+
+## Bolum secme ekrani, ilk uc bolumde akis rozetiyle. Rozet degerleri
+## Kayit'in BELLEKTEKI tablosuna yazilip geri aliniyor; dosyaya yazan
+## yalniz *_yaz islevleri, onlar cagrilmiyor.
+func _secim_cek(dokunmatik: bool) -> Image:
+	Ayarlar.dokunmatik_zorla = 1 if dokunmatik else 0
+	var eski: Array = []
+	for no in [1, 2, 3]:
+		eski.append(Kayit._cfg.get_value("akis", str(no), 0))
+		Kayit._cfg.set_value("akis", str(no), [4, 2, 6][no - 1])
+	var katman := CanvasLayer.new()
+	add_child(katman)
+	var menu: Node = load("res://scenes/menu.tscn").instantiate()
+	katman.add_child(menu)
+	for i in 6:
+		await get_tree().process_frame
+	menu.call("_secim_goster")
+	for i in 6:
+		await get_tree().process_frame
+	var im := await _goruntu()
+	katman.free()
+	await get_tree().process_frame
+	for no in [1, 2, 3]:
+		if int(eski[no - 1]) > 0:
+			Kayit._cfg.set_value("akis", str(no), eski[no - 1])
+		else:
+			Kayit._cfg.erase_section_key("akis", str(no))
+	Ayarlar.dokunmatik_zorla = -1
+	return im
+
+## Bitis paneli dokunmatikte: "Tekrar dene" ve "Menüye dön" tus eksiz.
+func _bitis_cek(dokunmatik: bool) -> Image:
+	Ayarlar.dokunmatik_zorla = 1 if dokunmatik else 0
+	var bolum: Bolum = load(Bolumler.yol(1)).instantiate()
+	add_child(bolum)
+	for i in 12:
+		await get_tree().physics_frame
+	var panel: Control = bolum.get("_bitis_panel")
+	var metin: Label = bolum.get("_bitis_metin")
+	if panel != null:
+		panel.visible = true
+	if metin != null:
+		metin.text = "1. bölüm — İlk Tutuş\nSüre: 00:03.210\nEn iyi: 00:03.210\nMadalya: Altın\nAkış: ×3"
+	for i in 4:
+		await get_tree().process_frame
+	var im := await _goruntu()
+	bolum.free()
+	await get_tree().process_frame
+	Ayarlar.dokunmatik_zorla = -1
+	return im
 
 func _goruntu() -> Image:
 	await RenderingServer.frame_post_draw

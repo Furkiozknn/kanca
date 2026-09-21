@@ -24,6 +24,7 @@ var _oyuncu: Oyuncu
 var _capa: KancaNoktasi
 
 func _ready() -> void:
+	Kayit.salt_okunur = true   # arac oyuncunun kaydina yazmasin
 	_calistir()
 
 func _calistir() -> void:

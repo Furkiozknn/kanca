@@ -76,6 +76,14 @@ const RENK_METIN_SOLUK := Palet.METIN_SOLUK
 ## Testlerin ezmesi icin: -1 otomatik, 0 zorla kapali, 1 zorla acik.
 var dokunmatik_zorla := -1
 
+## Tus adi eki tek yerden: masaustunde "Geri  (Esc)", dokunmatikte sadece
+## "Geri". Telefonda klavye yok - "(R)" yazan bir dugme yalan soyluyor.
+## Tuslu her etiket bu yardimcidan gecer; testi tum ekranlari tariyor.
+func kisayol(metin: String, tus: String) -> String:
+	if dokunmatik_mi():
+		return metin
+	return "%s  (%s)" % [metin, tus]
+
 ## Tek parmak semasi acik mi. TEK KAYNAK - oyuncu girdisi, menu yardimi,
 ## bolum ipuclari ve HUD bunu okur.
 ##

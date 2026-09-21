@@ -54,6 +54,10 @@ func _calistir() -> void:
 	_test_dokunmatik_algilama()
 	_test_simge_kapsami()
 	_test_web_cikis_dugmesi()
+	await _test_kisayol_taramasi()
+	await _test_akis_secim_ekrani()
+	_test_bot_bekleme_freni()
+	_test_olculmus_esikler()
 	print("=== %d/%d gecti ===" % [_toplam - _kalan, _toplam])
 	get_tree().quit(_kalan)
 
@@ -885,6 +889,159 @@ func _test_dokunmatik_algilama() -> void:
 	_bildir("web telefon ozellikleri kontrol ediliyor",
 		kaynak.contains("web_android") and kaynak.contains("web_ios")
 		and kaynak.contains("is_touchscreen_available"))
+
+# --- v0.5: dokunmatik etiketler, akis tablosu, bot, olculmus esikler --------
+
+## Dokunmatikte hicbir ekranda tus adi kalmamali (Esc, R, Enter, W/S, fare...).
+## Tek yardimci (Ayarlar.kisayol) uzerinden gectigi icin TUM ekranlar
+## taranarak dogrulaniyor: menu (uc panel), bolum HUD'u + duraklat/bitis/ayar
+## panelleri. Masaustunde ayni etiketlerde tus eki DURMALI.
+const TUS_SOZLERI: PackedStringArray = ["Esc", "(R)", "Enter", "W/S", "A/D",
+	"Fare", "TIK", "Sol tık", "Boşluk", "Tuş", "R:"]
+
+func _metinleri_topla(kok: Node, cikti: Array[String]) -> void:
+	if kok is Label or kok is Button:
+		var t: String = kok.get("text")
+		if t != "":
+			cikti.append(t)
+	for c in kok.get_children():
+		_metinleri_topla(c, cikti)
+
+func _tus_sozu_var(metinler: Array[String]) -> String:
+	for m: String in metinler:
+		for s: String in TUS_SOZLERI:
+			if m.contains(s):
+				return "'%s' icinde '%s'" % [m.replace("\n", " / "), s]
+	return ""
+
+func _test_kisayol_taramasi() -> void:
+	Ayarlar.dokunmatik_zorla = 0
+	_bildir("masaustunde kisayol eki var",
+		Ayarlar.kisayol("Geri", "Esc") == "Geri  (Esc)", Ayarlar.kisayol("Geri", "Esc"))
+	Ayarlar.dokunmatik_zorla = 1
+	_bildir("dokunmatikte kisayol eki yok", Ayarlar.kisayol("Geri", "Esc") == "Geri")
+
+	for dokunmatik in [true, false]:
+		Ayarlar.dokunmatik_zorla = 1 if dokunmatik else 0
+		var metinler: Array[String] = []
+		var katman := CanvasLayer.new()
+		add_child(katman)
+		var menu: Node = load("res://scenes/menu.tscn").instantiate()
+		katman.add_child(menu)
+		await get_tree().process_frame
+		_metinleri_topla(menu, metinler)
+		katman.free()
+		await get_tree().process_frame
+		for no in [1, 2]:
+			var bolum: Bolum = load(Bolumler.yol(no)).instantiate()
+			add_child(bolum)
+			# Bolum._alanlari_ac bir fizik karesi bekliyor; ondan once free
+			# etmek "class instance is gone" hatasi basiyor (zararsiz ama kirli).
+			for i in 3:
+				await get_tree().physics_frame
+			_metinleri_topla(bolum, metinler)
+			bolum.free()
+			await get_tree().physics_frame
+		var bulgu := _tus_sozu_var(metinler)
+		if dokunmatik:
+			_bildir("dokunmatikte hicbir ekranda tus adi yok (%d metin tarandi)" % metinler.size(),
+				bulgu == "", bulgu)
+			var tus_atama := false
+			for m: String in metinler:
+				if m.contains("atama"):
+					tus_atama = true
+			_bildir("dokunmatikte tus atama ekrani kurulmuyor", not tus_atama)
+		else:
+			var esc_var := false
+			for m: String in metinler:
+				if m.contains("(Esc)"):
+					esc_var = true
+			_bildir("masaustunde tus adlari duruyor (%d metin)" % metinler.size(),
+				bulgu != "" and esc_var, bulgu)
+	Ayarlar.dokunmatik_zorla = -1
+
+## Bolum secme ekrani: akis rekoru olan bolumun dugmesinde "×N" rozeti,
+## olmayanda rozet yok. Kayit dosyasina DOKUNMADAN (bellekte) deneniyor.
+func _test_akis_secim_ekrani() -> void:
+	var eski_a: int = Kayit._cfg.get_value("akis", "1", 0)
+	var eski_b: int = Kayit._cfg.get_value("akis", "2", 0)
+	Kayit._cfg.set_value("akis", "1", 5)
+	Kayit._cfg.set_value("akis", "2", 0)
+	var katman := CanvasLayer.new()
+	add_child(katman)
+	var menu: Node = load("res://scenes/menu.tscn").instantiate()
+	katman.add_child(menu)
+	await get_tree().process_frame
+	# Secim paneli ikinci "Kutu"; ilk bulunan ana panel olabilir - butun agaci tara.
+	var dugmeler: Array[Button] = []
+	_dugmeleri_topla(menu, dugmeler)
+	var d1: Button = null
+	var d2: Button = null
+	for d: Button in dugmeler:
+		if d.text.begins_with("1. "):
+			d1 = d
+		elif d.text.begins_with("2. "):
+			d2 = d
+	var rozet1: Label = d1.find_child("Akis", false, false) if d1 != null else null
+	var rozet2: Label = d2.find_child("Akis", false, false) if d2 != null else null
+	_bildir("bolum secme: akis rekoru rozet olarak gorunuyor",
+		rozet1 != null and rozet1.text == "×5", str(rozet1.text) if rozet1 != null else "rozet yok")
+	_bildir("bolum secme: rekorsuz bolumde rozet yok", d2 != null and rozet2 == null)
+	katman.free()
+	await get_tree().process_frame
+	if eski_a > 0:
+		Kayit._cfg.set_value("akis", "1", eski_a)
+	else:
+		Kayit._cfg.erase_section_key("akis", "1")
+	if eski_b > 0:
+		Kayit._cfg.set_value("akis", "2", eski_b)
+	elif Kayit._cfg.has_section_key("akis", "2"):
+		Kayit._cfg.erase_section_key("akis", "2")
+	_bildir("bolum secme testi kaydi geri aldi",
+		int(Kayit._cfg.get_value("akis", "1", 0)) == eski_a
+		and int(Kayit._cfg.get_value("akis", "2", 0)) == eski_b)
+
+func _dugmeleri_topla(kok: Node, cikti: Array[Button]) -> void:
+	if kok is Button:
+		cikti.append(kok)
+	for c in kok.get_children():
+		_dugmeleri_topla(c, cikti)
+
+## Botun v0.5 yardimcilari: hareketli nokta salinimin bir ucunda menzile
+## giriyorsa beklemeye deger, girmiyorsa degmez; platform kenari algisi.
+func _test_bot_bekleme_freni() -> void:
+	var bot: Node = load("res://tools/rota.gd").new()   # agaca eklenmez: _ready kosmaz
+	bot.call("_tehlikeleri_topla", 6)
+	var h := KancaNoktasi.yap(Vector2(544, 96), KancaNoktasi.TUR_HAREKETLI)
+	h.a = Vector2(480, 96)
+	h.b = Vector2(608, 96)
+	var sabit := KancaNoktasi.yap(Vector2(400, 144))
+	# (340,290): 1. platformun kenari; a ucuna 239 px (menzil 240*0,95 = 228 disi),
+	# (400,240)'tan a ucuna 165 px (icinde).
+	_bildir("bot: uzak hareketli nokta icin beklemez",
+		not bot.call("_beklemeye_deger", h, Vector2(200, 290)))
+	_bildir("bot: menzile girecek hareketli nokta icin bekler",
+		bot.call("_beklemeye_deger", h, Vector2(400, 240)))
+	_bildir("bot: sabit nokta icin beklemez",
+		not bot.call("_beklemeye_deger", sabit, Vector2(400, 240)))
+	_bildir("bot: platform kenari algilaniyor (352'ye 20 px kala)",
+		bot.call("_kenarda", Vector2(332, 290)) and not bot.call("_kenarda", Vector2(200, 290)))
+	_bildir("bot: bosluk ustunde kenar yok", not bot.call("_kenarda", Vector2(500, 290)))
+	h.free()
+	sabit.free()
+	bot.free()
+	var kaynak := FileAccess.get_file_as_string("res://tools/rota.gd")
+	_bildir("bot: hiz freni kodda (FREN_HIZI, ters basis, halat uzatma)",
+		kaynak.contains("FREN_HIZI") and kaynak.contains("-signf(hiz.dot(teget)) if frenle"))
+
+## v0.5 hedefi: butun esikler olculmus kosudan gelsin (tahmin 0).
+func _test_olculmus_esikler() -> void:
+	var tahminler := ""
+	for no in range(1, Bolumler.sayi() + 1):
+		if RotaVerisi.tahmin_mi(no):
+			tahminler += " %d" % no
+	_bildir("madalya esikleri 14/14 bolumde olculmus kosudan (tahmin yok)",
+		tahminler == "", "tahmin:" + tahminler)
 
 ## Web yapisinda sistem yazi tipi yok: gomulu yazi tipinde olmayan bir simge
 ## kutu olarak cikar. Kodda gecen U+2000 ustu her karakter kapsanmali.

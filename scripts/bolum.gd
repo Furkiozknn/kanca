@@ -777,9 +777,9 @@ func _arayuzu_kur() -> void:
 	katman.add_child(_duraklat_panel)
 
 	_bitis_panel = panel("BÖLÜM BİTTİ", [
-		{"ad": "Sonraki", "metin": "Sonraki bölüm  (Enter)", "islev": _sonraki},
-		{"ad": "Yeniden", "metin": "Tekrar dene  (R)", "islev": _yeniden},
-		{"ad": "Menu", "metin": "Menüye dön  (Esc)", "islev": _menuye},
+		{"ad": "Sonraki", "metin": Ayarlar.kisayol("Sonraki bölüm", "Enter"), "islev": _sonraki},
+		{"ad": "Yeniden", "metin": Ayarlar.kisayol("Tekrar dene", "R"), "islev": _yeniden},
+		{"ad": "Menu", "metin": Ayarlar.kisayol("Menüye dön", "Esc"), "islev": _menuye},
 	])
 	katman.add_child(_bitis_panel)
 	_bitis_metin = _bitis_panel.find_child("Baslik", true, false)

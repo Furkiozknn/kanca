@@ -6,6 +6,11 @@ const YOL := "user://kayit.cfg"
 const HAYALET_YOL := "user://hayalet_%02d.dat"
 
 var _cfg := ConfigFile.new()
+## Araclar (rota botu, GIF, ekran, olcum) gercek bolum sahnelerini kosuyor;
+## bitise deginde Bolum oyuncunun kaydina rekor/hayalet/acilan bolum yazardi.
+## v0.5'te GIF araci 1. bolumun rekorunu ve hayaletini ezince fark edildi.
+## true iken bellek degisir, diske hicbir sey yazilmaz.
+var salt_okunur := false
 
 func _ready() -> void:
 	_cfg.load(YOL)
@@ -130,6 +135,8 @@ func hayalet_oku(bolum: int) -> Dictionary:
 	return {}
 
 func hayalet_yaz(bolum: int, ornekler: PackedVector2Array, aralik: float) -> void:
+	if salt_okunur:
+		return
 	var f := FileAccess.open(HAYALET_YOL % bolum, FileAccess.WRITE)
 	if f == null:
 		push_warning("Hayalet yazilamadi: bolum %d" % bolum)
@@ -156,6 +163,8 @@ func gunluk_yaz(tohum: int, sure: float) -> bool:
 # --- Ic ---------------------------------------------------------------
 
 func _yaz() -> void:
+	if salt_okunur:
+		return
 	var hata := _cfg.save(YOL)
 	if hata != OK:
 		push_warning("Kayit yazilamadi: %d" % hata)

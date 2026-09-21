@@ -38,10 +38,10 @@ powershell -ExecutionPolicy Bypass -File tools\tam_dogrulama.ps1
 cd D:\Repolar\kanca
 
 # Web (tarayıcıda oynanan sürüm)
-butler push build\web furkiozknn/kanca:html5 --userversion 0.4.0
+butler push build\web furkiozknn/kanca:html5 --userversion 0.5.0
 
 # Windows masaüstü
-butler push build\windows furkiozknn/kanca:windows --userversion 0.4.0
+butler push build\windows furkiozknn/kanca:windows --userversion 0.5.0
 ```
 
 ## Yükleme sonrası
@@ -57,12 +57,13 @@ itch.io sayfasında elle yapılacaklar:
 2. Embed boyutu **1280×720**, "Fullscreen button" açık, "Click to run" kapalı.
 3. **SharedArrayBuffer kutusunu İŞARETLEME** — bu yapı tek iş parçacıklı
    (`variant/thread_support=false`), işaretlenirse oyun hiç açılmaz.
-4. Kapak: `yayin\kapak.png`, ekran görüntüleri: `yayin\ekran_1..4.png`.
+4. Kapak: `yayin\kapak.png`, ekran görüntüleri: `yayin\ekran_1..4.png`,
+   tanıtım GIF'i: `yayin\tanitim.gif` (sayfa metninin en üstüne, ilk görsel).
 5. Sayfa metni: `yayin\itch-sayfa.md` (önce İngilizce, altında Türkçe).
 
 ## Sürüm etiketi
 
-Depo yerelde `v0.4` etiketiyle işaretli:
+Depo yerelde `v0.5` etiketiyle işaretli:
 
 ```powershell
 git -C D:\Repolar\kanca tag -l

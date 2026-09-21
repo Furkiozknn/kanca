@@ -160,6 +160,7 @@ Masaüstünde Ayarlar'dan denenebilir.
 | Tags | pixel-art, speedrun, grappling-hook, physics, precision-platformer, godot, 2d, singleplayer, daily-challenge |
 | Input | Keyboard, Mouse, Gamepad, Touchscreen |
 | Cover image | `yayin/kapak.png` (630×500) |
+| GIF (sayfa metninin başına) | `yayin/tanitim.gif` — 3,6 sn, 640×360: kanca takma → salınım → fırlama bonusu |
 | Screenshots | `yayin/ekran_1.png` … `ekran_4.png` (1280×720) |
 | Embed | 1280×720, "Click to run" **kapalı**, fullscreen butonu **açık** |
 | SharedArrayBuffer | **Gerekmiyor** (thread_support kapalı) — kutuyu işaretleme |
