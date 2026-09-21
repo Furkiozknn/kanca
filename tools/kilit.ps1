@@ -7,7 +7,9 @@
 # cagirmak stdout yonlendirmesini yutuyor - bu yuzden tek seviye.
 
 $script:KILIT = 'D:\Repolar\.godot-kilit'
-$script:GODOT = 'C:\Users\furki\AppData\Local\Microsoft\WinGet\Links\godot.exe'
+# PATH'te godot varsa onu kullan; yoksa winget kurulumunun varsayilan yoluna dus.
+$script:GODOT = (Get-Command godot -ErrorAction SilentlyContinue).Source
+if (-not $script:GODOT) { $script:GODOT = Join-Path $env:LOCALAPPDATA 'Microsoft\WinGet\Links\godot.exe' }
 $script:SLUG  = 'kanca'
 
 function Kilit-Al {

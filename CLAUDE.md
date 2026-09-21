@@ -2,7 +2,7 @@
 
 Bu dosya her Claude oturumunda otomatik yüklenir. Kısa ve güncel tut.
 Depo: `D:\Repolar\kanca` · Motor: **Godot 4.7.2** ·
-Godot yolu: `C:\Users\furki\AppData\Local\Microsoft\WinGet\Links\godot.exe` (PATH'te `godot`).
+Godot yolu: PATH'teki `godot` (winget kurulumu `%LOCALAPPDATA%\Microsoft\WinGet\Links` altina ekler).
 
 ## Değişmez teknik kararlar
 

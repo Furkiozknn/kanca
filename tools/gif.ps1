@@ -1,7 +1,7 @@
 # Tanitim GIF'i: tools/gif.tscn kareleri yazar (kilitle, headless DEGIL),
 # ffmpeg bunlari yayin/tanitim.gif yapar.
 #   powershell -ExecutionPolicy Bypass -File tools\gif.ps1
-# ffmpeg: winget kurulumu (C:\Users\furki\AppData\Local\Microsoft\WinGet\Links\ffmpeg.exe).
+# ffmpeg: winget kurulumu PATH'e ekler (%LOCALAPPDATA%\Microsoft\WinGet\Links\ffmpeg.exe).
 $ErrorActionPreference = 'Continue'
 . "$PSScriptRoot\kilit.ps1"
 

@@ -1,5 +1,7 @@
 # Kanca
 
+*Throw a hook at the ceiling, swing, release at the right moment and carry the momentum. A speed-focused 2D swinging platformer (Godot 4, Turkish UI); medal times come from real bot runs rather than formulas — 13 of 14 levels measured. 115 tests.*
+
 [![CI](https://github.com/Furkiozknn/kanca/actions/workflows/ci.yml/badge.svg)](https://github.com/Furkiozknn/kanca/actions/workflows/ci.yml)
 
 **Kancanı tavana at, sarkaç gibi salın, tam zamanında bırak ve momentumla fırla —
@@ -421,3 +423,7 @@ Windows'ta sarmalı: `powershell -File tests\calistir.ps1`
 
 Her push'ta **aynı sahne** GitHub Actions'ta koşuyor (Godot 4.7.2, Linux
 headless, Git LFS çekilerek). Son ölçüm: **115/115 geçti**.
+
+## Lisans
+
+[MIT](LICENSE) — Furki Özkan, 2026. Bütün görseller, sesler ve müzik de depodaki üreteclerle koddan üretilir; aynı lisans onları da kapsar.

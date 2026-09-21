@@ -11,7 +11,7 @@ API'si yok, form elle doldurulur).
 butler version
 
 # Giriş yapılmış mı (anahtar butler_creds içinde)
-butler status furkiozknn/kanca
+butler status <itch-kullanici>/kanca
 ```
 
 Giriş yoksa:
@@ -38,17 +38,17 @@ powershell -ExecutionPolicy Bypass -File tools\tam_dogrulama.ps1
 cd D:\Repolar\kanca
 
 # Web (tarayıcıda oynanan sürüm)
-butler push build\web furkiozknn/kanca:html5 --userversion 0.5.0
+butler push build\web <itch-kullanici>/kanca:html5 --userversion 0.5.0
 
 # Windows masaüstü
-butler push build\windows furkiozknn/kanca:windows --userversion 0.5.0
+butler push build\windows <itch-kullanici>/kanca:windows --userversion 0.5.0
 ```
 
 ## Yükleme sonrası
 
 ```powershell
 # Durum
-butler status furkiozknn/kanca
+butler status <itch-kullanici>/kanca
 ```
 
 itch.io sayfasında elle yapılacaklar:
