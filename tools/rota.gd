@@ -25,7 +25,16 @@ const KOSU_SAYISI := 5              ## bolum basina deneme (farkli gecikme tohum
 const AZAMI_KARE := 2700            ## 45 saniye sim suresi; asilirsa basarisiz
 const OYUNCU_YARI_BOY := 14.0
 const ZIPLA_YUKSEKLIGI := 45.0
-const INIS_MESAFESI := 300.0        ## son noktadan bitise inilebilecek mesafe
+const INIS_MESAFESI := 300.0        ## son noktadan bitise inilebilecek mesafe (ust sinir)
+## Son suzulusun kurtarmasi yok; alcak bir kancadan uzun suzulus fizikte
+## tutmuyor. Izin verilen mesafe kancanin platform ustundeki yuksekligiyle
+## buyur: 100 + 1,5 * yukseklik (en cok INIS_MESAFESI). Bolum 7'de (1664,240)
+## platformdan 64 px yukarida, 240 px uzakta: bot her kosuda oraya dusuyordu.
+const INIS_TABAN := 100.0
+const INIS_YUKSEKLIK_KATI := 1.5
+const BAYRAK_YARI_BOY := 28.0       ## bitis alani 24x56 (Bolum._bayrak_yap)
+const INIS_PAYI := 40.0             ## bayragin bu kadar onune inis = kosarak girer
+const INIS_KENAR_PAYI := 12.0       ## platformun on kenarina pay (yari genislik + tahmin payi)
 const HOP_BEDELI := 70.0            ## her kanca degisiminin plan maliyeti (px cinsinden)
 const TUTMA_SINIRI := 2.5           ## uygun an gelmezse bu kadar sonra yine de birak
 ## En iyinin bu katindan kotu kosu = bot hatasi, olculmek istenen sey degil.
@@ -51,6 +60,27 @@ const DIP_ESIGI := 0.72             ## capadan asagi birim vektorun y'si bunu as
 ## (900) dayaniyor, capa etrafinda tam tur atiyor ve bolum 2'de bitis platformunu
 ## asip ucurumdan asagi uculuyordu. Insan da ihtiyaci kadar pompalar.
 const POMPA_HEDEF_HIZ := 520.0      ## bu hizin ustunde yalniz guvenlik icin kisaltilir
+
+## --- v0.5: hareketli noktada bekleme + hiz freni -------------------------
+## Bot planlanan (statik) noktaya nisan aliyordu; hareketli nokta planda orta
+## noktasiyla durur ama gercekte +-64 px salinir. Nokta uzaktayken "menzil
+## disi" sayilip platformdan atlaniyor ve bosluga dusuluyordu (bolum 6).
+## Simdi hedef canli dugumun O ANKI konumu; salinimin bir ucu menzile
+## giriyorsa bot platform kenarinda BEKLER (en cok BEKLEME_SINIRI sn).
+const BEKLEME_SINIRI := 6.0         ## hareketli noktayi bu kadar bekle, sonra yine de atla
+const KENAR_PAYI := 26.0            ## platform kenarina bu kadar kala beklerken dur
+## Yuksek hizda bot savruluyordu: bolum 2'de bitis platformunu asiyor, bolum
+## 7'de dar gecitte tavana/zemine surtuyordu. Insanin yaptigi iki fren:
+## salinima TERS basmak ve halati UZATMAK. Uzatmak bu oyunda gercekten
+## yavaslatir - halat yeniden gerildiginde sert kisit kalan radyal hizi
+## siliyor (Oyuncu._halat_kisiti). Fren, birakmaya uygun anda calismaz.
+## Genel hiz freni OLCUMDE ZARARLI cikti ve kapatildi (esik = azami hiz,
+## hicbir zaman asilmaz). 720 ile 14 bolumun ortalamasi %34 yavasladi
+## (olcek 0,00279 -> 0,00373); 840 ile bile 900 px/sn'de giden bot dipte
+## ters basip birakis hizini kaybediyor, sonraki platforma 6 px kisa dusuyordu
+## (bolum 6: 1786/1792, bolum 8: 714/720, 1306/1312 - tani izleri). Fren
+## artik yalniz bitise INILEMEYECEK KADAR HIZLI yaklasirken calisir.
+const FREN_HIZI := 900.0            ## = Ayarlar.AZAMI_HIZ (autoload sabiti const ifadesinde kullanilamaz)
 
 ## --- v0.4: rota arama ----------------------------------------------------
 ## Bot bir rotayi hic bitiremezse rota sucludur, bot degil. En cok oldugu
@@ -96,11 +126,20 @@ var _sonuc: Dictionary = {}
 var _tehlike: Array[Rect2] = []
 ## Bitis bayraginin uzerinde durdugu platform (_inise_uygun).
 var _bitis_platformu := Rect2()
+var _bitis_x := 0.0
+var _bitis_y := 0.0
+## Yalniz OLDUREN dikenler (_diken_altta: frende halat uzatma yasagi).
+var _diken: Array[Rect2] = []
+## Islenen bolumun karolanmis zeminleri (_kenarda: beklerken ucuruma kosmamak).
+var _zeminler: Array[Rect2] = []
 
 func _ready() -> void:
 	_calistir()
 
 func _calistir() -> void:
+	# Bot gercek bolumleri bitiriyor: Bolum bitise deginde rekor, hayalet ve
+	# acilan bolumu OYUNCUNUN kaydina yazardi (v0.3'ten beri). Artik yazmaz.
+	Kayit.salt_okunur = true
 	await get_tree().process_frame
 	var kullanici := OS.get_cmdline_user_args()
 	_tani = kullanici.has("--tani")
@@ -133,6 +172,10 @@ func _calistir() -> void:
 			for k in (1 if _tani else KOSU_SAYISI):
 				var sonuc := await _kos(no, rota, k)
 				var s: float = sonuc["sure"]
+				# Kosu basina tek satir: rapor "hangi kosu neden yavas" diyebilsin.
+				print("  bolum %2d kosu %d: %s  olum %d  takildi adim %d" % [
+					no, k, ("%.3f" % s) if s > 0.0 else "BITMEDI",
+					int(sonuc["olum"]), int(sonuc["takildi"])])
 				if s > 0.0:
 					sureler.append(s)
 					if iz.is_empty() or s <= sureler.min():
@@ -370,7 +413,8 @@ func _plan(no: int, ceza: Dictionary = {}) -> Array:
 			continue
 		for s: Vector2 in son_ornek:
 			var uz := kanca[i].distance_to(s)
-			if uz > INIS_MESAFESI:
+			var yukseklik: float = s.y + OYUNCU_YARI_BOY + ZIPLA_YUKSEKLIGI - kanca[i].y
+			if uz > minf(INIS_MESAFESI, INIS_TABAN + INIS_YUKSEKLIK_KATI * yukseklik):
 				continue
 			var toplam: float = maliyet[i] + uz + absf(bitis.x - s.x)
 			if toplam < en_iyi:
@@ -394,12 +438,17 @@ func _plan(no: int, ceza: Dictionary = {}) -> Array:
 ## capanin ustune inmez.
 func _tehlikeleri_topla(no: int) -> void:
 	_tehlike = []
+	_diken = []
+	_zeminler = Bolumler.zeminler(no)
 	for r: Rect2 in Bolumler.veri(no)["diken"]:
 		_tehlike.append(Bolumler.karola(r))
-	for r: Rect2 in Bolumler.zeminler(no):
+		_diken.append(Bolumler.karola(r))
+	for r: Rect2 in _zeminler:
 		_tehlike.append(r)
 	# Bitis platformu: bayragin x'ini iceren, hemen altindaki zemin.
 	var bitis: Vector2 = Vector2(Bolumler.veri(no)["bitis"])
+	_bitis_x = bitis.x
+	_bitis_y = bitis.y
 	_bitis_platformu = Rect2()
 	var en_yakin := INF
 	for r: Rect2 in Bolumler.zeminler(no):
@@ -415,15 +464,108 @@ func _tehlikeleri_topla(no: int) -> void:
 ## Bolum 2'de bot yayin tepesinden 900 px/sn ile birakiyor, platformu asip
 ## ucurumdan iniyordu. Sarkacin dibinde birakmak ayni hizda cok daha kisa bir
 ## ucus demek - insan da oyle yapar. Balistik: dy = 0.5*g*t^2 + vy*t.
+##
+## v0.5 tani kipi (bolum 2) iki eksik gosterdi: (1) hiz, birakma bonusu
+## (x1,10) UYGULANMADAN veriliyordu - ucus %10 uzun cikiyordu; cagiran
+## artik bonuslu hizi veriyor. (2) Inisten sonra durma mesafesi yoktu: bot
+## bayragin otesine 487 px/sn ile inip kenardan asagi kosuyordu. Durma
+## mesafesi (v^2 / 2a) da platforma sigmali.
+## Donen deger: INIS_UYGUN, INIS_KISA (platforma yetismez, daha uzun
+## salinim gerek - FRENLEME) ya da INIS_UZUN (asar, frenle).
+enum { INIS_UYGUN, INIS_KISA, INIS_UZUN }
+
 func _inise_uygun(pos: Vector2, hiz: Vector2, esik := 28.0) -> bool:
+	return _inis(pos, hiz, esik) == INIS_UYGUN
+
+func _inis(pos: Vector2, hiz: Vector2, esik := 28.0) -> int:
 	if _bitis_platformu.size == Vector2.ZERO:
-		return true
+		return INIS_UYGUN
 	var dy: float = _bitis_platformu.position.y - OYUNCU_YARI_BOY - pos.y
 	if dy <= 0.0:
-		return true                     # zaten platform hizasinda ya da altinda
+		return INIS_UYGUN               # zaten platform hizasinda ya da altinda
 	var g: float = Ayarlar.YERCEKIMI
 	var t: float = (-hiz.y + sqrt(maxf(hiz.y * hiz.y + 2.0 * g * dy, 0.0))) / g
-	return pos.x + hiz.x * t < _bitis_platformu.end.x - esik
+	# Ucus bayragin alanindan (24x56) geciyorsa bolum HAVADA biter, inis yeri
+	# onemsiz. v0.4 botunun hizli ve alcak birakislari boyle bitiyordu; durma
+	# mesafesini her inise ekleyen ilk surum bunu yasaklayip botu 5, 8 ve 9.
+	# bolumde 2,5 sn'lik "zorunlu birak - ayni noktaya tutun" dongusune soktu.
+	if hiz.x > 1.0:
+		var tb: float = (_bitis_x - pos.x) / hiz.x
+		if tb >= 0.0 and tb <= t:
+			var yb: float = pos.y + hiz.y * tb + 0.5 * g * tb * tb
+			if absf(yb - _bitis_y) <= BAYRAK_YARI_BOY + OYUNCU_YARI_BOY:
+				return INIS_UYGUN
+	var inis: float = pos.x + hiz.x * t
+	# Platforma yetismiyorsa (bosluga iner) birakma - ama FRENLEME de: daha
+	# uzun salinim lazim. Bu alt sinir yoktu; bot 6. bolumde bosluga (1700),
+	# 9. bolumde ruzgar cukuruna birakip 16 sn suruklenmisti (4. deneme).
+	if inis < _bitis_platformu.position.x + INIS_KENAR_PAYI:
+		return INIS_KISA
+	# Bayragin ONUNE inen bot kosarak bayraga girer; tahmin payi INIS_PAYI.
+	if inis <= _bitis_x - INIS_PAYI:
+		return INIS_UYGUN
+	# Otesine inince durup geri donmesi gerekir: durma mesafesi (v^2/2a) da
+	# platforma sigmali. Bolum 2'de bot 487 px/sn ile kenardan asagi kosuyordu.
+	inis += hiz.x * hiz.x / (2.0 * Ayarlar.IVME)
+	return INIS_UYGUN if inis < _bitis_platformu.end.x - esik else INIS_UZUN
+
+## Birakinca oyuncunun gercekten alacagi hiz (Oyuncu.kanca_birak ile ayni).
+func _birakma_hizi(hiz: Vector2) -> Vector2:
+	if hiz.length() >= Ayarlar.BIRAKMA_ESIGI:
+		return (hiz * Ayarlar.BIRAKMA_CARPANI).limit_length(Ayarlar.AZAMI_HIZ)
+	return hiz
+
+## Planlanan rota noktasina karsilik gelen CANLI kanca dugumu (yoksa null).
+## Hareketli nokta plana orta noktasiyla girer (Bolumler.tum_kanca).
+func _dugum_bul(bolum: Node, p: Vector2) -> Node2D:
+	for n in bolum.get_tree().get_nodes_in_group(KancaNoktasi.GRUP):
+		var k := n as KancaNoktasi
+		if k == null:
+			continue
+		var yer: Vector2 = (k.a + k.b) * 0.5 if k.tur == KancaNoktasi.TUR_HAREKETLI \
+			else k.global_position
+		if yer.distance_to(p) < 1.5:
+			return k
+	return null
+
+## Hareketli hedef salinimin bir ucunda menzile giriyorsa beklemeye deger:
+## nokta bize gelecek, atlamaya gerek yok.
+func _beklemeye_deger(n: Variant, pos: Vector2) -> bool:
+	# Tipsiz parametre: olumden sonra bolum noktalari yeniden kurar, eski
+	# dugum serbest birakilmis olur - tipli parametre orada SCRIPT ERROR verip
+	# botu (ve quit'i) oldurdu, Godot sonsuza kadar bos dondu (v0.5 tuzagi).
+	if not is_instance_valid(n):
+		return false
+	var k := n as KancaNoktasi
+	if k == null or k.tur != KancaNoktasi.TUR_HAREKETLI:
+		return false
+	return minf(pos.distance_to(k.a), pos.distance_to(k.b)) <= Ayarlar.KANCA_MENZIL * 0.95
+
+## Ayaklarin altindaki platformun SAG kenarina KENAR_PAYI kadar yakin mi.
+## Beklerken kosmaya devam etmek botu ucuruma dusurur.
+func _kenarda(pos: Vector2) -> bool:
+	for r: Rect2 in _zeminler:
+		if pos.x < r.position.x or pos.x > r.end.x:
+			continue
+		var bosluk := r.position.y - pos.y
+		if bosluk < -4.0 or bosluk > OYUNCU_YARI_BOY + 4.0:
+			continue
+		return pos.x > r.end.x - KENAR_PAYI
+	return false
+
+## Capanin altinda (azami halat bandinda) olduren diken var mi. Frende halat
+## uzatmak boyle bir capada YASAK: guvenli boy hesabi yay dibini capanin tam
+## altina koyar, sert kisit yuksek hizda daha asagi sarkitabiliyor - diken
+## tarlali 3, 4, 5 ve 10. bolumde olum patlamisti (v0.5 2. ve 3. deneme).
+func _diken_altta(capa: Vector2) -> bool:
+	for r: Rect2 in _diken:
+		if r.position.y <= capa.y:
+			continue
+		if capa.x < r.position.x - Ayarlar.KANCA_AZAMI_HALAT \
+				or capa.x > r.end.x + Ayarlar.KANCA_AZAMI_HALAT:
+			continue
+		return true
+	return false
 
 ## Capadan asagi guvenle sarkilabilecek en uzun halat.
 func _guvenli_boy(capa: Vector2) -> float:
@@ -450,8 +592,14 @@ func _kos(no: int, rota: Array, tohum: int) -> Dictionary:
 		await get_tree().physics_frame
 	var oyuncu: Oyuncu = bolum.find_child("Oyuncu", true, false)
 	oyuncu.girdi_aktif = false
+	# Rota noktalarinin canli dugumleri (v0.5): hedef artik plandaki statik
+	# nokta degil, dugumun o anki konumu - hareketli nokta boyle izlenir.
+	var dugumler: Array[Node2D] = []
+	for p: Vector2 in rota:
+		dugumler.append(_dugum_bul(bolum, p))
 
 	var hedef_i := 0
+	var bekleme := 0.0                 # hareketli noktayi platformda bekleme suresi
 	var gecikme := 0.0
 	var tutma := 0.0
 	var kare := 0
@@ -473,6 +621,15 @@ func _kos(no: int, rota: Array, tohum: int) -> Dictionary:
 		gecikme = maxf(gecikme - dt, 0.0)
 		var hedef: Vector2 = rota[mini(hedef_i, rota.size() - 1)] if hedef_i < rota.size() \
 			else Vector2(Bolumler.veri(no)["bitis"])
+		var hedef_dugum: Node2D = null
+		if hedef_i < dugumler.size():
+			# Olumden sonra Bolum noktalari yeniden kurar: eski dugum serbest
+			# birakilmistir, ayni plan noktasi icin yenisi bulunur.
+			if not is_instance_valid(dugumler[hedef_i]):
+				dugumler[hedef_i] = _dugum_bul(bolum, rota[hedef_i])
+			hedef_dugum = dugumler[hedef_i]
+		if hedef_dugum != null:
+			hedef = hedef_dugum.global_position
 		var pos: Vector2 = oyuncu.global_position
 		if kare % IZ_ARALIK_KARE == 0:
 			iz.append(pos.round())
@@ -505,34 +662,58 @@ func _kos(no: int, rota: Array, tohum: int) -> Dictionary:
 			var yon := (sonraki - pos).normalized()
 			var hiz := oyuncu.velocity
 			var yeterli: bool = hiz.length() >= Ayarlar.BIRAKMA_ESIGI
+			# Birakma: yeterince hizli, yon sonraki hedefe donuk, capayi gecmis
+			# ve asagi dalmiyor. Denenen alternatifler daha kotu sonuc verdi:
+			#   - hedefe dogru sabit girdi        -> 3/14 bolum
+			#   - yalniz yukselirken birakma      -> 1/14 bolum
+			#   - capa sarti olmadan              -> sarkac tam tur donuyor
+			# Son adimda esik alti hizla birakmayi da denedik (3. deneme): bot
+			# bitise erken ve yavas birakip kosuyor, 2. ve 6. bolum 1,5-3 sn
+			# uzuyordu. Hizli ve alcak birakis bayrak alanindan gecip havada
+			# bitiriyor (_inise_uygun) - esik sarti her adimda kaliyor.
+			var son_adim: bool = hedef_i >= rota.size()
+			# Son adimda yon sarti gevsek (saga gitsin yeter): bayraga (uzak,
+			# asagi) dogru 0,55 hizasi YUKSELEN birakisi reddediyor, bot yay
+			# dibinden asla platforma yetisemiyor ve 5. bolumde 11 sn asili
+			# kaliyordu (5. deneme). Inis tahmini zaten ucusu denetliyor.
+			var yon_uygun: bool = hiz.x > 0.0 if son_adim else hiz.normalized().dot(yon) > 0.55
+			var uygun: bool = yeterli \
+				and yon_uygun \
+				and pos.x > capa.x - 8.0 \
+				and hiz.y < 40.0
+			# Son hedef bitis ise: platformu asacak ya da ona YETISMEYECEK bir
+			# birakis uygun degil.
+			var inis: int = INIS_UYGUN if not son_adim else _inis(pos, _birakma_hizi(hiz))
+			if uygun and inis != INIS_UYGUN:
+				uygun = false
+			# HIZ FRENI (v0.5): birakilamiyorsa ve bitise bu hizla inilemeyecek
+			# kadar HIZLIYSA - salinima ters bas, halati uzat. Kisa kalacaksa
+			# frenlemek ters etki: daha cok salinim gerek, pompa devam.
+			var frenle: bool = not uygun and (hiz.length() > FREN_HIZI \
+				or (yeterli and inis == INIS_UZUN))
 			# Pompala: tegetsel hizin isaretine bas (sarkaci buyutmenin dogru
-			# yolu; tools/olcum.gd de ayni seyi yapiyor).
-			oyuncu.bot_yon = signf(hiz.dot(teget))
+			# yolu; tools/olcum.gd de ayni seyi yapiyor). Frende tersi.
+			oyuncu.bot_yon = -signf(hiz.dot(teget)) if frenle else signf(hiz.dot(teget))
 			# Halat pompasi (v0.4). Once GUVENLIK: yay dibi dikenin/zeminin
 			# ustunde kalsin - bolum 3'te bot tam da bu yuzden oluyordu.
 			# Sonra HIZ: dipte kisalt (aci momentumu korunur), uclarda uzat.
 			var guvenli := _guvenli_boy(capa)
 			var adim := POMPA_HIZI * dt
 			if oyuncu.halat_boyu > guvenli:
-				oyuncu.halat_degistir(-minf(adim * 3.0, oyuncu.halat_boyu - guvenli))
+				# ANINDA guvenli boya: 7,5 px/kare ile kisaltan surum, 900 px/sn ile
+				# alcaktan tutunan botu platformun yan duvarina carptiriyordu
+				# (bolum 8, y=310'da 168 px halat, guvenli 138 - tani izi).
+				oyuncu.halat_degistir(-(oyuncu.halat_boyu - guvenli))
+			elif frenle:
+				# Uzatma yalniz altta olduren diken yoksa (_diken_altta).
+				if not _diken_altta(capa):
+					oyuncu.halat_degistir(minf(adim * 2.0, maxf(guvenli - oyuncu.halat_boyu, 0.0)))
 			elif hiz.length() >= POMPA_HEDEF_HIZ:
 				pass                        # yeterince hizli: pompalamayi birak
 			elif disa.y > DIP_ESIGI:
 				oyuncu.halat_degistir(-minf(adim, oyuncu.halat_boyu - Ayarlar.KANCA_ASGARI_HALAT))
 			else:
 				oyuncu.halat_degistir(minf(adim, guvenli - oyuncu.halat_boyu))
-			# Birakma: yeterince hizli, yon sonraki hedefe donuk, capayi gecmis
-			# ve asagi dalmiyor. Denenen alternatifler daha kotu sonuc verdi:
-			#   - hedefe dogru sabit girdi        -> 3/14 bolum
-			#   - yalniz yukselirken birakma      -> 1/14 bolum
-			#   - capa sarti olmadan              -> sarkac tam tur donuyor
-			var uygun: bool = yeterli \
-				and hiz.normalized().dot(yon) > 0.55 \
-				and pos.x > capa.x - 8.0 \
-				and hiz.y < 40.0
-			# Son hedef bitis ise: platformu asacak bir birakis uygun degil.
-			if uygun and hedef_i >= rota.size() and not _inise_uygun(pos, hiz):
-				uygun = false
 			# Zorunlu birakma: uygun an hic gelmezse takili kalma.
 			if gecikme <= 0.0 and (uygun or tutma > TUTMA_SINIRI):
 				oyuncu.kanca_birak()
@@ -553,8 +734,16 @@ func _kos(no: int, rota: Array, tohum: int) -> Dictionary:
 				and oyuncu.gorus_var(hedef):
 			if oyuncu.kanca_at((hedef - pos).normalized()):
 				kurtarma_mi = false
+				bekleme = 0.0
 				gecikme = rastgele.randf_range(GECIKME_ALT, GECIKME_UST)
 		elif oyuncu.is_on_floor():
+			# HAREKETLI NOKTADA BEKLEME (v0.5): nokta salinimla menzile
+			# girecekse platformdan atlama; kenara kadar yuru, orada dur.
+			if bekleme < BEKLEME_SINIRI and _beklemeye_deger(hedef_dugum, pos):
+				bekleme += dt
+				if _kenarda(pos):
+					oyuncu.bot_yon = 0.0
+				continue
 			oyuncu.velocity.y = -Ayarlar.ZIPLA_GUCU
 		elif oyuncu.velocity.y > 0.0:
 			# KURTARMA KANCASI (v0.4): rota adimi henuz menzilde degil ve bot
@@ -566,7 +755,15 @@ func _kos(no: int, rota: Array, tohum: int) -> Dictionary:
 			# bot son bosluga dusuyor, bolum 2'de bitis platformunu asip
 			# ucurumdan iniyordu. Gerideki noktaya tutunmak ise kurtarir.
 			var son_hedef: bool = hedef_i >= rota.size()
+			# Nisan once hedefe dogru. Son hedef (bayrak) asagidaysa ve o yonde
+			# aday yoksa ileri-yukari denenir: bolum 6'da bot son platforma
+			# dusuyordu, bayraga nisan alinca ustteki hareketli nokta aday
+			# degildi. Bu yedek YALNIZ son hedefte: ara hedeflerde de
+			# ileri-yukari nisan alan ilk surum, nokta sirasinin ustunden ucan
+			# botu aday bulamaz birakti - 3, 8, 10, 13. bolumde olum patladi.
 			var ara := oyuncu.en_iyi_nokta((hedef - pos).normalized())
+			if ara == null and son_hedef:
+				ara = oyuncu.en_iyi_nokta(Vector2(0.85, -0.53).normalized())
 			if ara != null and ara.global_position.x > pos.x - 24.0 \
 					and (not son_hedef or ara.global_position.x < hedef.x - 32.0) \
 					and oyuncu.kanca_at((ara.global_position - pos).normalized()):
@@ -579,6 +776,7 @@ func _kos(no: int, rota: Array, tohum: int) -> Dictionary:
 	return {
 		"sure": float(kare) / 60.0 if bitti else 0.0,
 		"takildi": _en_sik(olumler) if not olumler.is_empty() else hedef_i,
+		"olum": olumler.size(),
 		"iz": iz,
 	}
 

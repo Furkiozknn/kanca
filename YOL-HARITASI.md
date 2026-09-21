@@ -130,16 +130,60 @@ Kaynak: `D:\Claude Projeleri\oyun-terminalleri\tasarim\kanca-rakip-analizi.md`
 - [x] Ayrı kayıt yuvası (`[gunluk]`), ana ilerlemeyi bozmuyor
 - [x] Menüde günün bölümü, değiştiricisi ve bugünkü en iyi süre
 
-## Sonraki tur — v0.5
+## Tur 4 — v0.5 "bekleyen ve frenleyen bot, akış tablosu, tanıtım GIF'i" (2026-09-16)
+
+### Bot
+- [x] **Canlı hedef:** rota adımı planlanan (statik) nokta değil, o noktaya
+      karşılık gelen düğümün o anki konumu (hareketli nokta ±64 px salınıyor)
+- [x] **Hareketli noktada bekleme:** salınımın bir ucu menzile giriyorsa
+      platform kenarında durup bekliyor (en çok 6 sn), sonra yine de atlıyor
+- [x] **Hız freni:** bitişe inilemeyecek kadar hızlı yaklaşırken salınıma ters
+      basıyor + halatı uzatıyor (altta diken yoksa). Genel fren (720/840 px/sn)
+      ölçümde zararlı çıktı, kapatıldı — gerekçe raporda
+- [x] **İniş kontrolü düzeltildi:** bonuslu hızla (×1,10) hesaplanıyor; bayrak
+      alanından geçen uçuş havada bitiş sayılıyor; bayrağın ötesine inişte durma
+      mesafesi (v²/2a) platforma sığmalı; platforma yetişmeyen bırakış yasak
+- [x] Güvenlik kısaltması tek karede; planlayıcıda alçak kancadan uzun süzülüş yok
+- [x] Araçlar oyuncunun kaydına yazmıyor (`Kayit.salt_okunur`) — bot v0.3'ten
+      beri rekorları eziyormuş
+- [x] Ölümden sonra yeniden kurulan düğümler yeniden çözülüyor (serbest
+      bırakılmış düğüm tipli parametrede SCRIPT ERROR veriyordu — tuzak 15)
+- [x] **14/14 bölüm gerçek koşuyla bitiyor, 13'ünün eşiği ölçülmüş** (v0.4: 11);
+      2, 6, 7 artık ölçülmüş (5,40 / 4,85 / 5,87), 5 tahmine düştü; ölçek
+      0,00279 → 0,00266 sn/px. Altı tam koşu, gerekçeler raporda
+- [x] Testler de kayda yazmıyor; günlük kayıt testi kalıntıdan bağımsız
+
+### Dokunmatik
+- [x] `Ayarlar.kisayol(metin, tus)` — tuş eki tek yerden; dokunmatikte düşüyor
+- [x] Bölüm seçme "Geri", ayarlar "Geri", bitiş paneli "Sonraki bölüm / Tekrar
+      dene / Menüye dön" tuş eksiz; tuş atama ekranı dokunmatikte kurulmuyor
+- [x] Test bütün ekranları tarıyor (Esc, (R), Enter, W/S, A/D, Fare, TIK, Boşluk, Tuş)
+
+### Akış tablosu
+- [x] Bölüm seçme ekranında her düğmede altın "×N" rozeti (ikiden itibaren)
+- [x] Açıklama satırı; kayıt zaten `[akis]` bölümündeydi (v0.3)
+
+### Yayın
+- [x] `tools/gif.gd` + `tools/gif.ps1`: bölüm 1'de kos → kanca → pompalı salınım
+      → fırlama bonusu, 3,6 sn, 20 fps, 640×360 → `yayin/tanitim.gif`
+- [x] Sürüm 0.5.0, itch sayfasında GIF satırı, `v0.5` etiketi
+- [x] Yeni ekran görüntüleri: `bolum_sec_akis`, `bolum_sec_dokunmatik`, `bitis_dokunmatik`
+
+## Sonraki tur — v0.6
 
 ### Önce yapılması gereken
 - [ ] **İnsan testi.** Hâlâ yapılmadı. Merak konusu: halat pompası fazla güçlü
       mü (bot onunla bölümleri yarı sürede bitiriyor), kamera uzaklaşması pixel
       art'ta titriyor mu, tek parmak şeması gerçek telefonda ne hissettiriyor,
-      yeni (daha sıkı) altın eşikleri insan için ulaşılabilir mi.
-- [ ] **Bot 6. ve 7. bölümde kötü oynuyor** (ölçeğin 2 katından yavaş):
-      hareketli noktada zamanlama bekleyemiyor, dar geçitte savruluyor.
-      2. bölümde bitirebiliyor ama çok dolambaçlı.
+      altın eşikleri insan için ulaşılabilir mi.
+- [ ] **5. bölüm (Yukarı) yine tahminde:** son kancadan (1488,112) platforma
+      112 px; yay dibinden bırakış kısa, yükselen bırakış penceresi dar. Ya
+      pencere genişlesin ya planlayıcı bitişe yakın son nokta seçsin. Ölçülünce
+      `_test_olculmus_esikler` yine 14/14'ü denetlesin.
+- [ ] 3. bölümde bot ilk kancaya koşarken dikene giriyor ("adim 0" ölümü);
+      altın 3,38 → 6,07 gevşedi. Tanı kipiyle çöz.
+- [ ] Bot ara platform kenarına **kısa düşebiliyor**: balistik iniş yalnız bitiş
+      platformu için hesaplanıyor; ara platformlar için de hesaplanmalı.
 
 ### Oynanış
 - [ ] Duvara tutunma / duvardan sekme (dar geçitlerde ikinci bir seçenek)
@@ -168,10 +212,13 @@ Kaynak: `D:\Claude Projeleri\oyun-terminalleri\tasarim\kanca-rakip-analizi.md`
 ## Bilinen sınırlar
 
 - **İnsan testi yapılmadı.** Bütün denge kararları bot ölçümü ve statik analiz.
-- Madalya süreleri 11 bölümde gerçek bot koşusundan, 3 bölümde (2, 6, 7)
-  ölçülmüş rota hızından tahmin (`"tahmin": true`) — bot oralarda kötü oynuyor.
-- Bot artık pompalıyor ve rota arıyor; altın eşikleri v0.3'e göre bazı
-  bölümlerde belirgin biçimde **sıkıldı**. İnsanla doğrulanmadı.
+- Madalya süreleri 13 bölümde gerçek bot koşusundan, 5. bölümde (Yukarı)
+  ölçülmüş rota hızından tahmin (`"tahmin": true`) — bot bitişe yaklaşırken
+  asılı kalıyor. v0.4'te 2, 6, 7 tahmindi.
+- 3. bölümün altın eşiği gevşedi (3,38 → 6,07): bot dikene girip ölüyor, kök
+  neden bulunmadı. 4, 8, 10'da altın sıkılaştı; insanla doğrulanmadı.
+- Bot artık pompalıyor, rota arıyor, bekliyor ve frenliyor; altın eşikleri
+  v0.3'e göre bazı bölümlerde belirgin biçimde **sıkıldı**. İnsanla doğrulanmadı.
 - Web yapısı tek iş parçacıklı; Stream ses yolunun gecikme bedeli var
   (thread_support açılırsa itch.io'da SharedArrayBuffer kutusu şart olur).
 - Bölümlerde toplanabilir yok; hedef süre ve akış zinciri var.

@@ -83,6 +83,10 @@ testler üretilmiş veriyi denetliyor.
 
 Tanı kipi (`--scene res://tools/rota.tscn -- --tani 3`) tek bölüm koşar ve
 dosyayı **yazmaz**; bot bir bölümde neden öldüğünü anlamanın en hızlı yolu.
+Tam koşu deterministik (aynı kodla iki koşu birebir aynı sonucu verir) ama
+tanı kipi süreç geçmişi farklı olduğu için aynı tohumla **farklı süre**
+verebilir: tanı davranışı gösterir, süreyi değil. Boş makinede tam koşu
+~15 sn, üç oyun oturumu aynı anda çalışırken ~8 dk.
 
 ## Denge sabitleri nerede
 
@@ -123,6 +127,10 @@ powershell -ExecutionPolicy Bypass -File tools\kilitli.ps1 -- --headless --fixed
 
 # Ekran görüntüleri (headless DEĞİL)
 powershell -ExecutionPolicy Bypass -File tools\kilitli.ps1 -- --path . --scene res://tests/ekran.tscn
+
+# Tanıtım GIF'i (headless DEĞİL): tools/gif.tscn kareleri build/gif/ altına yazar,
+# ffmpeg yayin/tanitim.gif yapar (3,6 sn, 20 fps, 640x360)
+powershell -ExecutionPolicy Bypass -File tools\gif.ps1
 
 # Her şeyi sırayla (kilidi bir kez alır): varlık → import → test → ölçüm → ekran → dışa aktarma
 powershell -ExecutionPolicy Bypass -File tools\tam_dogrulama.ps1
@@ -186,6 +194,31 @@ hiç Godot süreci yoksa hemen devralır. **Godot'u kilitsiz çalıştırma.**
 14. **HUD metni dünya çiziminin önünde ama saydam.** Yeni bir HUD etiketini
    `Bolum._serit(...)` ile sar; yoksa bir kanca noktası sprite'ının üzerinde
    okunmaz olur (v0.3.1 web bulgusu).
+15. **Ölümden sonra bölüm dünyayı yeniden kurar** (`_dunya.queue_free()`):
+   kanca noktası düğümlerine tutulan referanslar serbest bırakılmış olur.
+   Tipli parametreye (`n: Node2D`) serbest bırakılmış nesne geçince SCRIPT
+   ERROR çıkar, çağıran coroutine ölür ve `quit()` hiç çağrılmaz — headless
+   Godot **%100 CPU ile sonsuza kadar döner** (tuzak 3'ün çalışma zamanı
+   hâli). Düğüm tutan bot/test kodu her karede `is_instance_valid` ile
+   yeniden çözsün (`tools/rota.gd` `_dugum_bul`). Godot'u zaman aşımsız
+   çalıştırma; `.log.err` dosyasına bak.
+16. **Bırakma bonusu uçuşu %10 uzatır.** Balistik iniş tahmini
+   (`_inise_uygun`) bırakma ANINDAKİ hızla değil, `Oyuncu.kanca_birak`'ın
+   uygulayacağı bonuslu hızla (`_birakma_hizi`) yapılmalı; inişten sonraki
+   durma mesafesi (`v²/2a`) de platforma sığmalı. İkisi de eksikken bot
+   2. bölümde bayrağın ötesine inip kenardan aşağı koşuyordu.
+17. **Tuş adı yazan her etiket `Ayarlar.kisayol(metin, tus)` üzerinden
+   geçer.** Dokunmatikte ek düşer ("Geri" / "Tekrar dene"); tuş atama ekranı
+   dokunmatikte hiç kurulmaz. `tests/test_kanca.gd` bütün ekranları tarayıp
+   `Esc`, `(R)`, `Enter`, `W/S`, `Fare`… geçen etiket arıyor — yeni bir
+   etikete tuş adını elle yazma.
+18. **Gerçek bölüm sahnesi koşan her araç `Kayit.salt_okunur = true` ile
+   başlar.** `Bolum._bitise_degdi` rekoru, hayaleti ve açılan bölümü
+   oyuncunun `user://kayit.cfg`'sine yazar; bot v0.3'ten v0.5'e kadar
+   oyuncunun "en iyi süreleri"ni sessizce ezdi, GIF aracı 1. bölümün
+   hayaletini sildi. Testler henüz bu bayrağı kullanmıyor (hayalet dosyasını
+   gerçekten yazıp okuyan test var) — 98/99 yuvaları ve günlük tohumu
+   1999-01-01/02 kayda giriyor.
 
 ## Bu depoda yapılmayacaklar
 

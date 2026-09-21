@@ -6,14 +6,20 @@ bölümü en kısa sürede bitir.**
 Hız odaklı 2B sallanma platform oyunu. Godot 4.7.2, GL Compatibility,
 640×360 taban çözünürlük. Tema: **fırtınalı gökyüzü adaları**.
 
-Durum: **v0.4 — akıllı bot, altın hayalet, günlük meydan okuma.** 14 bölüm,
-gerçek pixel art, ses ve müzik, ayarlar ekranı, madalyalar, hayalet tekrarı,
-kontrol noktaları; puanlamalı hedefleme, kancada tampon + kojot, halat pompası,
-bırakma bonusu, ileri bakan kamera, tek parmak dokunmatik şeması, tuş atama,
-rota ipucu ve ustalık zinciri. v0.4 ile: **madalya eşikleri 14 bölümün
-tamamında gerçek bot koşusundan** (v0.3'te 5'i), **altın hayalet** (botun
-koşusunu izleyebilirsin), telefonda **tek dokunuşla yeniden başlatma** ve
-**günlük meydan okuma**.
+Durum: **v0.5 — bot hareketli noktada bekliyor ve frenliyor, akış tablosu,
+tanıtım GIF'i.** 14 bölüm, gerçek pixel art, ses ve müzik, ayarlar ekranı,
+madalyalar, hayalet tekrarı (kendi koşun ya da **altın hayalet**), kontrol
+noktaları, günlük meydan okuma; puanlamalı hedefleme, kancada tampon + kojot,
+halat pompası, bırakma bonusu, ileri bakan kamera, tek parmak dokunmatik
+şeması, tuş atama, rota ipucu ve ustalık zinciri. v0.5 ile: **madalya
+eşikleri 14 bölümün 13'ünde ölçülmüş bot koşusundan** (v0.4: 11; 2, 6 ve 7
+artık ölçülmüş, yalnız 5 tahminde — bot canlı hedefe nişan alıyor, hareketli
+noktayı platformda bekliyor, bitişe inişi bonuslu hızla ve bayrak alanıyla
+hesaplıyor), **bölüm seçme ekranında akış zinciri rekoru**,
+dokunmatikte **tuş adı kalmadı** (tek yardımcı, testle taranıyor) ve
+`yayin/tanitim.gif`.
+
+![Tanıtım](yayin/tanitim.gif)
 
 ![Menü](docs/ekran/menu.png)
 ![13. bölüm](docs/ekran/bolum_13.png)
@@ -31,7 +37,9 @@ koşusunu izleyebilirsin), telefonda **tek dokunuşla yeniden başlatma** ve
 | Duraklat | `Esc` | `Start` |
 
 Klavye atamaları **Ayarlar → Tuş atama** ekranından değiştirilir; fare ve gamepad
-atamaları olduğu gibi kalır.
+atamaları olduğu gibi kalır. Dokunmatikte tuş atama ekranı hiç kurulmaz ve
+düğmelerdeki tuş ekleri düşer ("Geri  (Esc)" → "Geri"): tüm tuşlu etiketler
+`Ayarlar.kisayol()` üzerinden geçer, test bütün ekranları tarar.
 
 Nişan yoksa (fare hareketsiz, çubuk boşta) kanca, bakış yönündeki en uygun
 noktaya gider. Seçili aday nokta beyaz halkayla vurgulanır ve araya **kesik
@@ -91,6 +99,14 @@ Nişan, parmağın ekranda bulunduğu noktaya bakar.
 - **Günlük meydan okuma:** tarihten tohumlanan bir bölüm + küçük bir değiştirici
   (kısa halat ya da yan rüzgâr). Herkeste aynı, günde bir değişir. Kendi kayıt
   yuvası var: ana ilerlemeyi, en iyi süreleri ve hayaletleri bozmaz.
+
+### Akış zinciri
+
+Yere değmeden art arda tutulan her nokta zinciri uzatır; HUD'da "Akış ×N"
+olarak görünür (ikiden itibaren). Bölüm başına en uzun zincir kaydedilir
+(`Kayit.akis`), bitiş ekranında "yeni en uzun zincir!" diye kutlanır ve
+**Bölüm Seç** ekranında her düğmenin sağ altında altın "×N" rozeti olarak
+durur. Süreden ayrı bir not: en hızlı koşu her zaman en şık koşu değil.
 
 ### Bölüm öğeleri
 
@@ -283,9 +299,34 @@ o süreyi altın eşiği yapmak bölümü bedava altın hâline getirir. Hangi b
 Aynı koşu **altın hayaleti** de üretiyor: botun en iyi koşusunun 10 Hz konum
 örnekleri `"iz"` alanına yazılıyor, oyun ara değerle 60 Hz'e çıkarıyor.
 
-Bot hâlâ tam bir insan oyuncu değil: hareketli noktalarda zamanlamayı
-bekleyemiyor ve yüksek hızda savrulabiliyor (6. ve 7. bölüm), altın eşiği iyi
-bir oyuncu için ulaşılabilir kalıyor.
+### v0.5: bot ne öğrendi (ve ne öğrenemedi)
+
+- **Canlı hedef.** Rota adımı planlanan statik nokta değil, o noktaya karşılık
+  gelen düğümün o anki konumu; hareketli nokta ±64 px salınırken bot ortaya
+  değil noktaya nişan alıyor. Ölümden sonra bölüm dünyayı yeniden kurduğu için
+  düğümler her karede yeniden çözülüyor (CLAUDE.md tuzak 15).
+- **Hareketli noktada bekleme.** Nokta menzil dışı ama salınımın bir ucu menzile
+  giriyorsa bot platformdan atlamıyor, kenara kadar yürüyüp bekliyor.
+- **İniş tahmini düzeltildi.** Bırakma bonusu (×1,10) tahmine giriyor; bayrak
+  alanından (24×56) geçen uçuş havada bitiş sayılıyor; bayrağın ötesine inişte
+  durma mesafesi (v²/2a) platforma sığmalı; platforma yetişmeyen bırakış yasak.
+  Bitişe inilemeyecek kadar hızlıysa fren: salınıma ters basış + halat uzatma.
+- **Genel hız freni denendi, kapatıldı.** 720 ve 840 px/sn eşikleri ölçümde
+  botu her yerde yavaşlattı (ölçek 0,00279 → 0,00373); 900 px/sn ile giden
+  bot sonraki platforma 6 px kısa düşüyordu. Ölçüm gerekçesi turun raporunda.
+- **Planlayıcı:** son kancadan bitiş platformuna süzülüş mesafesi kancanın
+  yüksekliğiyle sınırlı (100 + 1,5 × yükseklik) — alçak kancadan 240 px süzülüş
+  fizikte tutmuyordu (7. bölüm).
+- **Araçlar kayda yazmıyor.** `Kayit.salt_okunur`: bot v0.3'ten beri oyuncunun
+  "en iyi süreleri"ni ve hayaletlerini sessizce eziyormuş.
+
+Ölçüm gürültüsü yüksek: aynı tohumla tek bölüm koşan tanı kipi ile 14 bölümlük
+tam koşu farklı süreler veriyor (fizik bir süreçte deterministik ama gövde
+sırası/önceki bölümlerin izi sonucu değiştiriyor). Bu yüzden eşik 5 koşunun
+ortancasından ve ölçeğin 2 katından yavaş bölüm yine tahmine devrediliyor.
+Bu turda tahminde kalan bölüm: yalnız **5 (Yukarı)** — bot bitişe yaklaşırken
+11 sn asılı kalıyor; v0.4'te 2, 6 ve 7 tahmindi, üçü de artık ölçülmüş
+(5,40 / 4,85 / 5,87 sn). Ölçek 0,00279 → 0,00266 sn/px. Tablo turun raporunda.
 
 **`--fixed-fps 60` şart:** headless'ta bile fizik kareleri gerçek zamanda akar
 (60 Hz), yani 2700 karelik bir koşu gerçekten 45 saniye sürer. Bayrak zamanı
@@ -329,12 +370,17 @@ var; müzik döngüsü ayrıca `finished` sinyalinde elle yeniden başlatılıyo
 - **Tuş atama** `InputMap`'e yazılıyor, fare atamasını silmiyor, sıfırlanabiliyor.
 - **Üretilmiş rota verisi** tutarlı: her adım gerçek bir kanca noktası, ardışık
   noktalar zincir menzilinde ve aralarında katı zemin yok; eşikler ms hassasiyetinde.
+- **v0.5:** dokunmatikte hiçbir ekranda tuş adı yok (menü, bölüm seçme, ayarlar,
+  HUD, duraklat/bitiş panelleri taranıyor; masaüstünde ekler duruyor); bölüm
+  seçme ekranında akış rozeti (kayda dokunmadan); botun bekleme/kenar
+  yardımcıları; **14/14 bölümün eşiği ölçülmüş** (tahmin yok).
 
 ## Yayın paketi
 
 `yayin/` — itch.io sayfa metni (İngilizce + Türkçe), 4 ekran görüntüsü (1280×720),
-kapak (630×500), butler komutları. **Hiçbir şey yüklenmedi**, komutlar
-çalıştırılmadı; karar Furki'nin.
+kapak (630×500), **tanıtım GIF'i** (`tanitim.gif`, 3,6 sn, 640×360, 20 fps:
+kanca takma → salınım → fırlama bonusu; `tools/gif.ps1` üretir), butler
+komutları. **Hiçbir şey yüklenmedi**, komutlar çalıştırılmadı; karar Furki'nin.
 
 Web yapısı tek iş parçacıklı (`thread_support=false`) — itch.io'da
 **SharedArrayBuffer kutusu işaretlenmemeli**.
