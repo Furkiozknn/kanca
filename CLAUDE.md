@@ -1,7 +1,7 @@
 # Kanca — proje kuralları
 
 Bu dosya her Claude oturumunda otomatik yüklenir. Kısa ve güncel tut.
-Depo: `D:\Repolar\kanca` · Motor: **Godot 4.7.2** ·
+Depo: klonun kökü (yollar göreli verilir) · Motor: **Godot 4.7.2** ·
 Godot yolu: PATH'teki `godot` (winget kurulumu `%LOCALAPPDATA%\Microsoft\WinGet\Links` altina ekler).
 
 ## Değişmez teknik kararlar
@@ -13,8 +13,10 @@ Godot yolu: PATH'teki `godot` (winget kurulumu `%LOCALAPPDATA%\Microsoft\WinGet\
   `snap_2d_transforms_to_pixel` ve `snap_2d_vertices_to_pixel` açık.
 - **Karo boyutu 16 px.** Bütün bölüm geometrisi 16'nın katı (`Bolumler.karola()` zorlar).
 - **Fizik 60 Hz.**
-- **Metin dosyaları BOM'suz UTF-8.** Arayüz metni Türkçe; kod ve yorumlar ASCII
-  (GDScript'te Türkçe karakter yok — dosya adları ve tanımlayıcılar ASCII kalsın).
+- **Metin dosyaları BOM'suz UTF-8.** Arayüz metni Türkçe. Dosya adları ve
+  tanımlayıcılar **her zaman** ASCII; yorumlarda ASCII tercih edilir, istisna bir
+  UI dizesini alıntılamak (`"Tuşa bas"`). `tools/muzik_uret.gd` başlığı Türkçe
+  yazılmış eski bir kalıntı.
 - **Web ses tuzağı:** `project.godot` içindeki `[audio] general/default_playback_type.web=2`
   ve `driver/mix_rate.web=48000` satırlarını silme. Varsayılan Sample yolunda
   tarayıcıda `pitch_scale`, `volume_db` ve döngü sessizce bozulur. Ses düzeyi
@@ -132,7 +134,7 @@ powershell -ExecutionPolicy Bypass -File tools\kilitli.ps1 -- --path . --scene r
 # ffmpeg yayin/tanitim.gif yapar (3,6 sn, 20 fps, 640x360)
 powershell -ExecutionPolicy Bypass -File tools\gif.ps1
 
-# Her şeyi sırayla (kilidi bir kez alır): varlık → import → test → ölçüm → ekran → dışa aktarma
+# Her şeyi sırayla (kilidi bir kez alır): varlık → import → rota → test → ölçüm → ekran → dışa aktarma
 powershell -ExecutionPolicy Bypass -File tools\tam_dogrulama.ps1
 
 # Bazı adımları atla
@@ -144,7 +146,9 @@ Adım adları: `varlik_sprite`, `varlik_ses`, `import`, `rota`, `test`, `olcum`,
 
 ### Kilit kuralı
 
-`D:\Repolar\.godot-kilit`. `tools\kilit.ps1` içindeki `Kilit-Al`/`Kilit-Birak`
+Kilit dosyasının yolu `tools\kilit.ps1` içindeki `$script:KILIT` (şu an
+`D:\Repolar\.godot-kilit` — başka makinede burayı değiştir).
+`tools\kilit.ps1` içindeki `Kilit-Al`/`Kilit-Birak`
 bunu yönetir: dolu ve 15 dk'dan yeniyse 30 sn bekler; sahibi `kanca` ise ve
 hiç Godot süreci yoksa hemen devralır. **Godot'u kilitsiz çalıştırma.**
 İş bitince kilit silinir; süreç öldürülürse elle sil.
@@ -207,22 +211,28 @@ hiç Godot süreci yoksa hemen devralır. **Godot'u kilitsiz çalıştırma.**
    uygulayacağı bonuslu hızla (`_birakma_hizi`) yapılmalı; inişten sonraki
    durma mesafesi (`v²/2a`) de platforma sığmalı. İkisi de eksikken bot
    2. bölümde bayrağın ötesine inip kenardan aşağı koşuyordu.
-17. **Tuş adı yazan her etiket `Ayarlar.kisayol(metin, tus)` üzerinden
-   geçer.** Dokunmatikte ek düşer ("Geri" / "Tekrar dene"); tuş atama ekranı
-   dokunmatikte hiç kurulmaz. `tests/test_kanca.gd` bütün ekranları tarayıp
-   `Esc`, `(R)`, `Enter`, `W/S`, `Fare`… geçen etiket arıyor — yeni bir
-   etikete tuş adını elle yazma.
+17. **Tuş adı veren etiketler iki yoldan geçer.** Tek eylemli düğmeler
+   `Ayarlar.kisayol(metin, tus)` (ek dokunmatikte düşer: "Geri  (Esc)" →
+   "Geri"); iki şemaya göre tümüyle farklı yazılan metinler ise
+   `Ayarlar.dokunmatik_mi()` dalıyla — `Menu.yardim_metni()`, HUD'un
+   "R: yeniden   Esc: duraklat" şeridi, tuş atama kutusunun "Tuşa bas"
+   satırı. Tuş atama ekranı dokunmatikte hiç kurulmaz. Garantiyi
+   `tests/test_kanca.gd` veriyor: bütün ekranları tarayıp `Esc`, `(R)`,
+   `Enter`, `W/S`, `Fare`… geçen etiket arıyor. Yeni bir etikete tuş adı
+   yazacaksan iki daldan birini kullan ve testin o ekranı gördüğünden emin ol.
 18. **Gerçek bölüm sahnesi koşan her araç `Kayit.salt_okunur = true` ile
    başlar.** `Bolum._bitise_degdi` rekoru, hayaleti ve açılan bölümü
    oyuncunun `user://kayit.cfg`'sine yazar; bot v0.3'ten v0.5'e kadar
    oyuncunun "en iyi süreleri"ni sessizce ezdi, GIF aracı 1. bölümün
-   hayaletini sildi. Testler henüz bu bayrağı kullanmıyor (hayalet dosyasını
-   gerçekten yazıp okuyan test var) — 98/99 yuvaları ve günlük tohumu
-   1999-01-01/02 kayda giriyor.
+   hayaletini sildi. Testler de bu bayrakla başlıyor (`tests/test_kanca.gd`
+   ilk satırlarında `Kayit.salt_okunur = true`); yalnız hayalet dosyasını
+   gerçekten yazıp okuyan test bayrağı kısa süre kapatıp geri açıyor. v0.5'e
+   kadar 98/99 yuvaları ve 1999-01-01/02 günlük tohumu oyuncunun kaydına giriyordu.
 
 ## Bu depoda yapılmayacaklar
 
-- **Push yok, GitHub deposu yok, itch.io'ya yükleme yok.** Yayın paketi yalnız
-  `yayin/` altında hazırlanır; yükleme kararı Furki'nin.
+- **GitHub deposu var** (`Furkiozknn/kanca`, varsayılan dal `main`); push serbest
+  ve `main`'e her push'ta CI testleri koşuyor. **itch.io'ya yükleme yok** —
+  yayın paketi yalnız `yayin/` altında hazırlanır; yükleme kararı Furki'nin.
 - **Silme yok.** Gereksiz dosyayı `_eski/` altına taşı.
 - Başka oyun depolarına (`yercekimi-cevir`, `derin-kazi`, `tek-tus-kosu`) dokunma.

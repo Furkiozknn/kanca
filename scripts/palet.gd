@@ -1,6 +1,7 @@
 extends RefCounted
 class_name Palet
-## Oyunun tek paleti: Endesga 32'den secilmis 18 renk. Tum sprite'lar
+## Oyunun tek paleti: Endesga 32'den secilmis 21 renk, 35 adla
+## (ayni hex birkac anlamda geciyor). Tum sprite'lar
 ## (tools/sprite_uret.gd) ve kodla cizilen her sey yalniz bunlari kullanir.
 ## Tema: "firtinali gokyuzu adalari" - soguk gri-mavi kaya, yesil yosun,
 ## turuncu oyuncu (arka plandan net ayrissin), kirmizi tehlike, camgobegi ruzgar.

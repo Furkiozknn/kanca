@@ -63,10 +63,11 @@ itch.io sayfasında elle yapılacaklar:
 
 ## Sürüm etiketi
 
-Depo yerelde `v0.5` etiketiyle işaretli:
+Depo `v0.5.1` etiketiyle işaretli:
 
 ```powershell
-git -C D:\Repolar\kanca tag -l
+git tag -l
 ```
 
-**Push yok** — depo yerel, GitHub'a gönderilmedi.
+Depo GitHub'a gönderildi (`Furkiozknn/kanca`); **itch.io'ya hiçbir şey
+yüklenmedi** — aşağıdaki butler komutları bilerek çalıştırılmamış durumda.

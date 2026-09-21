@@ -10,7 +10,8 @@ bölümü en kısa sürede bitir.**
 Hız odaklı 2B sallanma platform oyunu. Godot 4.7.2, GL Compatibility,
 640×360 taban çözünürlük. Tema: **fırtınalı gökyüzü adaları**.
 
-Durum: **v0.5 — bot hareketli noktada bekliyor ve frenliyor, akış tablosu,
+Durum: **v0.5.1 — MIT lisansı, her push'ta CI, PATH'ten Godot.** Oynanış v0.5
+ile aynı: **bot hareketli noktada bekliyor ve frenliyor, akış tablosu,
 tanıtım GIF'i.** 14 bölüm, gerçek pixel art, ses ve müzik, ayarlar ekranı,
 madalyalar, hayalet tekrarı (kendi koşun ya da **altın hayalet**), kontrol
 noktaları, günlük meydan okuma; puanlamalı hedefleme, kancada tampon + kojot,
@@ -42,8 +43,10 @@ dokunmatikte **tuş adı kalmadı** (tek yardımcı, testle taranıyor) ve
 
 Klavye atamaları **Ayarlar → Tuş atama** ekranından değiştirilir; fare ve gamepad
 atamaları olduğu gibi kalır. Dokunmatikte tuş atama ekranı hiç kurulmaz ve
-düğmelerdeki tuş ekleri düşer ("Geri  (Esc)" → "Geri"): tüm tuşlu etiketler
-`Ayarlar.kisayol()` üzerinden geçer, test bütün ekranları tarar.
+düğmelerdeki tuş ekleri düşer ("Geri  (Esc)" → "Geri"): tek eylemli düğmeler
+`Ayarlar.kisayol()` üzerinden, iki şemaya göre baştan farklı yazılan metinler
+(menü yardımı, HUD şeridi, tuş atama satırı) `Ayarlar.dokunmatik_mi()` dalıyla
+geçer; garantiyi bütün ekranları tarayan test veriyor.
 
 Nişan yoksa (fare hareketsiz, çubuk boşta) kanca, bakış yönündeki en uygun
 noktaya gider. Seçili aday nokta beyaz halkayla vurgulanır ve araya **kesik
@@ -137,9 +140,9 @@ durur. Süreden ayrı bir not: en hızlı koşu her zaman en şık koşu değil.
 | 8 | Tek Kullanımlık | **Kırılgan nokta.** Duraklama; zinciri baştan planla. Alttaki sabit hat da çalışır ama yavaştır. |
 | 9 | Rüzgâr | **İtici alan.** İlk akıntıya yatay girersen kanca atmadan karşıya taşınırsın. |
 | 10 | Dikenli Tavan | **Tavan dikeni.** Halatı 28 px'e indirip alçaktan geçmek en hızlı yol. |
-| 11 | Hız | En uzun düz bölüm, **kontrol noktalı**. y=64 sırası hiç yere inmeden bitişe gider. |
-| 12 | Kırık Sarkaç | Hareketli + kırılgan bir arada. |
-| 13 | Fırtına | Rüzgâr + tavan dikeni. Akıntıya alçaktan gir, halatı uzatma. |
+| 11 | Hız | Düz zeminli en uzun bölüm, **iki kontrol noktalı**. y=64 sırası hiç yere inmeden bitişe gider. |
+| 12 | Kırık Sarkaç | Hareketli + kırılgan bir arada, bir kontrol noktası. |
+| 13 | Fırtına | Rüzgâr + tavan dikeni, iki kontrol noktası. Akıntıya alçaktan gir, halatı uzatma. |
 | 14 | Final | Hepsinin karışımı, iki kontrol noktası. |
 
 ## Nasıl çalıştırılır
@@ -150,10 +153,10 @@ Godot'u **her zaman kilitle** çalıştır (aynı anda 3 oyun oturumu olabilir):
 # Oyunu çalıştır
 powershell -ExecutionPolicy Bypass -File tools\kilitli.ps1 -- --path . --scene res://scenes/menu.tscn
 
-# Testler (çıkış kodu 0 = hepsi geçti, 99 = zaman aşımı)
+# Testler (çıkış kodu 0 = hepsi geçti, n = kalan test sayısı, 99 = zaman aşımı)
 powershell -ExecutionPolicy Bypass -File tests\calistir.ps1
 
-# Her şey sırayla: varlık üretimi + import + test + ölçüm + ekran + dışa aktarma
+# Her şey sırayla: varlık üretimi + import + rota + test + ölçüm + ekran + dışa aktarma
 powershell -ExecutionPolicy Bypass -File tools\tam_dogrulama.ps1
 ```
 
@@ -206,15 +209,20 @@ kareler bunların birleşimi) — bir pozu değiştirmek birkaç satır düzenle
 
 ### Palet
 
-Endesga 32'den 18 renk (`scripts/palet.gd`). Tema kararı: kaya ve gökyüzü soğuk
+Endesga 32'den 21 renk, 35 adla (`scripts/palet.gd`) — aynı hex birkaç anlamda
+geçiyor (gök ortası = kaya koyusu gibi). Tema kararı: kaya ve gökyüzü soğuk
 gri-mavi, yosun yeşil, **oyuncu turuncu** — arka plandan ve zeminden net ayrışsın
-diye. Tehlike kırmızı, rüzgâr camgöbeği, hiçbir başka öğe bu iki rengi kullanmıyor.
+diye. Tehlike kırmızı — bu kırmızıyı başka hiçbir öğe kullanmıyor. Camgöbeği
+yalnız iki yerde: rüzgâr alanı ve hareketli kanca noktasının halkası (ikisi de
+"hareket" demek, bilerek aynı renk).
 
 ## Sallanma sabitleri nasıl seçildi
 
 `tools/olcum.gd` botla ölçüm yapar: sarkacı "iyi oyuncu" gibi pompalar (her karede
-teğetsel hızın işaretine basar) ve üç tarama üretir. Sonuçlar
-`raporlar/2026-09-16-kanca-gelistirme-1.md` içinde tam tabloyla.
+teğetsel hızın işaretine basar) ve **beş tarama** üretir: ivme × sönüm, girdisiz
+kalan enerji, bırakma çarpanı, kanca menzili, sallanma yerçekimi. Tam tablolar
+depoya alınmadı; taramayı yeniden koşmak için `tools\kilitli.ps1` ile
+`res://tools/olcum.tscn` sahnesini çalıştır.
 
 Seçilen değerler (`scripts/ayarlar.gd`):
 
@@ -226,7 +234,8 @@ Seçilen değerler (`scripts/ayarlar.gd`):
 | `BIRAKMA_CARPANI` | 1,10 | Bırakma sonrası uçuş bir bölüm boşluğunu (≈300–380 px) rahat kapatıyor. |
 | `KANCA_MENZIL` | 240 | 14 bölümde nokta başına ortalama komşu sayısı makul; kopuk nokta yok. |
 
-Bu dördü bilerek `const` değil `var` — ölçüm botu çalışma anında tarayabilsin diye.
+Bu beşi bilerek `const` değil `var` — ölçüm botu çalışma anında tarayabilsin diye
+(dördü v0.2'den, `SALLANMA_YERCEKIMI` v0.3'te eklendi).
 **İnsan testi hâlâ yapılmadı**; bot "geçilebilir ve hızlanabilir" diyor, "iyi
 hissettiriyor" demiyor.
 
@@ -298,7 +307,7 @@ yedek değere düşer. Aynı veri **rota ipucunu** da besler.
 yavaş kalan bölümler yine tahmine devrediliyor — orada bot kötü oynamıştır,
 o süreyi altın eşiği yapmak bölümü bedava altın hâline getirir. Hangi bölümün
 ölçülmüş hangisinin tahmin olduğu kayıtta `"tahmin"` ile işaretli
-(`RotaVerisi.tahmin_mi()`), tablo turun raporunda.
+(`RotaVerisi.tahmin_mi()`); şu an yalnız 5. bölüm tahminde.
 
 Aynı koşu **altın hayaleti** de üretiyor: botun en iyi koşusunun 10 Hz konum
 örnekleri `"iz"` alanına yazılıyor, oyun ara değerle 60 Hz'e çıkarıyor.
@@ -317,7 +326,8 @@ Aynı koşu **altın hayaleti** de üretiyor: botun en iyi koşusunun 10 Hz konu
   Bitişe inilemeyecek kadar hızlıysa fren: salınıma ters basış + halat uzatma.
 - **Genel hız freni denendi, kapatıldı.** 720 ve 840 px/sn eşikleri ölçümde
   botu her yerde yavaşlattı (ölçek 0,00279 → 0,00373); 900 px/sn ile giden
-  bot sonraki platforma 6 px kısa düşüyordu. Ölçüm gerekçesi turun raporunda.
+  bot sonraki platforma 6 px kısa düşüyordu. (0,00279 → 0,00373 ölçeği 720 px/sn
+  eşiğinin ölçümü; 840 px/sn ayrı denendi.)
 - **Planlayıcı:** son kancadan bitiş platformuna süzülüş mesafesi kancanın
   yüksekliğiyle sınırlı (100 + 1,5 × yükseklik) — alçak kancadan 240 px süzülüş
   fizikte tutmuyordu (7. bölüm).
@@ -330,7 +340,7 @@ sırası/önceki bölümlerin izi sonucu değiştiriyor). Bu yüzden eşik 5 ko�
 ortancasından ve ölçeğin 2 katından yavaş bölüm yine tahmine devrediliyor.
 Bu turda tahminde kalan bölüm: yalnız **5 (Yukarı)** — bot bitişe yaklaşırken
 11 sn asılı kalıyor; v0.4'te 2, 6 ve 7 tahmindi, üçü de artık ölçülmüş
-(5,40 / 4,85 / 5,87 sn). Ölçek 0,00279 → 0,00266 sn/px. Tablo turun raporunda.
+(5,40 / 4,85 / 5,87 sn). Ölçek 0,00279 → 0,00266 sn/px.
 
 **`--fixed-fps 60` şart:** headless'ta bile fizik kareleri gerçek zamanda akar
 (60 Hz), yani 2700 karelik bir koşu gerçekten 45 saniye sürer. Bayrak zamanı
@@ -377,7 +387,8 @@ var; müzik döngüsü ayrıca `finished` sinyalinde elle yeniden başlatılıyo
 - **v0.5:** dokunmatikte hiçbir ekranda tuş adı yok (menü, bölüm seçme, ayarlar,
   HUD, duraklat/bitiş panelleri taranıyor; masaüstünde ekler duruyor); bölüm
   seçme ekranında akış rozeti (kayda dokunmadan); botun bekleme/kenar
-  yardımcıları; **14/14 bölümün eşiği ölçülmüş** (tahmin yok).
+  yardımcıları; **2, 6 ve 7. bölümün eşiği artık ölçülmüş koşudan** — 14 bölümün
+  13'ü; yalnız 5. bölüm tahminde (`RotaVerisi.tahmin_mi(5)`).
 
 ## Yayın paketi
 
@@ -399,7 +410,8 @@ Web yapısı tek iş parçacıklı (`thread_support=false`) — itch.io'da
 Hepsi ölçüldü veya yapılandırmadan doğrulandı — tahmin yok.
 
 - **Yalnızca Windows ve Web.** `export_presets.cfg` iki hedef tanımlıyor:
-  `Windows Masaüstü` ve `Web (HTML5)`. Linux, macOS ve Android dışarı
+  `Windows Masaustu` ve `Web (HTML5)` — adlar `export_presets.cfg`'de aksansız,
+  `--export-release` ile birebir böyle yazılmalı. Linux, macOS ve Android dışarı
   aktarımı yok.
 - **Arayüz yalnızca Türkçe.** `project.godot` içinde çeviri/locale girdisi
   bulunmuyor.
@@ -409,6 +421,10 @@ Hepsi ölçüldü veya yapılandırmadan doğrulandı — tahmin yok.
   depoda izleniyor ve `tools/rota.gd` üretiyor. Bölüm geometrisini
   değiştirirsen `rota` adımını **testten önce** yerelde çalıştırıp
   commit'le — CI onu yeniden üretmez, depodaki veriyi doğrular.
+- **5. bölümün altın eşiği ölçüm değil tahmin.** Bot o bölümde bitişe yaklaşırken
+  asılı kalıyor, süresi ölçeğin 2 katından yavaş çıkıyor; eşik ölçülen rota
+  hızından türetiliyor (`scripts/rota_verisi.gd` → `"tahmin": true`). Kalan 13
+  bölümün eşiği gerçek koşudan.
 - **İlerleme tek makinede.** Kayıt yerel; bulut senkronu yok.
 
 ## Test ve CI
@@ -418,10 +434,11 @@ godot --headless --path . --import                          # bir kez
 godot --headless --path . --scene res://tests/test_kanca.tscn   # 0 = gecti
 ```
 
-Windows'ta sarmalı: `powershell -File tests\calistir.ps1`
+Windows'ta sarmalı: `powershell -ExecutionPolicy Bypass -File tests\calistir.ps1`
 (kilit dosyası + zaman aşımı ekler; ölçtüğü sahne aynıdır).
 
-Her push'ta **aynı sahne** GitHub Actions'ta koşuyor (Godot 4.7.2, Linux
+`main`'e her push'ta ve her pull request'te **aynı sahne** GitHub Actions'ta
+koşuyor (Godot 4.7.2, Linux
 headless, Git LFS çekilerek). Son ölçüm: **115/115 geçti**.
 
 ## Lisans
