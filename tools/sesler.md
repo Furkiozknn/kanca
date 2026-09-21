@@ -9,7 +9,7 @@ aynı dosyayı üretiyor. Bu yüzden "4-6 aday üret, en iyisini seç" yolu işe
 yaramadı; onun yerine 7 ham sesi alıp kodla işledik.
 
 ```powershell
-$rfx = 'D:\Araclar\rFXGen\rfxgen_v5.0_win_x64\rfxgen.exe'
+$rfx = '<rFXGen kurulumunun yolu>\rfxgen.exe'   # yerel kurulum, depoda degil
 foreach ($on in @('coin','laser','explosion','powerup','hit','jump','blip')) {
   & $rfx --generate $on --output "assets\audio\_ham\$on.wav" --format 22050,16,1
 }

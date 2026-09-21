@@ -23,7 +23,7 @@ butler login
 ## Yapıları üret
 
 ```powershell
-cd D:\Repolar\kanca
+cd <depo kökü>
 powershell -ExecutionPolicy Bypass -File tools\tam_dogrulama.ps1
 ```
 
@@ -35,7 +35,7 @@ powershell -ExecutionPolicy Bypass -File tools\tam_dogrulama.ps1
 ## Yükleme
 
 ```powershell
-cd D:\Repolar\kanca
+cd <depo kökü>
 
 # Web (tarayıcıda oynanan sürüm)
 butler push build\web <itch-kullanici>/kanca:html5 --userversion 0.5.0

@@ -146,8 +146,8 @@ Adım adları: `varlik_sprite`, `varlik_ses`, `import`, `rota`, `test`, `olcum`,
 
 ### Kilit kuralı
 
-Kilit dosyasının yolu `tools\kilit.ps1` içindeki `$script:KILIT` (şu an
-`D:\Repolar\.godot-kilit` — başka makinede burayı değiştir).
+Kilit dosyasının yolu `tools\kilit.ps1` içindeki `$script:KILIT`: varsayılan
+`D:\Repolar\.godot-kilit`, `GODOT_KILIT` ortam değişkeniyle ezilir.
 `tools\kilit.ps1` içindeki `Kilit-Al`/`Kilit-Birak`
 bunu yönetir: dolu ve 15 dk'dan yeniyse 30 sn bekler; sahibi `kanca` ise ve
 hiç Godot süreci yoksa hemen devralır. **Godot'u kilitsiz çalıştırma.**

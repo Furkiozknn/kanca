@@ -6,7 +6,8 @@
 # (3 oyun oturumu paralel, RAM dar). Godot'u yuvalanmis Start-Process ile
 # cagirmak stdout yonlendirmesini yutuyor - bu yuzden tek seviye.
 
-$script:KILIT = 'D:\Repolar\.godot-kilit'
+# Varsayilan gelistirme makinesinin yolu; baska makinede GODOT_KILIT ile ez.
+$script:KILIT = if ($env:GODOT_KILIT) { $env:GODOT_KILIT } else { 'D:\Repolar\.godot-kilit' }
 # PATH'te godot varsa onu kullan; yoksa winget kurulumunun varsayilan yoluna dus.
 $script:GODOT = (Get-Command godot -ErrorAction SilentlyContinue).Source
 if (-not $script:GODOT) { $script:GODOT = Join-Path $env:LOCALAPPDATA 'Microsoft\WinGet\Links\godot.exe' }

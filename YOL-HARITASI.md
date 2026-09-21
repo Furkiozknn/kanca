@@ -63,7 +63,7 @@
 
 ## Tur 2 — v0.3 "rakip analizinden iyileştirmeler" (2026-09-16)
 
-Kaynak: `D:\Claude Projeleri\oyun-terminalleri\tasarim\kanca-rakip-analizi.md`
+Kaynak: ayrı bir rakip analizi çalışması (`oyun-terminalleri/tasarim/`), bu depoda değil
 
 ### Hedefleme
 - [x] Puanlama: nişan hizası ×3 − uzaklık/menzil + hız yönüne uyum
