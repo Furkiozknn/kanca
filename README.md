@@ -1,5 +1,7 @@
 # Kanca
 
+[![CI](https://github.com/Furkiozknn/kanca/actions/workflows/ci.yml/badge.svg)](https://github.com/Furkiozknn/kanca/actions/workflows/ci.yml)
+
 **Kancanı tavana at, sarkaç gibi salın, tam zamanında bırak ve momentumla fırla —
 bölümü en kısa sürede bitir.**
 
@@ -388,3 +390,34 @@ Web yapısı tek iş parçacıklı (`thread_support=false`) — itch.io'da
 ## Sonraki adımlar
 
 `YOL-HARITASI.md`.
+
+
+## Bilinen sınırlar
+
+Hepsi ölçüldü veya yapılandırmadan doğrulandı — tahmin yok.
+
+- **Yalnızca Windows ve Web.** `export_presets.cfg` iki hedef tanımlıyor:
+  `Windows Masaüstü` ve `Web (HTML5)`. Linux, macOS ve Android dışarı
+  aktarımı yok.
+- **Arayüz yalnızca Türkçe.** `project.godot` içinde çeviri/locale girdisi
+  bulunmuyor.
+- **Web yapısı tek iş parçacıklı** (`thread_support=false`). itch.io'ya
+  yüklerken **SharedArrayBuffer kutusu işaretlenmemeli**.
+- **Madalya eşikleri üretilmiş veriden geliyor.** `scripts/rota_verisi.gd`
+  depoda izleniyor ve `tools/rota.gd` üretiyor. Bölüm geometrisini
+  değiştirirsen `rota` adımını **testten önce** yerelde çalıştırıp
+  commit'le — CI onu yeniden üretmez, depodaki veriyi doğrular.
+- **İlerleme tek makinede.** Kayıt yerel; bulut senkronu yok.
+
+## Test ve CI
+
+```bash
+godot --headless --path . --import                          # bir kez
+godot --headless --path . --scene res://tests/test_kanca.tscn   # 0 = gecti
+```
+
+Windows'ta sarmalı: `powershell -File tests\calistir.ps1`
+(kilit dosyası + zaman aşımı ekler; ölçtüğü sahne aynıdır).
+
+Her push'ta **aynı sahne** GitHub Actions'ta koşuyor (Godot 4.7.2, Linux
+headless, Git LFS çekilerek). Son ölçüm: **115/115 geçti**.
