@@ -1,0 +1,64 @@
+name: CI
+
+# Depo 21 Eylul 2026'da GitHub'a tasindi ve hic is akisi yoktu: 115 test
+# yalnizca elle calistirilinca kosuyordu.
+#
+# Yeni test komutu UYDURULMUYOR. tests/calistir.ps1 icinde Godot'ya gecen
+# argumanlarin aynisi:
+#     --headless --path . --scene res://tests/test_kanca.tscn
+# Cikis kodu 0 = hepsi gecti.
+#
+# calistir.ps1'in kendisi kosulmuyor cunku Windows'a ozgu iki sarmal
+# iceriyor (kilit dosyasi + zaman asimi). Linux kosucusunda o sarmallarin
+# isi yok; olculen sey ayni test sahnesi.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  # Surum SABIT: "latest" kullanmak, motor guncellenince testlerin
+  # bizden habersiz kirmizi yanmasi demek olurdu.
+  GODOT_SURUM: 4.7.2-stable
+
+jobs:
+  testler:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Varliklar Git LFS'te. Cekilmezse checkout yalnizca isaretci
+          # dosyalari getirir ve sahneler "bozuk kaynak" diye duser.
+          lfs: true
+
+      - name: Godot ${{ env.GODOT_SURUM }} indir
+        run: |
+          set -euo pipefail
+          ad="Godot_v${GODOT_SURUM}_linux.x86_64"
+          curl -fsSL -o godot.zip \
+            "https://github.com/godotengine/godot/releases/download/${GODOT_SURUM}/${ad}.zip"
+          unzip -q godot.zip
+          chmod +x "$ad"
+          sudo mv "$ad" /usr/local/bin/godot
+          godot --version
+
+      # Ice aktarma SART ve ayri adim: taze checkout'ta .godot hic yok,
+      # eksik onbellek testin icerigiyle ilgisi olmayan "Identifier not
+      # declared" ayristirma hatalari uretiyor.
+      - name: Projeyi ice aktar
+        run: godot --headless --path . --import
+
+      # NOT: scripts/rota_verisi.gd URETILMIS ama depoda izleniyor.
+      # Madalya esikleri ve hayalet izi oradan geliyor; CI onu yeniden
+      # uretmiyor, depodaki veriyi dogruluyor. Bolum geometrisi
+      # degistiyse `tools/rota.gd` YERELDE calistirilip commit'lenmeli.
+      - name: Testler
+        run: godot --headless --path . --scene res://tests/test_kanca.tscn
