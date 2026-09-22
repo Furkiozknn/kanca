@@ -1,0 +1,82 @@
+{
+  "schema_version": "1.0.0",
+  "id": "kanca",
+  "owner": "Furkiozknn",
+  "repository": "https://github.com/Furkiozknn/kanca",
+  "homepage": null,
+  "releases": "https://github.com/Furkiozknn/kanca/releases",
+  "status": "active",
+  "category": "game",
+  "platform": [
+    "windows",
+    "web"
+  ],
+  "primary_language": "GDScript",
+  "technologies": [
+    "Godot 4.7",
+    "GDScript",
+    "GL Compatibility renderer"
+  ],
+  "version": "0.5.2",
+  "license": "MIT",
+  "topics": [
+    "2d-game",
+    "game-development",
+    "gdscript",
+    "godot",
+    "godot4"
+  ],
+  "summary": "Hook the ceiling, swing, release at the right moment and carry the momentum - a speed-focused 2D swinging platformer in Godot 4; medal times measured on 13 of 14 levels by a scripted bot. Turkish UI.",
+  "key_features": [
+    "Swing physics with no jump button: hook a ceiling anchor, swing, release at the right moment and keep the momentum",
+    "14 hand-built levels; medal times on 13 of them measured by a scripted bot rather than guessed",
+    "All sprites generated from code (tools/sprite_uret.gd), so the art is reproducible from the repository",
+    "Single-finger control scheme for touch, documented alongside the keyboard layout"
+  ],
+  "media": {
+    "hero": "yayin/tanitim.gif",
+    "screenshots": [
+      "docs/ekran/menu.png",
+      "docs/ekran/bolum_13.png"
+    ],
+    "gifs": [
+      "yayin/tanitim.gif"
+    ],
+    "videos": []
+  },
+  "tests": {
+    "count": 115,
+    "source": "CI log: `=== 115/115 gecti ===`",
+    "measured": "2026-09-22"
+  },
+  "ci": {
+    "workflows": [
+      "ci.yml"
+    ],
+    "badge": "https://github.com/Furkiozknn/kanca/actions/workflows/ci.yml/badge.svg"
+  },
+  "docs": {
+    "readme": "README.md",
+    "changelog": null,
+    "roadmap": "YOL-HARITASI.md",
+    "security": null,
+    "contributing": null,
+    "license_file": "LICENSE"
+  },
+  "social": {
+    "headline": "One key. One rope. All the momentum you can carry.",
+    "hashtags": [
+      "godot",
+      "godot4",
+      "indiedev",
+      "gamedev",
+      "platformer"
+    ],
+    "primary_link": "https://github.com/Furkiozknn/kanca"
+  },
+  "provenance": {
+    "generated_at": "2026-09-22",
+    "generator": "ghcc/gen_meta.py",
+    "rule": "mechanical fields read from the repository and the GitHub API; editorial fields hand-written and reviewed; no field is generated from a guess"
+  }
+}
