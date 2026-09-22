@@ -160,6 +160,16 @@ powershell -ExecutionPolicy Bypass -File tests\calistir.ps1
 powershell -ExecutionPolicy Bypass -File tools\tam_dogrulama.ps1
 ```
 
+**Yapı dosyaları depoda yok** (`.gitignore`). Dışa aktarma çıktısı
+`build/windows/kanca.exe` (+ `kanca.pck`) ve `build/web/index.html` yollarına yazılır;
+hedef klasörler önceden var olmalı, yoksa Godot "The given export path doesn't exist" der:
+
+```powershell
+mkdir build\web, build\windows -Force
+godot --headless --path . --export-release "Windows Masaustu" build/windows/kanca.exe
+godot --headless --path . --export-release "Web (HTML5)" build/web/index.html
+```
+
 Ayrıntı ve tuzaklar: `CLAUDE.md`.
 
 ## Kod düzeni
