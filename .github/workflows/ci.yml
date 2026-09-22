@@ -62,3 +62,32 @@ jobs:
       # degistiyse `tools/rota.gd` YERELDE calistirilip commit'lenmeli.
       - name: Testler
         run: godot --headless --path . --scene res://tests/test_kanca.tscn
+
+  referanslar:
+    name: Kaynak referanslari saglam mi
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+
+      # Kirik bir kaynak referansi motoru her zaman durdurmuyor: eksik bir
+      # .tscn ya da silinmis bir .png, sahne o kod yolu calisana kadar
+      # sessiz kalabiliyor -- yani testler yesilken de var olabiliyor.
+      # Bu kontrol motoru indirmeden, ayni hesaptaki godot-refcheck ile
+      # yapiliyor; su an temiz (198 dosya, 57 referans, sifir
+      # bulgu) ve bu commit'ten sonra oyle kalmasi garanti.
+      - name: godot-refcheck
+        uses: Furkiozknn/godot-refcheck@v0.2.0
+        with:
+          path: .
+          fail-on: error
+          sarif: refcheck.sarif
+
+      - name: SARIF raporunu kod taramaya yukle
+        if: always() && hashFiles('refcheck.sarif') != ''
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: refcheck.sarif
+          category: godot-refcheck

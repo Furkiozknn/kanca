@@ -469,6 +469,19 @@ Windows'ta sarmalı: `powershell -ExecutionPolicy Bypass -File tests\calistir.ps
 koşuyor (Godot 4.7.2, Linux
 headless, Git LFS çekilerek). Son ölçüm: **115/115 geçti**.
 
+
+### Kırık kaynak referansları
+
+Bir oyunda en geç fark edilen kusur, kırık bir kaynak referansıdır: silinmiş
+bir `.png`, taşınmış bir `.tscn`, adı değişmiş bir `.tres`. Motor bunu her
+zaman açılışta söylemez — sahne o kod yolu çalışana kadar sessiz kalabilir,
+yani testler yeşilken de orada durabilir.
+
+CI'da ayrı bir iş bunu arıyor: aynı hesaptaki
+[godot-refcheck](https://github.com/Furkiozknn/godot-refcheck), motoru
+indirmeden projeyi tarıyor ve bulguları SARIF olarak kod taramaya yüklüyor.
+Şu an temiz: **198 dosya, 57 referans, sıfır bulgu.**
+
 ## Lisans
 
 [MIT](LICENSE) — Furki Özkan, 2026. Bütün görseller, sesler ve müzik de depodaki üreteclerle koddan üretilir; aynı lisans onları da kapsar.
