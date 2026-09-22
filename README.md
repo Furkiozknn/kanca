@@ -448,11 +448,20 @@ Hepsi ölçüldü veya yapılandırmadan doğrulandı — tahmin yok.
 - **Madalya eşikleri üretilmiş veriden geliyor.** `scripts/rota_verisi.gd`
   depoda izleniyor ve `tools/rota.gd` üretiyor. Bölüm geometrisini
   değiştirirsen `rota` adımını **testten önce** yerelde çalıştırıp
-  commit'le — CI onu yeniden üretmez, depodaki veriyi doğrular.
+  commit'le — test adımı onu yeniden üretmez, depodaki veriyi doğrular.
+  Unutursan CI söyler: ayrı bir adım botu `--denetle` ile koşturup her
+  bölümün hâlâ bittiğini ve yayımlanan altın eşiğinin botun bugünkü
+  ortancasından büyük olduğunu doğruluyor (14 bölüm × 5 koşu, ~8 sn).
 - **5. bölümün altın eşiği ölçüm değil tahmin.** Bot o bölümde bitişe yaklaşırken
   asılı kalıyor, süresi ölçeğin 2 katından yavaş çıkıyor; eşik ölçülen rota
   hızından türetiliyor (`scripts/rota_verisi.gd` → `"tahmin": true`). Kalan 13
-  bölümün eşiği gerçek koşudan.
+  bölümün eşiği gerçek koşudan. **22 Eylül 2026'da düzeltildi:** o tahmin
+  7,55 sn'lik bir altın veriyordu, yani bölümü oynayan tek şey olan botun
+  kendi ortancasından (11,10 sn) 3,5 sn **hızlı** — ulaşılamaz bir altın.
+  Devredilen bölümün ölçülen ortancası artık atılmıyor: tahmin ondan hızlı
+  olabilir (amacı o, bot orada kötü oynamıştı) ama altın eşiği ondan hızlı
+  olamaz. 5. bölümün altını 11,10 sn, yani gözlenen ortanca. Bunu her push'ta
+  `tools/rota.gd -- --denetle` kontrol ediyor.
 - **İlerleme tek makinede.** Kayıt yerel; bulut senkronu yok.
 
 ## Test ve CI

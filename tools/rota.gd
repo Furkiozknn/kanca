@@ -19,6 +19,14 @@ extends Node2D
 ## oyunda gecen sureyle birebir ayni.
 ##
 ## Cikti: scripts/rota_verisi.gd (uretilmis dosya) + ekrana ozet tablo.
+##
+## `--denetle`: DOSYA YAZMAZ, yazilmis olani SINAR. Esikler uretilmis dosyada
+## duruyor ve 115 dogrulamanin ilgili kismi onlari o dosyaya karsi siniyor --
+## yani dosyayi kendisine karsi. Bir bolumun kanca noktalari ya da zemini
+## degisirse dosya eski kalir, testler yine yesil yanar, ve yayimlanan altin
+## esigi artik botun bile yetisemedigi bir sure olabilir. Denetim botu yeniden
+## kosturup iki seyi soruyor: her bolum hala bitiyor mu, ve yayimlanan altin
+## esigi botun BUGUNKU ortancasindan buyuk mu. Tutmazsa cikis kodu 1.
 
 const CIKTI := "res://scripts/rota_verisi.gd"
 const KOSU_SAYISI := 5              ## bolum basina deneme (farkli gecikme tohumlari)
@@ -119,6 +127,7 @@ const BRONZ_PAY := 2.60
 ## Tani kipi: yalniz ilk bolum, tek kosu, 30 karede bir iz. Calistirma:
 ##   ... --scene res://tools/rota.tscn -- --tani [bolum_no]
 var _tani := false
+var _denetle := false              ## yazilmis esikleri yeniden olcup sinar, dosya yazmaz
 var _tani_bolum := 1
 
 var _sonuc: Dictionary = {}
@@ -143,6 +152,9 @@ func _calistir() -> void:
 	await get_tree().process_frame
 	var kullanici := OS.get_cmdline_user_args()
 	_tani = kullanici.has("--tani")
+	_denetle = kullanici.has("--denetle")
+	if _denetle:
+		print("DENETIM KIPI: dosya yazilmaz, yazilmis esikler yeniden olculup sinanir")
 	for i in kullanici.size():
 		if kullanici[i] == "--tani" and i + 1 < kullanici.size():
 			_tani_bolum = int(kullanici[i + 1])
@@ -225,10 +237,51 @@ func _calistir() -> void:
 		print("=== tani bitti (dosya YAZILMADI) ===")
 		get_tree().quit(0)
 		return
+	if _denetle:
+		var kod := _denetle_et()
+		print("=== denetim bitti: %d/%d bolum kosuldu ===" % [_sonuc.size(), Bolumler.sayi()])
+		get_tree().quit(kod)
+		return
 	_tahmin_et()
 	_yaz()
 	print("=== rota bitti: %d/%d bolum ===" % [_sonuc.size(), Bolumler.sayi()])
 	get_tree().quit(0 if _sonuc.size() == Bolumler.sayi() else 1)
+
+
+## Yayimlanan esikleri BUGUNKU kosuya karsi sinar. Donus: cikis kodu.
+##
+## `_tahmin_et` ve `_yaz` cagrilmaz: bu kip olcer ve soyler, duzeltmez.
+## Duzeltme, botu normal kipte kosturup uretilen dosyayi commit etmektir.
+func _denetle_et() -> int:
+	var hata := 0
+	print("\n--- denetim: yayimlanan esik vs bugunku kosu ---")
+	print("%-3s %-18s %8s %8s %8s  %s" % ["no", "bolum", "altin", "bugun", "pay", "durum"])
+	for no in range(1, Bolumler.sayi() + 1):
+		var ad := Bolumler.ad(no)
+		var m := RotaVerisi.madalya(no)
+		var altin: float = float(m[0]) if m.size() == 3 else 0.0
+		if not _sonuc.has(no):
+			hata += 1
+			print("%-3d %-18s %8.2f %8s %8s  BITIREMEDI" % [no, ad, altin, "-", "-"])
+			continue
+		var bugun: float = float(_sonuc[no]["ortanca"])
+		var durum := "ok"
+		if altin <= 0.0:
+			durum = "ESIK YOK"
+			hata += 1
+		elif bugun > altin:
+			durum = "ALTIN ULASILAMAZ"
+			hata += 1
+		elif RotaVerisi.tahmin_mi(no):
+			durum = "ok (esik tahmin)"
+		print("%-3d %-18s %8.2f %8.2f %8.2f  %s" % [no, ad, altin, bugun, altin - bugun, durum])
+	if hata == 0:
+		print("\ndenetim temiz: %d bolumun hepsi bitiyor, her altin esigi botun bugunku ortancasini kaldiriyor." % Bolumler.sayi())
+		return 0
+	print("\nDENETIM BASARISIZ: %d bulgu." % hata)
+	print("Esikler scripts/rota_verisi.gd icinde ve elle duzeltilmez: botu")
+	print("normal kipte kosturup uretilen dosyayi commit et.")
+	return 1
 
 ## Botun bitiremedigi bolumler icin sure TAHMINI.
 ##
@@ -256,12 +309,19 @@ func _tahmin_et() -> void:
 	# bot orada gercekten kotu oynamis (kacirilan kanca, tekrar tekrar olum).
 	# O sureyi altin esigi yapmak bolumu bedava altin haline getirir - onlar da
 	# tahmine devrediliyor.
+	# Devredilen bolumun OLCULEN ortancasi atilmiyor: tahmin ondan hizli
+	# olabilir (zaten amaci o -- bot orada kotu oynamisti), ama altin esigi
+	# ondan hizli OLAMAZ. Olursa, bolumu oynayan tek sey olan botun bile
+	# yetisemedigi bir altin yayimlamis oluruz. 5. bolumde tam bu olmustu:
+	# olculen ortanca 11,10 sn, yayimlanan altin 7,55 sn.
+	var gozlenen := {}
 	for no: int in _sonuc.keys():
 		var uz := _rota_uzunlugu(no, _sonuc[no]["nokta"])
 		if uz > 1.0 and float(_sonuc[no]["ortanca"]) / uz > sn_px * AYKIRI_KAT:
 			print("bolum %2d  ortanca %.3f olcegin %.1f kati - tahmine devrediliyor" % [
 				no, float(_sonuc[no]["ortanca"]),
 				(float(_sonuc[no]["ortanca"]) / uz) / sn_px])
+			gozlenen[no] = float(_sonuc[no]["ortanca"])
 			_sonuc.erase(no)
 
 	for no in range(1, Bolumler.sayi() + 1):
@@ -271,6 +331,12 @@ func _tahmin_et() -> void:
 		if rota.is_empty():
 			continue
 		var sure: float = _rota_uzunlugu(no, rota) * sn_px
+		# Altin tabani: gozlenen ortancadan hizli bir altin yayimlanmaz.
+		if gozlenen.has(no) and sure * ALTIN_PAY < float(gozlenen[no]):
+			var eski := sure
+			sure = float(gozlenen[no]) / ALTIN_PAY
+			print("bolum %2d  tahmin %.3f -> %.3f (altin %.3f, gozlenen ortanca %.3f'in altina inemez)" % [
+				no, eski, sure, sure * ALTIN_PAY, float(gozlenen[no])])
 		_sonuc[no] = {
 			"sure": snappedf(sure, 0.001),
 			"ortanca": snappedf(sure, 0.001),

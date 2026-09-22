@@ -57,11 +57,38 @@ jobs:
         run: godot --headless --path . --import
 
       # NOT: scripts/rota_verisi.gd URETILMIS ama depoda izleniyor.
-      # Madalya esikleri ve hayalet izi oradan geliyor; CI onu yeniden
-      # uretmiyor, depodaki veriyi dogruluyor. Bolum geometrisi
-      # degistiyse `tools/rota.gd` YERELDE calistirilip commit'lenmeli.
+      # Madalya esikleri ve hayalet izi oradan geliyor; bu adim onu yeniden
+      # uretmiyor, depodaki veriyi dogruluyor -- yani dosyayi kendisine
+      # karsi. Asagidaki denetim adimi o bosluk icin: botu gercekten
+      # kosturup depodaki esigin hala gecerli olup olmadigini soruyor.
+      # Bolum geometrisi degistiyse duzeltme yine `tools/rota.gd`'yi normal
+      # kipte kosturup uretilen dosyayi commit'lemektir; fark su ki artik
+      # bunu hatirlamak zorunda degilsin, CI soyluyor.
       - name: Testler
         run: godot --headless --path . --scene res://tests/test_kanca.tscn
+
+      # Madalya esikleri scripts/rota_verisi.gd icinde duruyor ve 115
+      # dogrulamanin ilgili kismi onlari o dosyaya karsi siniyor -- yani
+      # dosyayi kendisine karsi. Gecilebilirlik testi GEOMETRIK: kanca
+      # zincirinin menzil ve gorus hattiyla var oldugunu gosteriyor, fizikte
+      # kosuldugunu degil. Bir bolumun noktalari degisirse dosya eski kalir,
+      # testler yesil yanar ve yayimlanan altin esigi botun bile
+      # yetisemedigi bir sure olmus olabilir.
+      #
+      # Bot zaten depoda; yalnizca CI'da hic kosmuyordu. 14 bolum x 5 kosu
+      # yaklasik 8 sn, yani her push'ta kosabilir. --denetle dosya YAZMAZ.
+      - name: Esikler hala gecerli mi (bot, 14 bolum x 5 kosu)
+        run: godot --headless --fixed-fps 60 --path . --scene res://tools/rota.tscn -- --denetle
+
+      - name: Denetim uretilmis dosyayi degistirmedi
+        run: |
+          set -eu
+          if [ -n "$(git status --porcelain -- scripts/rota_verisi.gd)" ]; then
+            echo "denetim scripts/rota_verisi.gd dosyasini degistirdi"
+            git --no-pager diff -- scripts/rota_verisi.gd | head -20
+            exit 1
+          fi
+          echo "uretilmis dosyaya dokunulmadi"
 
   referanslar:
     name: Kaynak referanslari saglam mi
