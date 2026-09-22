@@ -139,7 +139,7 @@ Kaynak: ayrı bir rakip analizi çalışması (`oyun-terminalleri/tasarim/`), bu
       platform kenarında durup bekliyor (en çok 6 sn), sonra yine de atlıyor
 - [x] **Hız freni:** bitişe inilemeyecek kadar hızlı yaklaşırken salınıma ters
       basıyor + halatı uzatıyor (altta diken yoksa). Genel fren (720/840 px/sn)
-      ölçümde zararlı çıktı, kapatıldı — gerekçe raporda
+      ölçümde zararlı çıktı, kapatıldı — gerekçe README "Sallanma sabitleri" bölümünde
 - [x] **İniş kontrolü düzeltildi:** bonuslu hızla (×1,10) hesaplanıyor; bayrak
       alanından geçen uçuş havada bitiş sayılıyor; bayrağın ötesine inişte durma
       mesafesi (v²/2a) platforma sığmalı; platforma yetişmeyen bırakış yasak
@@ -168,6 +168,18 @@ Kaynak: ayrı bir rakip analizi çalışması (`oyun-terminalleri/tasarim/`), bu
       → fırlama bonusu, 3,6 sn, 20 fps, 640×360 → `yayin/tanitim.gif`
 - [x] Sürüm 0.5.0, itch sayfasında GIF satırı, `v0.5` etiketi
 - [x] Yeni ekran görüntüleri: `bolum_sec_akis`, `bolum_sec_dokunmatik`, `bitis_dokunmatik`
+
+## Tur 5 — v0.5.1 / v0.5.2: depo hijyeni
+
+- [x] MIT `LICENSE`
+- [x] `.github/workflows/ci.yml`: 115 test her `main` push'unda ve her PR'da
+      (Godot 4.7.2 sabit, Git LFS çekilerek); README'de rozet
+- [x] `.gitignore`: `build/.gdignore` taze klonda da duruyor
+- [x] Godot ve ffmpeg PATH'ten bulunuyor; kilit yolu `GODOT_KILIT` ile ezilebiliyor
+- [x] `*.gif` Git LFS'e alındı; README'ye dışa aktarma komutları eklendi
+- [x] İki tur bağımsız belge denetimi: 30+ düzeltme (en önemlisi "14/14 bölümün eşiği
+      ölçülmüş" iddiası — gerçek 13/14, 5. bölüm tahminde)
+- [x] GitHub deposu public, `v0.5.2` etiketi ve Release
 
 ## Sonraki tur — v0.6
 
@@ -206,7 +218,8 @@ Kaynak: ayrı bir rakip analizi çalışması (`oyun-terminalleri/tasarim/`), bu
 
 ### Mobil ve yayın
 - [ ] Android dışa aktarma (tek parmak şeması hazır, dışa aktarma yok)
-- [ ] Dokunmatik için büyük dokunma alanları / duraklat düğmesi
+- [x] Dokunmatikte duraklat ve baştan başla düğmeleri (`bolum.gd`, `docs/ekran/duraklat.png`)
+- [ ] Dokunmatik için büyük dokunma alanları
 - [ ] itch.io'ya yükleme — **Furki'nin onayı gerekiyor**, komutlar `yayin/` altında hazır
 
 ## Bilinen sınırlar

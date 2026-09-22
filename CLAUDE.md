@@ -12,6 +12,11 @@ Godot yolu: PATH'teki `godot` (winget kurulumu `%LOCALAPPDATA%\Microsoft\WinGet\
   `aspect=keep`, doku filtresi **nearest** (`default_texture_filter=0`),
   `snap_2d_transforms_to_pixel` ve `snap_2d_vertices_to_pixel` açık.
 - **Karo boyutu 16 px.** Bütün bölüm geometrisi 16'nın katı (`Bolumler.karola()` zorlar).
+- **İkili varlıklar Git LFS'te** (`.gitattributes`: png/wav/ogg/ttf/gif). Taze klonda
+  `git lfs pull` yapılmazsa işaretçi dosyalar gelir ve sahneler "bozuk kaynak" der;
+  CI `lfs: true` ile checkout ediyor.
+- **CI Godot sürümü sabit** (`.github/workflows/ci.yml` → `GODOT_SURUM: 4.7.2-stable`).
+  Motoru yükseltirsen orayı da yükselt, yoksa test kapısı eski motorla koşmaya devam eder.
 - **Fizik 60 Hz.**
 - **Metin dosyaları BOM'suz UTF-8.** Arayüz metni Türkçe. Dosya adları ve
   tanımlayıcılar **her zaman** ASCII; yorumlarda ASCII tercih edilir, istisna bir
@@ -83,7 +88,8 @@ yoksa `Bolumler.VERI[...]["madalya"]` yedeğine düşer. Aynı veri rota ipucunu
 Bölüm geometrisini değiştirdiysen `rota` adımını **testten önce** çalıştır —
 testler üretilmiş veriyi denetliyor.
 
-Tanı kipi (`--scene res://tools/rota.tscn -- --tani 3`) tek bölüm koşar ve
+Tanı kipi tek bölüm koşar ve
+(`powershell -ExecutionPolicy Bypass -File tools\kilitli.ps1 -- --headless --fixed-fps 60 --path . --scene res://tools/rota.tscn -- --tani 3`)
 dosyayı **yazmaz**; bot bir bölümde neden öldüğünü anlamanın en hızlı yolu.
 Tam koşu deterministik (aynı kodla iki koşu birebir aynı sonucu verir) ama
 tanı kipi süreç geçmişi farklı olduğu için aynı tohumla **farklı süre**
@@ -112,7 +118,7 @@ Godot'u **her zaman** kilitle çalıştır (aynı anda 3 oyun oturumu olabilir, 
 # Tek seferlik
 powershell -ExecutionPolicy Bypass -File tools\kilitli.ps1 -- --headless --path . --import
 
-# Testler (çıkış kodu 0 = hepsi geçti, 99 = zaman aşımı)
+# Testler (çıkış kodu 0 = hepsi geçti, n = kalan test sayısı, 99 = zaman aşımı)
 powershell -ExecutionPolicy Bypass -File tests\calistir.ps1
 
 # Varlık üretimi (deterministik, her çalıştırmada aynı çıktı)
@@ -234,5 +240,8 @@ hiç Godot süreci yoksa hemen devralır. **Godot'u kilitsiz çalıştırma.**
 - **GitHub deposu var** (`Furkiozknn/kanca`, varsayılan dal `main`); push serbest
   ve `main`'e her push'ta CI testleri koşuyor. **itch.io'ya yükleme yok** —
   yayın paketi yalnız `yayin/` altında hazırlanır; yükleme kararı Furki'nin.
-- **Silme yok.** Gereksiz dosyayı `_eski/` altına taşı.
+- **Silme yok.** Gereksiz dosyayı `_eski/` altına taşı — klasörü ilk kez açıyorsan içine
+  boş bir `.gdignore` koy ve `export_presets.cfg`'deki iki `exclude_filter`'a `_eski/*`
+  ekle; yoksa oraya taşınan betik hem parse edilir (yinelenen `class_name`) hem de
+  oyuncuya inen pakete girer.
 - Başka oyun depolarına (`yercekimi-cevir`, `derin-kazi`, `tek-tus-kosu`) dokunma.
