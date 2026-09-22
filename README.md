@@ -148,6 +148,19 @@ durur. Süreden ayrı bir not: en hızlı koşu her zaman en şık koşu değil.
 
 ## Nasıl çalıştırılır
 
+### Godot kurmadan bir paket indir
+
+Depoda **Yapi** adında, yalnızca elle tetiklenen bir iş akışı var. Actions
+sekmesinden bir kez çalıştırdığında sabit Godot 4.7.2-stable ile Windows ve
+Web paketlerini üretip *Artifacts* altına bırakır — oynamak için Godot
+kurmak, dışa aktarma şablonu indirmek gerekmiyor.
+
+Son koşuda ölçülen: web `index.pck` **472.648 bayt**, web paketi ~10 MB,
+Windows paketi ~38 MB.
+
+İş akışı hiçbir şey yayımlamaz: ne release varlığı ekler, ne Pages'e
+gönderir. Yayın kararı paket oynandıktan sonra verilir.
+
 Godot'u **her zaman kilitle** çalıştır (aynı anda 3 oyun oturumu olabilir):
 
 ```powershell
