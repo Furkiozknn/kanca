@@ -1,3 +1,5 @@
+![Kanca - a speed-focused 2D swinging platformer in Godot 4 with bot-measured medal times](yayin/banner.svg)
+
 # Kanca
 
 *Throw a hook at the ceiling, swing, release at the right moment and carry the momentum. A speed-focused 2D swinging platformer (Godot 4, Turkish UI); medal times come from real bot runs rather than formulas — 13 of 14 levels measured. 115 tests.*
