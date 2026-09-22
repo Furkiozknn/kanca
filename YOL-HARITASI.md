@@ -203,14 +203,16 @@ Kaynak: ayrı bir rakip analizi çalışması (`oyun-terminalleri/tasarim/`), bu
 - [ ] Bölüm sonu "en iyi 3 koşu" listesi
 - [ ] Toplanabilir (isteğe bağlı zor yol) — şu an bölümlerde hiç yok
 - [ ] Rüzgâr pompası: akıntıda doğru anda halat kısaltmaya bölüme özgü ödül
-- [ ] Günlük meydan okumaya üçüncü değiştirici (şu an iki tane)
+- [ ] Günlük meydan okumaya üçüncü değiştirici — `gunluk.gd` iki değiştiriciyi bilinçli
+      savunuyor ("ikisi de 14 bölümde anlamlı"); üçüncüsü de 14 bölümde anlamlı olmalı
 
 ### Görsel ve ses
 - [ ] Yağmur / şimşek katmanı (tema "fırtına" ama hava olayı yok)
 - [ ] Kanca noktalarına idle animasyonu (hafif salınım)
 - [ ] Bölüme göre müzik değişimi (şu an tek parça)
 - [ ] Rüzgâr için sürekli ambiyans sesi
-- [ ] Akış zinciri için yükselen perde (zincir uzadıkça ses tizleşsin)
+- [ ] Akış zinciri için yükselen perde — `pitch_scale` **kullanılamaz** (perde dosyaya
+      pişiriliyor, web'de çalışmıyor): `ses_uret.gd` ile 3-4 perdeli `akis` varyantı üret
 
 ### İçerik
 - [ ] 14 → 20 bölüm; son 3'ü gerçekten zor
