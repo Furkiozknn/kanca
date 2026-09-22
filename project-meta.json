@@ -24,7 +24,12 @@
     "game-development",
     "gdscript",
     "godot",
-    "godot4"
+    "godot4",
+    "grappling-hook",
+    "indie-game",
+    "platformer",
+    "speedrun",
+    "turkce"
   ],
   "summary": "Hook the ceiling, swing, release at the right moment and carry the momentum - a speed-focused 2D swinging platformer in Godot 4; medal times measured on 13 of 14 levels by a scripted bot. Turkish UI.",
   "key_features": [
