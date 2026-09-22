@@ -10,21 +10,22 @@ bölümü en kısa sürede bitir.**
 Hız odaklı 2B sallanma platform oyunu. Godot 4.7.2, GL Compatibility,
 640×360 taban çözünürlük. Tema: **fırtınalı gökyüzü adaları**.
 
-Durum: **v0.5.1 — MIT lisansı, her push'ta CI, PATH'ten Godot.** Oynanış v0.5
-ile aynı: **bot hareketli noktada bekliyor ve frenliyor, akış tablosu,
-tanıtım GIF'i.** 14 bölüm, gerçek pixel art, ses ve müzik, ayarlar ekranı,
-madalyalar, hayalet tekrarı (kendi koşun ya da **altın hayalet**), kontrol
-noktaları, günlük meydan okuma; puanlamalı hedefleme, kancada tampon + kojot,
-halat pompası, bırakma bonusu, ileri bakan kamera, tek parmak dokunmatik
-şeması, tuş atama, rota ipucu ve ustalık zinciri. v0.5 ile: **madalya
-eşikleri 14 bölümün 13'ünde ölçülmüş bot koşusundan** (v0.4: 11; 2, 6 ve 7
-artık ölçülmüş, yalnız 5 tahminde — bot canlı hedefe nişan alıyor, hareketli
-noktayı platformda bekliyor, bitişe inişi bonuslu hızla ve bayrak alanıyla
-hesaplıyor), **bölüm seçme ekranında akış zinciri rekoru**,
-dokunmatikte **tuş adı kalmadı** (tek yardımcı, testle taranıyor) ve
-`yayin/tanitim.gif`.
-
 ![Tanıtım](yayin/tanitim.gif)
+
+Durum: **v0.5.2** — MIT lisansı, her push'ta ve her PR'da **115 testin** koştuğu CI.
+Oynanış v0.5 ile aynı; v0.5.1 ve v0.5.2 belge ve depo hijyeni turlarıydı.
+
+**Oyunda ne var:** 14 bölüm, gerçek pixel art, ses ve müzik, ayarlar ekranı,
+madalyalar, hayalet tekrarı (kendi koşun ya da **altın hayalet**), kontrol noktaları,
+günlük meydan okuma, puanlamalı hedefleme, kancada tampon + kojot, halat pompası,
+bırakma bonusu, ileri bakan kamera, tek parmak dokunmatik şeması, tuş atama, rota
+ipucu ve ustalık zinciri.
+
+**Madalya eşikleri 14 bölümün 13'ünde ölçülmüş bot koşusundan geliyor** — formülle
+değil. Kalan biri hâlâ tahmin ve "Bilinen sınırlar" bölümünde öyle yazıyor.
+
+Sürüm sürüm ne değiştiği: **[SURUM-GECMISI.md](SURUM-GECMISI.md)** · güncel sürümün
+notları [Releases](https://github.com/Furkiozknn/kanca/releases) sayfasında.
 
 ![Menü](docs/ekran/menu.png)
 ![13. bölüm](docs/ekran/bolum_13.png)
