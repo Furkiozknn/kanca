@@ -52,6 +52,7 @@ jobs:
   yapi:
     name: Windows + Web disa aktar
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v6
         with:
@@ -127,6 +128,7 @@ jobs:
     # Kutu isaretlenmedikce bu is hic kosmaz; varsayilan yayimlamamaktir.
     if: ${{ inputs.sayfaya_yayinla }}
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       pages: write
       id-token: write
@@ -162,6 +164,7 @@ jobs:
     # Yalnizca bir Release yayimlandiginda; elle tetiklemede hic kosmaz.
     if: ${{ github.event_name == 'release' }}
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       # Surum varligi yuklemek icin gereken tek yetki; baska is bunu almiyor.
       contents: write
