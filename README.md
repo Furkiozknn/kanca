@@ -165,6 +165,11 @@ aynı pencerede **`sayfaya_yayinla`** kutusunu işaretlemen yeterli: o zaman
 web paketi GitHub Pages'e gider ve oyun tarayıcıdan oynanır hâle gelir.
 Kutu işaretlenmedikçe Pages'e dokunulmaz.
 
+İlk yayından önce Pages'in depoda **bir kez elle** açılması gerekiyor:
+Settings → Pages → Source: **GitHub Actions**. İş akışının kendi anahtarı
+Pages sitesi oluşturamıyor; açılmamışsa yayın adımı "Resource not accessible
+by integration" hatasıyla durur.
+
 Godot'u **her zaman kilitle** çalıştır (aynı anda 3 oyun oturumu olabilir):
 
 ```powershell
