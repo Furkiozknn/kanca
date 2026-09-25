@@ -32,6 +32,45 @@ notları [Releases](https://github.com/Furkiozknn/kanca/releases) sayfasında.
 ![Menü](docs/ekran/menu.png)
 ![13. bölüm](docs/ekran/bolum_13.png)
 
+## Hızlı başlangıç
+
+**Amaç:** her bölümde bayrağa en kısa sürede ulaşmak. Çukura, dikene değersen
+ölürsün (kontrol noktasından devam, ama sayaç durmaz). Süren altın / gümüş /
+bronz eşiğiyle karşılaştırılır; ilk bölümün altını **3,456 sn**.
+
+**Platform:** Windows ve Web (tarayıcı). Klavye + fare, gamepad ya da
+dokunmatik (tek parmak). Arayüz Türkçe.
+
+**Oynamanın üç yolu:**
+
+1. **Tarayıcıda:** henüz yayında değil. GitHub Pages bu depoda henüz
+   açılmadı; açıldığında adres bu satıra yazılacak.
+2. **Hazır paket (Godot gerekmez):** [Releases](https://github.com/Furkiozknn/kanca/releases)
+   sayfasında yayımlanan her sürüme Windows ve Web zip'i **Yapi** iş akışıyla
+   otomatik eklenir. Bu, v0.5.2'den *sonraki* sürümlerden itibaren geçerli;
+   v0.5.2 sayfasında paket yok. O zamana kadar paketler
+   [Yapi koşusunun](https://github.com/Furkiozknn/kanca/actions/workflows/yapi.yml)
+   *Artifacts* bölümünde duruyor (GitHub'a giriş gerekir; Windows için
+   `kanca.exe`'yi çalıştır, web paketini aşağıdaki gibi yerel bir sunucuyla aç).
+3. **Kaynaktan, Godot 4.7.2 ile:** görseller ve sesler **Git LFS**'te.
+   LFS'siz klonda oyun açılmaz (bkz. [Sorun giderme](#sorun-giderme)).
+
+   ```bash
+   git lfs install
+   git clone https://github.com/Furkiozknn/kanca
+   cd kanca
+   godot --headless --path . --import   # ilk kez: varlıkları içe aktar
+   godot --path .                       # oyunu aç (ana sahne: menü)
+   ```
+
+   `godot` burada Godot 4.7.2-stable çalıştırılabiliri
+   ([indir](https://github.com/godotengine/godot/releases/tag/4.7.2-stable)).
+   CI de bu sürümü kullanıyor; başka sürüm denenmedi.
+
+Web paketini yerelde açmak için klasörü bir HTTP sunucusuyla sun
+(`file://` ile açılmaz): `python3 -m http.server -d build/web 8000`, sonra
+<http://localhost:8000>.
+
 ## Kontroller
 
 | İş | Klavye / Fare | Gamepad |
@@ -152,13 +191,23 @@ durur. Süreden ayrı bir not: en hızlı koşu her zaman en şık koşu değil.
 
 ### Godot kurmadan bir paket indir
 
-Depoda **Yapi** adında, yalnızca elle tetiklenen bir iş akışı var. Actions
-sekmesinden bir kez çalıştırdığında sabit Godot 4.7.2-stable ile Windows ve
-Web paketlerini üretip *Artifacts* altına bırakır — oynamak için Godot
-kurmak, dışa aktarma şablonu indirmek gerekmiyor.
+Depoda **Yapi** adında bir iş akışı var; sabit Godot 4.7.2-stable ile
+Windows ve Web paketlerini üretir. İki yoldan çalışır:
 
-Son koşuda ölçülen: web `index.pck` **472.648 bayt**, web paketi ~10 MB,
-Windows paketi ~38 MB.
+- **Elle** (Actions → Yapi → Run workflow; depoya yazma yetkisi gerekir):
+  paketler koşunun *Artifacts* bölümüne düşer.
+- **Bir Release yayımlandığında:** paketler o sürümün etiketindeki koddan
+  üretilir ve sürüm sayfasına `kanca-<etiket>-web.zip` ile
+  `kanca-<etiket>-windows.zip` olarak eklenir.
+
+Her iki yolda da web paketi önce **tarayıcıda duman testinden** geçer
+(`tools/web_duman.py`, [aşağıda](#web-duman-testi)); açılmayan bir paket ne
+artifact'e, ne Pages'e, ne de sürüm sayfasına gider.
+
+Ölçülen boyutlar: web `index.pck` **473.048 bayt**, açılmış web klasörü
+~40 MB (bunun 39,5 MB'ı motorun `index.wasm`'ı), zip'li web paketi ~10 MB,
+zip'li Windows paketi ~38 MB. (`index.pck` 25 Eylül 2026'da yerel dışa
+aktarmadan; zip boyutları Yapi'nin 22 Eylül koşusundan.)
 
 Varsayılanı hiçbir şey yayımlamamaktır. Oynayıp "yayınlanabilir" dediğinde
 aynı pencerede **`sayfaya_yayinla`** kutusunu işaretlemen yeterli: o zaman
@@ -170,7 +219,10 @@ Settings → Pages → Source: **GitHub Actions**. İş akışının kendi anaht
 Pages sitesi oluşturamıyor; açılmamışsa yayın adımı "Resource not accessible
 by integration" hatasıyla durur.
 
-Godot'u **her zaman kilitle** çalıştır (aynı anda 3 oyun oturumu olabilir):
+Windows geliştirme makinesinde Godot **her zaman kilitle** çalıştırılır
+(aynı makinede aynı anda 3 oyun oturumu olabiliyor; `tools/kilitli.ps1` onları
+sıraya sokar). Başka bir makinede bu sarmallara gerek yok; yukarıdaki
+`godot --path .` komutları yeter.
 
 ```powershell
 # Oyunu çalıştır
@@ -194,6 +246,29 @@ godot --headless --path . --export-release "Web (HTML5)" build/web/index.html
 ```
 
 Ayrıntı ve tuzaklar: `CLAUDE.md`.
+
+### Sorun giderme
+
+- **"Not a WAV file … found 'vers'", "Could not preload resource file
+  res://assets/sprites/…png".** Depo Git LFS olmadan klonlanmış; varlıkların
+  yerinde ~130 baytlık LFS işaretçileri duruyor. Dikkat: Godot bu durumda
+  izlenen `*.import` dosyalarını `valid=false` diye **yeniden yazıyor**, yani
+  yalnız `git lfs pull` yetmiyor. Düzeltme:
+
+  ```bash
+  git lfs install && git lfs pull
+  git checkout -- '*.import'        # Godot'nun bozduğu içe aktarma kayıtlarını geri al
+  rm -rf .godot                     # eski önbelleği sil
+  godot --headless --path . --import
+  ```
+
+- **"The given export path doesn't exist".** Dışa aktarmadan önce
+  `build/web` ve `build/windows` klasörlerini oluştur (yukarıda).
+- **Web paketi `file://` ile açılmıyor.** Tarayıcılar yerel dosyadan
+  WebAssembly yüklemez; klasörü bir HTTP sunucusuyla sun
+  (`python3 -m http.server -d build/web 8000`).
+- **itch.io'da siyah ekran.** Web yapısı tek iş parçacıklı; yüklerken
+  SharedArrayBuffer kutusu işaretlenmemeli.
 
 ## Kod düzeni
 
@@ -476,12 +551,39 @@ godot --headless --path . --import                          # bir kez
 godot --headless --path . --scene res://tests/test_kanca.tscn   # 0 = gecti
 ```
 
+Bot denetimi (dosya yazmaz; her bölüm hâlâ bitiyor mu, yayımlanan altın botun
+bugünkü ortancasından yavaş mı):
+
+```bash
+godot --headless --fixed-fps 60 --path . --scene res://tools/rota.tscn -- --denetle
+```
+
 Windows'ta sarmalı: `powershell -ExecutionPolicy Bypass -File tests\calistir.ps1`
 (kilit dosyası + zaman aşımı ekler; ölçtüğü sahne aynıdır).
 
 `main`'e her push'ta ve her pull request'te **aynı sahne** GitHub Actions'ta
 koşuyor (Godot 4.7.2, Linux
 headless, Git LFS çekilerek). Son ölçüm: **115/115 geçti**.
+
+### Web duman testi
+
+Testler oyunun mantığını ölçüyor; dışa aktarılmış web paketinin tarayıcıda
+gerçekten açıldığını değil. `tools/web_duman.py` paketi yerelde sunar,
+Chromium'da açar ve üç şey sorar: motor açıldı mı (konsolda hata yok), menüde
+**Başla**'ya tıklayınca 1. bölüm yüklendi mi, sağ tuş basılıyken oyuncu
+ilerledi mi. Karşılaştırma ekran görüntülerinin piksel farkıyla yapılıyor.
+
+```bash
+pip install playwright && python -m playwright install chromium
+python tools/web_duman.py build/web            # 0 = üç adım da geçti
+```
+
+Son yerel koşu (25 Eylül 2026, Linux, GPU'suz Chromium):
+motor 1,7 sn'de açıldı, Başla → 1. bölümde piksellerin %39'u, koşuda %65'i
+değişti, konsolda hata yok — **3/3**. Bozuk bir `index.pck` ile aynı betik
+Godot'nun "Couldn't load project data" hatasını yakalayıp 1 ile çıkıyor.
+Kare hızı ölçülmüyor: yazılım WebGL'deki sayı oyuncunun makinesi hakkında
+bir şey söylemez.
 
 
 ### Kırık kaynak referansları
