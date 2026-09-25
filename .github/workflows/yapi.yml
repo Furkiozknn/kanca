@@ -2,10 +2,20 @@ name: Yapi
 
 # Oynanabilir bir derleme uretir ve CI artifact'i olarak birakir.
 #
-# Bilerek SADECE elle tetiklenir. Varsayilan davranisi HICBIR SEY
-# YAYIMLAMAMAKTIR: amaci, oyunu oynayip dogrulamak isteyen kisinin Godot
-# kurmadan bir paket indirebilmesi -- yayin karari oynandiktan sonra
-# verilir.
+# Iki tetikleyici var, ikisi de bir insan karari:
+#   - Elle (workflow_dispatch). Varsayilan davranisi HICBIR SEY
+#     YAYIMLAMAMAKTIR: amaci, oyunu oynayip dogrulamak isteyen kisinin
+#     Godot kurmadan bir paket indirebilmesi -- yayin karari oynandiktan
+#     sonra verilir.
+#   - Bir GitHub Release YAYIMLANDIGINDA. Ayni iki paket o surumun
+#     etiketindeki koddan uretilir ve surum sayfasina zip olarak eklenir;
+#     boylece oyuncu, depoya yazma yetkisi ya da GitHub hesabi olmadan
+#     oyunu indirebilir. Release'i yayimlamak zaten elle yapilan bir is.
+#
+# Her iki yolda da web paketi once tarayicida DUMAN TESTINDEN geciyor
+# (tools/web_duman.py): motor aciliyor mu, menu tiklamaya cevap verip
+# 1. bolumu yukluyor mu, oyuncu hareket ediyor mu. Dusen paket ne
+# artifact'e ne Pages'e ne de surum sayfasina gider.
 #
 # Oynadiktan sonra yayinlamak icin: Run workflow penceresinde
 # "sayfaya_yayinla" kutusunu isaretle. O zaman ayni web paketi GitHub
@@ -22,6 +32,8 @@ on:
         description: "Web paketini GitHub Pages'e yayinla (varsayilan: yalniz artifact)"
         type: boolean
         default: false
+  release:
+    types: [published]
 
 permissions:
   contents: read
@@ -41,8 +53,9 @@ jobs:
     name: Windows + Web disa aktar
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
+          persist-credentials: false
           # Varliklar Git LFS'te; cekilmezse sahneler "bozuk kaynak" duser.
           lfs: true
 
@@ -86,13 +99,23 @@ jobs:
           ls -l build/windows
           du -sh build/web build/windows
 
-      - uses: actions/upload-artifact@v4
+      # Disa aktarma "basarili" bitip tarayicida acilmayan bir paket
+      # uretebilir. Yayindan once gercek bir Chromium'da aciliyor.
+      - name: Web paketi tarayicida aciliyor mu (duman testi)
+        run: |
+          set -euo pipefail
+          python3 -m venv "$RUNNER_TEMP/duman"
+          "$RUNNER_TEMP/duman/bin/pip" install --quiet playwright==1.63.0
+          "$RUNNER_TEMP/duman/bin/python" -m playwright install --with-deps chromium
+          "$RUNNER_TEMP/duman/bin/python" tools/web_duman.py build/web
+
+      - uses: actions/upload-artifact@v6
         with:
           name: kanca-web
           path: build/web
           if-no-files-found: error
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: kanca-windows
           path: build/windows
@@ -111,7 +134,7 @@ jobs:
       name: github-pages
       url: ${{ steps.dagit.outputs.page_url }}
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v7
         with:
           name: kanca-web
           path: web
@@ -132,3 +155,28 @@ jobs:
 
       - id: dagit
         uses: actions/deploy-pages@v4
+
+  surum:
+    name: Paketleri surum sayfasina ekle
+    needs: yapi
+    # Yalnizca bir Release yayimlandiginda; elle tetiklemede hic kosmaz.
+    if: ${{ github.event_name == 'release' }}
+    runs-on: ubuntu-latest
+    permissions:
+      # Surum varligi yuklemek icin gereken tek yetki; baska is bunu almiyor.
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      ETIKET: ${{ github.event.release.tag_name }}
+    steps:
+      - uses: actions/download-artifact@v7
+        with:
+          path: paket
+
+      - name: Ziple ve surume yukle
+        run: |
+          set -euo pipefail
+          (cd paket/kanca-web && zip -q -r "$GITHUB_WORKSPACE/kanca-${ETIKET}-web.zip" .)
+          (cd paket/kanca-windows && zip -q -r "$GITHUB_WORKSPACE/kanca-${ETIKET}-windows.zip" .)
+          ls -l kanca-*.zip
+          gh release upload "$ETIKET" kanca-*.zip --clobber --repo "$GITHUB_REPOSITORY"
