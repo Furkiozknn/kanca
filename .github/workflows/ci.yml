@@ -28,6 +28,12 @@ env:
   # Surum SABIT: "latest" kullanmak, motor guncellenince testlerin
   # bizden habersiz kirmizi yanmasi demek olurdu.
   GODOT_SURUM: 4.7.2-stable
+  # Test kapisinin tabani: gecen test sayisi bunun altina duserse CI
+  # kirmizi. Test EKLEYINCE yukselt (README ile birlikte); dusurmek, bir
+  # bolumun sessizce kayboldugunu kabul etmek demek.
+  TEST_TABANI: 115
+  # Bot denetiminin en az kac bolumu kosup "temiz" saymasi gerektigi.
+  BOLUM_TABANI: 14
 
 jobs:
   testler:
@@ -65,8 +71,18 @@ jobs:
       # Bolum geometrisi degistiyse duzeltme yine `tools/rota.gd`'yi normal
       # kipte kosturup uretilen dosyayi commit'lemektir; fark su ki artik
       # bunu hatirlamak zorunda degilsin, CI soyluyor.
-      - name: Testler
-        run: godot --headless --path . --scene res://tests/test_kanca.tscn
+      #
+      # Cikis kodu tek basina yetmiyor: bir test fonksiyonundaki calisma
+      # zamani hatasi yalnizca o fonksiyonu keser, kalan _bildir() cagrilari
+      # yapilmaz ve takim yine "N/N gecti" ile 0 doner (25 Eylul 2026'da
+      # gercek motorla denendi: "114/114 gecti", cikis 0). tests/kapi.sh
+      # gunlugu okuyup sonuc satirini, tabani ve "SCRIPT ERROR" yoklugunu
+      # zorunlu kiliyor.
+      - name: Testler (en az ${{ env.TEST_TABANI }})
+        run: |
+          set -o pipefail
+          godot --headless --path . --scene res://tests/test_kanca.tscn 2>&1 | tee "$RUNNER_TEMP/test.log"
+          bash tests/kapi.sh "$RUNNER_TEMP/test.log" "$TEST_TABANI"
 
       # Madalya esikleri scripts/rota_verisi.gd icinde duruyor ve 115
       # dogrulamanin ilgili kismi onlari o dosyaya karsi siniyor -- yani
@@ -79,7 +95,10 @@ jobs:
       # Bot zaten depoda; yalnizca CI'da hic kosmuyordu. 14 bolum x 5 kosu
       # yaklasik 8 sn, yani her push'ta kosabilir. --denetle dosya YAZMAZ.
       - name: Esikler hala gecerli mi (bot, 14 bolum x 5 kosu)
-        run: godot --headless --fixed-fps 60 --path . --scene res://tools/rota.tscn -- --denetle
+        run: |
+          set -o pipefail
+          godot --headless --fixed-fps 60 --path . --scene res://tools/rota.tscn -- --denetle 2>&1 | tee "$RUNNER_TEMP/bot.log"
+          bash tests/kapi.sh --bot "$RUNNER_TEMP/bot.log" "$BOLUM_TABANI"
 
       - name: Denetim uretilmis dosyayi degistirmedi
         run: |
@@ -101,6 +120,12 @@ jobs:
       - uses: actions/checkout@v6
         with:
           persist-credentials: false
+
+      # Test kapisinin kendi sinamasi: Godot gerektirmez, bu yuzden motoru
+      # indirmeyen bu iste. Kapi bozulursa (ornegin SCRIPT ERROR aramasi
+      # silinirse) burada kirmizi yanar.
+      - name: Test kapisi sinamasi
+        run: bash tests/kapi_sinama.sh
 
       # Kirik bir kaynak referansi motoru her zaman durdurmuyor: eksik bir
       # .tscn ya da silinmis bir .png, sahne o kod yolu calisana kadar

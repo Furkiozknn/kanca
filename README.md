@@ -566,6 +566,24 @@ Windows'ta sarmalı: `powershell -ExecutionPolicy Bypass -File tests\calistir.ps
 koşuyor (Godot 4.7.2, Linux
 headless, Git LFS çekilerek). Son ölçüm: **115/115 geçti**.
 
+**Çıkış kodu tek başına yetmiyor.** Bir test fonksiyonundaki çalışma zamanı
+hatası (null erişimi, eksik metot) yalnızca o fonksiyonu keser: motor
+`SCRIPT ERROR` yazar, kalan testler sayılmaz — toplam da küçülür — ve takım
+yine `N/N gecti` ile 0 döner (gerçek motorla denendi: `114/114 gecti`,
+çıkış 0). CI bu yüzden günlüğü `tests/kapi.sh`'a veriyor: `=== G/T gecti ===`
+satırı olmalı, G = T olmalı, G tabanın (`ci.yml` → `TEST_TABANI`, şu an 115)
+altına düşmemeli, günlükte `SCRIPT ERROR` / `Parse Error` olmamalı. Bot
+denetimi de aynı kapıdan geçiyor (`--bot`: `denetim temiz` ve
+`denetim bitti: 14/14`, `BOLUM_TABANI`). Kapının kendisi
+`tests/kapi_sinama.sh` ile örnek günlüklerde sınanıyor (Godot'suz:
+`bash tests/kapi_sinama.sh`). **Test ekleyince `TEST_TABANI`'nı da
+yükselt**; düşürmek, bir bölümün sessizce kaybolduğunu kabul etmektir.
+
+```bash
+godot --headless --path . --scene res://tests/test_kanca.tscn 2>&1 | tee test.log
+bash tests/kapi.sh test.log 115                                  # CI'daki kapının aynısı
+```
+
 ### Web duman testi
 
 Testler oyunun mantığını ölçüyor; dışa aktarılmış web paketinin tarayıcıda
