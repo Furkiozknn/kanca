@@ -120,6 +120,9 @@ powershell -ExecutionPolicy Bypass -File tools\kilitli.ps1 -- --headless --path 
 
 # Testler (çıkış kodu 0 = hepsi geçti, n = kalan test sayısı, 99 = zaman aşımı)
 powershell -ExecutionPolicy Bypass -File tests\calistir.ps1
+# CI aynı sahnenin günlüğünü tests/kapi.sh'a verir (taban: ci.yml → TEST_TABANI, şu an 115;
+# SCRIPT ERROR olursa kırmızı, çünkü yarıda kalan test fonksiyonu yine "N/N gecti" der).
+# Test ekleyince TEST_TABANI'nı yükselt. Kapının sınaması (Godot'suz): bash tests/kapi_sinama.sh
 
 # Varlık üretimi (deterministik, her çalıştırmada aynı çıktı)
 powershell -ExecutionPolicy Bypass -File tools\kilitli.ps1 -- --headless --path . -s res://tools/sprite_uret.gd
