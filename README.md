@@ -264,10 +264,11 @@ Ayrıntı ve tuzaklar: `CLAUDE.md`.
 
 - **"The given export path doesn't exist".** Dışa aktarmadan önce
   `build/web` ve `build/windows` klasörlerini oluştur (yukarıda).
-- **Web paketi `file://` ile açılmıyor.** Tarayıcılar yerel dosyadan
-  WebAssembly yüklemez; klasörü bir HTTP sunucusuyla sun
+- **Web paketinde "Failed to fetch" ekranı.** `index.html` çift tıklanıp
+  `file://` ile açılmış; tarayıcı `index.wasm` ve `index.pck`'yi CORS
+  gerekçesiyle yüklemez. Klasörü bir HTTP sunucusuyla sun
   (`python3 -m http.server -d build/web 8000`).
-- **itch.io'da siyah ekran.** Web yapısı tek iş parçacıklı; yüklerken
+- **itch.io'ya yükleme.** Web yapısı tek iş parçacıklı; yüklerken
   SharedArrayBuffer kutusu işaretlenmemeli.
 
 ## Kod düzeni
