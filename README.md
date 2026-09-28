@@ -2,6 +2,9 @@
 
 # Kanca
 
+<p align="center"><img src="docs/reel/reel.gif" alt="kanca - 15 saniyelik tanıtım videosu" width="720"></p>
+<p align="center"><sub><a href="docs/reel/reel.mp4">Sesli MP4 sürümü</a></sub></p>
+
 *Throw a hook at the ceiling, swing, release at the right moment and carry the momentum. A speed-focused 2D swinging platformer (Godot 4, Turkish UI); medal times come from real bot runs rather than formulas — 13 of 14 levels measured. 115 tests.*
 
 [![CI](https://github.com/Furkiozknn/kanca/actions/workflows/ci.yml/badge.svg)](https://github.com/Furkiozknn/kanca/actions/workflows/ci.yml)
