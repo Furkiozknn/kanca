@@ -8,16 +8,6 @@ class_name Bolum
 
 const OYUNCU_SAHNE := preload("res://scenes/oyuncu.tscn")
 const MENU_YOLU := "res://scenes/menu.tscn"
-const DOKU_DIKEN := preload("res://assets/sprites/diken.png")
-const DOKU_BAYRAK := preload("res://assets/sprites/bayrak.png")
-const DOKU_KONTROL := preload("res://assets/sprites/kontrol.png")
-const DOKU_PARCACIK := preload("res://assets/sprites/parcacik.png")
-const DOKU_RUZGAR := preload("res://assets/sprites/ruzgar.png")
-const DOKU_MADALYA := preload("res://assets/sprites/madalya.png")
-const DOKU_GOK := preload("res://assets/sprites/arka_gok.png")
-const DOKU_BULUT := preload("res://assets/sprites/arka_bulut.png")
-const DOKU_UZAK := preload("res://assets/sprites/arka_uzak.png")
-const DOKU_YAKIN := preload("res://assets/sprites/arka_yakin.png")
 
 @export var bolum_no: int = 1
 
@@ -51,21 +41,43 @@ var _gunluk := false                 ## bu kosu gunluk meydan okuma mi
 var _yeniden_dugme: Button = null
 var _yeniden_sayac := 0.0            ## >0 iken dugme gorunur; ilk YENIDEN_BEKLEME'de kapali
 
+var _arayuz: CanvasLayer
 var _sure_etiket: Label
 var _akis_etiket: Label
 var _eniyi_etiket: Label
-var _madalya_gorsel: TextureRect
+var _madalya_gorsel: Control
 var _duraklat_panel: Control
 var _ayar_panel: Control
 var _bitis_panel: Control
-var _bitis_metin: Label
+var _bitis_kart: Control
+var _bk_ust: Label
+var _bk_sure: Label
+var _bk_damga: Control
+var _bk_madalya: Control
+var _bk_madalya_yazi: Label
+var _bk_alt: Label
+var _bk_esik: Label
 var _sonraki_dugme: Button
+var _yeniden_kart_dugme: Button
+var _ipucu_kutu: Control = null
+var _ipucu_sayac := -1.0             ## >0: ilk kancadan sonra ipucu bu kadar daha gorunur
+var _ilk_kanca := false
+# Gunluk video imkanlari: sure chip'i renk akisi, rekor damgasi (docs/TASARIM.md bolum 8)
+const VURGU_SURESI := 0.30           ## chip akis renginde bu kadar kalir
+const VURGU_ARALIK := 0.12           ## vurgu bitmeden tekrar tetiklenmez (saniyede ~3 renk)
+var _sol_stil: StyleBoxFlat          ## sol ust chip'in zemini
+var _sol_baslik: Label
+var _vurgu_kalan := 0.0
+var _akis_i := 0
+var _bk_damga_yazi: Label
+var _damga_tween: Tween = null
 
 func _ready() -> void:
 	add_to_group(&"bolum")
 	_gunluk = Gunluk.aktif
 	_veri = Bolumler.veri(bolum_no)
-	RenderingServer.set_default_clear_color(Ayarlar.RENK_ARKAPLAN)
+	Tema.aktif = Tema.bolum_temasi(bolum_no)
+	RenderingServer.set_default_clear_color(Tema.zemin())
 	_arka_plani_kur()
 	_oyuncuyu_kur()
 	_arayuzu_kur()
@@ -87,64 +99,30 @@ func _alanlari_ac() -> void:
 
 # --- Arka plan --------------------------------------------------------
 
+## Videodaki egik uzun bloklar: uc katman, blok renginde %5-9 opaklik, dogrusal
+## parallaks. Doku yok, hepsi duz poligon (her olcekte keskin, ucuz).
 func _arka_plani_kur() -> void:
-	# Gokyuzu: kameradan bagimsiz, ekrani kaplayan degrade.
-	var katman := CanvasLayer.new()
-	katman.layer = -10
-	add_child(katman)
-	var gok := TextureRect.new()
-	gok.texture = DOKU_GOK
-	gok.stretch_mode = TextureRect.STRETCH_SCALE
-	gok.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	gok.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	katman.add_child(gok)
+	var blok := Tema.blok()
+	_bant_katmani(Vector2(0.12, 0.05), Color(blok, 0.02), [[40.0, 56.0], [200.0, 30.0]], 120.0, -9)
+	_bant_katmani(Vector2(0.25, 0.10), Color(blok, 0.026), [[90.0, 24.0], [250.0, 70.0]], 100.0, -8)
+	_bant_katmani(Vector2(0.45, 0.18), Color(blok, 0.032), [[20.0, 14.0], [180.0, 40.0]], 80.0, -7)
 
-	# Parallaks: uzaktan yakina ucan kaya adalari + bulut bandi.
-	# modulate ile bilerek soluklastirildi - arka plan adalari oynanis zemini
-	# gibi okunmamali (bkz. sprite_uret.gd icindeki kenar rengi notu).
-	_parallaks(DOKU_UZAK, Vector2(0.20, 0.08), 320, Vector2(0, 8), -9, Vector2.ZERO, 0.55)
-	_parallaks(DOKU_BULUT, Vector2(0.35, 0.14), 256, Vector2(0, -50), -8, Vector2(-7.0, 0.0), 0.8)
-	_parallaks(DOKU_YAKIN, Vector2(0.55, 0.22), 320, Vector2(0, 76), -7, Vector2.ZERO, 0.7)
-	_firtina_cizgileri()
-
-## Tema "firtinali gokyuzu adalari": ekranda surekli suzulen ruzgar cizgileri.
-## Ekran uzayinda (CanvasLayer) duruyor - kamerayla kaymiyor, atmosfer katmani.
-func _firtina_cizgileri() -> void:
-	var katman := CanvasLayer.new()
-	katman.layer = -1
-	add_child(katman)
-	var pc := CPUParticles2D.new()
-	pc.texture = DOKU_RUZGAR
-	pc.position = Vector2(320, 150)
-	pc.amount = 16
-	pc.lifetime = 2.6
-	pc.preprocess = 2.6
-	pc.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
-	pc.emission_rect_extents = Vector2(420, 210)
-	pc.direction = Vector2(-1, 0.12)
-	pc.spread = 4.0
-	pc.initial_velocity_min = 70.0
-	pc.initial_velocity_max = 190.0
-	pc.scale_amount_min = 0.5
-	pc.scale_amount_max = 1.8
-	pc.color = Color(Palet.BULUT_ACIK, 0.22)
-	katman.add_child(pc)
-
-func _parallaks(doku: Texture2D, olcek: Vector2, genislik: int, kaydir: Vector2,
-		z: int, akis: Vector2, saydam: float) -> void:
+func _bant_katmani(olcek: Vector2, renk: Color, bantlar: Array, egim: float, z: int) -> void:
 	var p := Parallax2D.new()
 	p.scroll_scale = olcek
-	p.repeat_size = Vector2(genislik, 0)
+	p.repeat_size = Vector2(320, 0)
 	p.repeat_times = 24
-	p.autoscroll = akis
 	p.z_index = z
 	add_child(p)
-	var s := Sprite2D.new()
-	s.texture = doku
-	s.centered = false
-	s.position = kaydir
-	s.modulate = Color(1, 1, 1, saydam)
-	p.add_child(s)
+	for b: Array in bantlar:
+		var x: float = b[0]
+		var w: float = b[1]
+		var poli := Polygon2D.new()
+		poli.color = renk
+		poli.polygon = PackedVector2Array([
+			Vector2(x, -120), Vector2(x + w, -120),
+			Vector2(x + w - egim, 480), Vector2(x - egim, 480)])
+		p.add_child(poli)
 
 # --- Dunya ------------------------------------------------------------
 
@@ -195,7 +173,7 @@ func _dunyayi_kur() -> void:
 		# Olumden sonra dunya yeniden kuruluyor; zaten aktiflesmis kontrol
 		# noktasi pasif gorunmesin.
 		if _dogus.distance_to(Vector2(_veri["kontrol"][i])) < 1.0:
-			(kn.get_node("Gorsel") as Sprite2D).frame = 1
+			(kn.get_node("Gorsel") as Isaret).frame = 1
 		_dunya.add_child(kn)
 	_dunya.add_child(_bitis_bayragi(_veri["bitis"]))
 	_rota_ipucunu_isaretle()
@@ -224,22 +202,32 @@ func _rota_ipucunu_isaretle() -> void:
 				nokta.rotada(true)
 				break
 
-## Zemin dikdortgenleri TileMapLayer'a dosenir (gorsel + carpisma tek yerden).
+## Zemin dikdortgenleri TileMapLayer'a dosenir (CARPISMA tek yerden); gorunum
+## ayri: ayni dikdortgenler blok renginde duz dolgu cizilir (karo dokusu yok).
 func _zemini_dose() -> void:
 	var kat := TileMapLayer.new()
 	kat.name = "Zemin"
 	kat.tile_set = KaroSeti.al()
-	kat.z_index = 1
-	for r: Rect2 in Bolumler.zeminler(bolum_no):
+	kat.visible = false   # yalniz carpisma: cizimi ZeminCizim yapar (fizik gorunurluge bagli degil)
+	var kutular: Array[Rect2] = Bolumler.zeminler(bolum_no)
+	for r: Rect2 in kutular:
 		var tx0 := int(r.position.x) / KaroSeti.BOY
 		var ty0 := int(r.position.y) / KaroSeti.BOY
 		var tx1 := int(r.end.x) / KaroSeti.BOY - 1
 		var ty1 := int(r.end.y) / KaroSeti.BOY - 1
 		for ty in range(ty0, ty1 + 1):
 			for tx in range(tx0, tx1 + 1):
-				kat.set_cell(Vector2i(tx, ty), 0, KaroSeti.koord(tx, ty, tx0, ty0, tx1, ty1))
+				kat.set_cell(Vector2i(tx, ty), 0, Vector2i(0, 0))
 	_dunya.add_child(kat)
+	var cizim := Node2D.new()
+	cizim.name = "ZeminCizim"
+	cizim.z_index = 1
+	cizim.draw.connect(func() -> void:
+		for r: Rect2 in kutular:
+			cizim.draw_rect(r, Tema.blok()))
+	_dunya.add_child(cizim)
 
+## Diken: her 16 px'te bir ucgen (carpisma dikdortgeniyle birebir ayni alan).
 func _diken(r: Rect2, tavan: bool) -> Area2D:
 	var alan := Area2D.new()
 	alan.position = r.position
@@ -251,16 +239,20 @@ func _diken(r: Rect2, tavan: bool) -> Area2D:
 	carpisma.shape = sekil
 	carpisma.position = r.size * 0.5
 	alan.add_child(carpisma)
-	# Diken dokusu 16x16 ve carpisma dikdortgeni de 16 yuksekliginde:
-	# gorunen sey ile olduren sey birebir ayni olsun.
 	var adet := maxi(1, int(r.size.x / 16.0))
+	var taban := 0.0 if tavan else maxf(r.size.y - 16.0, 0.0)
 	for i in adet:
-		var s := Sprite2D.new()
-		s.texture = DOKU_DIKEN
-		s.centered = false
-		s.flip_v = tavan
-		s.position = Vector2(i * 16.0, maxf(r.size.y - 16.0, 0.0) if not tavan else 0.0)
-		alan.add_child(s)
+		var x := i * 16.0
+		var poli := Polygon2D.new()
+		poli.color = Tema.DIKEN
+		poli.antialiased = true
+		if tavan:
+			poli.polygon = PackedVector2Array([
+				Vector2(x, taban), Vector2(x + 16.0, taban), Vector2(x + 8.0, taban + 16.0)])
+		else:
+			poli.polygon = PackedVector2Array([
+				Vector2(x, taban + 16.0), Vector2(x + 16.0, taban + 16.0), Vector2(x + 8.0, taban)])
+		alan.add_child(poli)
 	alan.z_index = 2
 	alan.body_entered.connect(_tehlikeye_degdi)
 	return alan
@@ -277,14 +269,14 @@ func _ruzgar_alani(r: Rect2, yon: Vector2) -> Area2D:
 	alan.add_child(carpisma)
 
 	var perde := ColorRect.new()
-	perde.color = Color(Palet.RUZGAR, 0.08)
+	perde.color = Color(Tema.blok(), 0.06)
 	perde.size = r.size
 	perde.position = -r.size * 0.5
 	perde.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	alan.add_child(perde)
 
 	var pc := CPUParticles2D.new()
-	pc.texture = DOKU_RUZGAR
+	pc.texture = Cizim.cizgi_dokusu()
 	pc.amount = clampi(int(r.size.x * r.size.y / 900.0), 8, 40)
 	pc.lifetime = 1.1
 	pc.emission_shape = CPUParticles2D.EMISSION_SHAPE_RECTANGLE
@@ -295,7 +287,9 @@ func _ruzgar_alani(r: Rect2, yon: Vector2) -> Area2D:
 	pc.initial_velocity_max = 260.0
 	pc.scale_amount_min = 0.7
 	pc.scale_amount_max = 1.6
-	pc.color = Color(Palet.RUZGAR, 0.55)
+	pc.angle_min = rad_to_deg(yon.angle())
+	pc.angle_max = rad_to_deg(yon.angle())
+	pc.color = Color(Tema.blok(), 0.5)
 	alan.add_child(pc)
 
 	var birim := yon.normalized()
@@ -305,7 +299,7 @@ func _ruzgar_alani(r: Rect2, yon: Vector2) -> Area2D:
 	alan.body_exited.connect(func(g: Node2D) -> void:
 		if g == _oyuncu:
 			_oyuncu.ruzgar -= birim)
-	alan.z_index = 3   # karolarin (1) onunde, oyuncunun (4) arkasinda
+	alan.z_index = 3   # zeminin (1) onunde, oyuncunun (4) arkasinda
 	return alan
 
 func _kontrol_noktasi(yer: Vector2, sira: int) -> Area2D:
@@ -318,14 +312,8 @@ func _kontrol_noktasi(yer: Vector2, sira: int) -> Area2D:
 	var carpisma := CollisionShape2D.new()
 	carpisma.shape = sekil
 	alan.add_child(carpisma)
-	var s := Sprite2D.new()
-	s.texture = DOKU_KONTROL
-	s.hframes = 2
+	var s := Isaret.yap(Isaret.KONTROL)
 	s.name = "Gorsel"
-	# Kontrol noktalari platform ustunden 32 px yukarida taniml; sprite 24 px
-	# yuksek, tabani zemine otursun diye 8 px asagi kayiyor.
-	s.centered = false
-	s.position = Vector2(-8, 8)
 	alan.add_child(s)
 	alan.name = "Kontrol%d" % sira
 	alan.z_index = 2
@@ -335,18 +323,14 @@ func _kontrol_noktasi(yer: Vector2, sira: int) -> Area2D:
 func _bitis_bayragi(yer: Vector2) -> Area2D:
 	var alan := Area2D.new()
 	alan.position = yer
-	alan.monitorable = false
-	alan.monitoring = false   # bayat ortusme tuzagi: ilk fizik karesinden sonra acilir
 	var sekil := RectangleShape2D.new()
 	sekil.size = Vector2(24, 56)
 	var carpisma := CollisionShape2D.new()
 	carpisma.shape = sekil
+	alan.monitorable = false
+	alan.monitoring = false   # bayat ortusme tuzagi: ilk fizik karesinden sonra acilir
 	alan.add_child(carpisma)
-	var s := Sprite2D.new()
-	s.texture = DOKU_BAYRAK
-	s.centered = false          # direk tabani zemine otursun
-	s.position = Vector2(-8, 0)
-	alan.add_child(s)
+	alan.add_child(Isaret.yap(Isaret.BITIS))
 	alan.name = "Bitis"
 	alan.z_index = 2
 	alan.body_entered.connect(_bitise_degdi)
@@ -366,7 +350,7 @@ func _kamera_sinirla() -> void:
 
 func _parcacik_yap() -> CPUParticles2D:
 	var pc := CPUParticles2D.new()
-	pc.texture = DOKU_PARCACIK
+	pc.texture = Cizim.nokta_dokusu()
 	pc.emitting = false
 	pc.one_shot = true
 	pc.explosiveness = 0.9
@@ -375,8 +359,8 @@ func _parcacik_yap() -> CPUParticles2D:
 	pc.gravity = Vector2(0, 420)
 	pc.initial_velocity_min = 60.0
 	pc.initial_velocity_max = 190.0
-	pc.scale_amount_min = 0.6
-	pc.scale_amount_max = 1.4
+	pc.scale_amount_min = 0.3
+	pc.scale_amount_max = 0.8
 	pc.z_index = 7
 	return pc
 
@@ -397,28 +381,33 @@ func sars(guc: float) -> void:
 # --- Oyuncu olaylari --------------------------------------------------
 
 func _kanca_takildi(yer: Vector2) -> void:
+	# Ogretme: ilk kanca tutunca ipucu 6 sn daha kalir, sonra solar.
+	if not _ilk_kanca:
+		_ilk_kanca = true
+		_ipucu_sayac = 6.0
 	sars(1.6)
-	parcacik_at(yer, Palet.NOKTA_BAGLI, 6)
+	parcacik_at(yer, Tema.TURUNCU, 6)
 	# Ustalik zinciri: yere degmeden art arda tutulan her nokta zinciri uzatir.
 	_zincir += 1
 	_en_uzun_zincir = maxi(_en_uzun_zincir, _zincir)
 	if _zincir >= 2:
 		Ses.cal("akis")
+		_sayac_vurgula()
 	_akis_yaz()
 
 ## bonus = esik ustu hizda birakildi (BIRAKMA_CARPANI uygulandi).
 func _kanca_koptu(hiz: Vector2, bonus: bool) -> void:
 	if bonus:
-		parcacik_at(_oyuncu.global_position, Palet.ALTIN, 14)
+		parcacik_at(_oyuncu.global_position, Tema.TURUNCU, 14)
 		sars(1.2)
 	elif hiz.length() > 320.0:
-		parcacik_at(_oyuncu.global_position, Palet.HALAT, 8)
+		parcacik_at(_oyuncu.global_position, Tema.blok(), 8)
 
 func _yere_indi(dusus_hizi: float) -> void:
 	_zincir = 0
 	_akis_yaz()
 	if dusus_hizi > 260.0:
-		parcacik_at(_oyuncu.global_position + Vector2(0, 12), Palet.KAYA_KENAR,
+		parcacik_at(_oyuncu.global_position + Vector2(0, 12), Color(Tema.blok(), 0.8),
 			clampi(int(dusus_hizi / 60.0), 4, 14))
 		sars(minf(dusus_hizi / 260.0, 3.5))
 
@@ -448,7 +437,7 @@ func _oldu() -> void:
 	_oluyor = true
 	_zincir = 0
 	Ses.cal("olum")
-	parcacik_at(_oyuncu.global_position, Palet.ATKI, 18)
+	parcacik_at(_oyuncu.global_position, Tema.TURKUAZ, 18)
 	sars(5.0)
 	_sayiyor = true
 	_yeniden_sayac = YENIDEN_GORUNME
@@ -479,6 +468,10 @@ func _dogur() -> void:
 	_alanlari_ac.call_deferred()
 
 func _process(delta: float) -> void:
+	if _vurgu_kalan > 0.0:
+		_vurgu_kalan -= delta
+		if _vurgu_kalan <= 0.0:
+			_sayac_sifirla()
 	if _sayiyor:
 		_sure += delta
 		_sure_yaz()
@@ -499,6 +492,11 @@ func _process(delta: float) -> void:
 	if _yeniden_sayac > 0.0:
 		_yeniden_sayac -= delta
 		_yeniden_dugmesini_guncelle()
+	if _ipucu_sayac > 0.0:
+		_ipucu_sayac -= delta
+		if _ipucu_sayac <= 0.0 and is_instance_valid(_ipucu_kutu):
+			var kutu := _ipucu_kutu
+			kutu.create_tween().tween_property(kutu, "modulate:a", 0.0, 0.4)
 	if not _bitti and not _duraklatildi and _oyuncu.global_position.y > Ayarlar.OLUM_Y:
 		_oldu()
 
@@ -512,10 +510,11 @@ func _kontrole_degdi(govde: Node2D, alan: Area2D) -> void:
 	if _dogus.distance_to(alan.position) < 1.0:
 		return
 	_dogus = alan.position
-	var g: Sprite2D = alan.get_node("Gorsel")
+	var g: Isaret = alan.get_node("Gorsel")
 	g.frame = 1
 	Ses.cal("kontrol")
-	parcacik_at(alan.global_position, Palet.NOKTA_BAGLI, 10)
+	parcacik_at(alan.global_position, Tema.TURKUAZ, 10)
+	_sayac_vurgula()
 
 func _bitise_degdi(govde: Node2D) -> void:
 	if govde != _oyuncu or _bitti:
@@ -526,7 +525,8 @@ func _bitise_degdi(govde: Node2D) -> void:
 	_oyuncu.kanca_birak()
 	_oyuncu.set_physics_process(false)
 	Ses.cal("bitis")
-	parcacik_at(_oyuncu.global_position, Palet.BITIS, 24)
+	parcacik_at(_oyuncu.global_position, Tema.TURUNCU, 24)
+	sars(2.0)
 
 	_yeniden_dugmesini_gizle()
 
@@ -534,18 +534,9 @@ func _bitise_degdi(govde: Node2D) -> void:
 	# ve hayaleti BOZMAZ - degistiriciyle kosulmus bir sure normal tabloya girmemeli.
 	if _gunluk:
 		var g_rekor := Kayit.gunluk_yaz(Gunluk.tohum(), _sure)
-		var g_satirlar := [
-			"GÜNLÜK MEYDAN OKUMA",
-			Gunluk.baslik(),
-			"Süre: %s" % _bicim(_sure),
-			"YENİ REKOR!" if g_rekor else "Bugünün en iyisi: %s" % _bicim(
-				Kayit.gunluk_en_iyi(Gunluk.tohum())),
-			"Akış: ×%d" % _en_uzun_zincir,
-		]
-		_bitis_metin.text = "\n".join(PackedStringArray(g_satirlar))
-		_bitis_panel.visible = true
-		_sonraki_dugme.disabled = true
-		_bitis_panel.find_child("Yeniden", true, false).grab_focus()
+		_bitis_karti_doldur(tr("GÜNLÜK MEYDAN OKUMA"), Gunluk.baslik(), g_rekor, 3,
+			tr("BUGÜNÜN EN İYİSİ %s") % _bicim(Kayit.gunluk_en_iyi(Gunluk.tohum())),
+			_akis_yazisi(false), true)
 		return
 
 	var akis_rekor := Kayit.akis_yaz(bolum_no, _en_uzun_zincir)
@@ -558,18 +549,48 @@ func _bitise_degdi(govde: Node2D) -> void:
 	if madalya < 3:
 		Ses.cal("madalya")
 	var m: Array = _veri["madalya"]
-	var satirlar := [
-		"%d. bölüm — %s" % [bolum_no, Bolumler.ad(bolum_no)],
-		"Süre: %s" % _bicim(_sure),
-		"YENİ REKOR!" if rekor else "En iyi: %s" % _bicim(Kayit.en_iyi(bolum_no)),
-		"Madalya: %s" % Bolumler.MADALYA_ADI[madalya],
-		"Altın %s · Gümüş %s · Bronz %s" % [_bicim(m[0]), _bicim(m[1]), _bicim(m[2])],
-		"Akış: ×%d%s" % [_en_uzun_zincir, "  (yeni en uzun zincir!)" if akis_rekor else ""],
-	]
-	_bitis_metin.text = "\n".join(PackedStringArray(satirlar))
-	_bitis_panel.visible = true
-	_sonraki_dugme.disabled = bolum_no >= Bolumler.sayi()
-	_sonraki_dugme.grab_focus()
+	var esik := tr("ALTIN %s · GÜMÜŞ %s · BRONZ %s") % [_bicim(m[0]), _bicim(m[1]), _bicim(m[2])]
+	_bitis_karti_doldur(Tema.kisa_baslik(bolum_no, Bolumler.ad(bolum_no)), "", rekor, madalya,
+		tr("EN İYİ %s") % _bicim(Kayit.en_iyi(bolum_no)),
+		_akis_yazisi(akis_rekor) + "\n" + esik, false)
+
+func _akis_yazisi(yeni_rekor: bool) -> String:
+	return tr("AKIŞ ×%d") % _en_uzun_zincir + (tr("  · YENİ EN UZUN ZİNCİR") if yeni_rekor else "")
+
+## Bitis kartini doldurur ve acar. ust = bolum etiketi, alt_baslik = gunluk
+## degistirici adi, madalya 0-2 ya da 3 (yok). Ilk odak: madalya altin degilse
+## ya da son bolumdeyse TEKRAR (hiz oyununda asil dongu), degilse SONRAKI.
+func _bitis_karti_doldur(ust: String, alt_baslik: String, rekor: bool, madalya: int,
+		en_iyi: String, ayrinti: String, gunluk: bool) -> void:
+	_bk_ust.text = ust if alt_baslik == "" else "%s · %s" % [ust, alt_baslik]
+	_bk_sure.text = _bicim(_sure)
+	_bk_damga.visible = rekor
+	if rekor:
+		_damga_animasyon()
+	_bk_madalya.visible = madalya < 3
+	for c in _bk_madalya.get_children():
+		if c is Cizim.Madalya:
+			c.queue_free()
+	if madalya < 3:
+		_bk_madalya.add_child(Bolum.madalya_simgesi(madalya))
+		_bk_madalya.move_child(_bk_madalya.get_child(_bk_madalya.get_child_count() - 1), 0)
+		_bk_madalya_yazi.text = Tema.buyuk(Bolumler.madalya_adi(madalya))
+	_bk_alt.text = en_iyi
+	_bk_esik.text = ayrinti
+	var son := bolum_no >= Bolumler.sayi()
+	_sonraki_dugme.disabled = gunluk or son
+	_sonraki_dugme.visible = not gunluk
+	var tekrar_birincil := gunluk or son or madalya != 0
+	_stil_birincil(_yeniden_kart_dugme, tekrar_birincil)
+	_stil_birincil(_sonraki_dugme, not tekrar_birincil)
+	# Bolum sonu: tek flas vurusu; son bolumde (oyun sonu) kart iris ile ortadan acilir.
+	var oyun_sonu := son and not gunluk
+	Gecis.acilis(&"iris" if oyun_sonu else &"flas", Tema.aktif, 0.45 if oyun_sonu else 0.22, 1.0 if oyun_sonu else 0.5)
+	_kart_goster(_bitis_panel, _bitis_kart)
+	if tekrar_birincil or _sonraki_dugme.disabled:
+		_yeniden_kart_dugme.grab_focus()
+	else:
+		_sonraki_dugme.grab_focus()
 
 func _unhandled_input(olay: InputEvent) -> void:
 	if olay.is_action_pressed("duraklat"):
@@ -581,8 +602,6 @@ func _unhandled_input(olay: InputEvent) -> void:
 			_duraklat_degistir()
 	elif olay.is_action_pressed("yeniden") and not _duraklatildi:
 		_yeniden()
-	elif _bitti and olay.is_action_pressed("ui_accept") and not _sonraki_dugme.disabled:
-		_sonraki()
 	else:
 		return
 	get_viewport().set_input_as_handled()
@@ -593,7 +612,10 @@ func _duraklat_degistir() -> void:
 	_duraklatildi = not _duraklatildi
 	_yeniden_dugmesini_guncelle()
 	_ayar_panel.visible = false
-	_duraklat_panel.visible = _duraklatildi
+	_duraklat_panel.visible = false
+	if _duraklatildi:
+		Gecis.acilis(&"perde", Tema.aktif, 0.22)      # duraklatma: perde acilir
+		_kart_goster(_duraklat_panel, _duraklat_panel.find_child("Kart", true, false))
 	_sayiyor = not _duraklatildi
 	_oyuncu.set_physics_process(not _duraklatildi)
 	Ses.cal("menu")
@@ -602,11 +624,11 @@ func _duraklat_degistir() -> void:
 
 func _sonraki() -> void:
 	if bolum_no < Bolumler.sayi():
-		Gecis.git(Bolumler.yol(bolum_no + 1))
+		Gecis.git(Bolumler.yol(bolum_no + 1), Tema.aktif)
 
 func _menuye() -> void:
 	Gunluk.aktif = false
-	Gecis.git(MENU_YOLU)
+	Gecis.git(MENU_YOLU, Tema.aktif)
 
 # --- Dokunmatik yeniden baslatma --------------------------------------
 
@@ -666,17 +688,63 @@ func _hayaleti_kur() -> void:
 static func altin_kazanildi(no: int) -> bool:
 	return Bolumler.madalya(no, Kayit.en_iyi(no)) == 0
 
+
 # --- Arayuz -----------------------------------------------------------
 
 func _sure_yaz() -> void:
-	_sure_etiket.text = "Süre  %s" % _bicim(_sure)
+	_sure_etiket.text = _bicim(_sure)
+
+## Sure chip'ine video renk akisindan siradaki vurgu rengi (Tema.AKIS): yazi rengi
+## vurgunun uzerinde kodla secilir (>= Tema.ESIK). Ara renk yok, palet adim adim
+## doner. Kontrol noktasinda ve zincir uzadikca tetiklenir; sade gecislerde kapali.
+func _sayac_vurgula() -> void:
+	if Gecis.sade() or _sol_stil == null or _vurgu_kalan > VURGU_SURESI - VURGU_ARALIK:
+		return
+	var v: Color = Tema.akis_rengi(Tema.aktif, _akis_i)
+	_akis_i += 1
+	_vurgu_kalan = VURGU_SURESI
+	var y: Color = Tema.yazi_rengi(v, Tema.aktif)
+	_sol_stil.bg_color = v
+	for e: Label in [_sol_baslik, _sure_etiket, _akis_etiket]:
+		e.add_theme_color_override("font_color", y)
+
+## Vurgu bitti: chip normal renklerine doner.
+func _sayac_sifirla() -> void:
+	_vurgu_kalan = 0.0
+	_sol_stil.bg_color = Color(Tema.zemin(), 0.88)
+	_sol_baslik.add_theme_color_override("font_color", Tema.etiket_rengi(Tema.blok()))
+	_sure_etiket.add_theme_color_override("font_color", Tema.blok())
+	_akis_etiket.add_theme_color_override("font_color", Tema.TURUNCU)
+
+## "YENI REKOR" damgasi: palet renginde doner (90 ms adim), damga disari dogru
+## genisleyip oturur (konteyner cocugu olceklenemez: stil expand_margin ile),
+## sonra odul sarisinda durur. Sade gecislerde animasyon yok, dogrudan sari.
+func _damga_animasyon() -> void:
+	if _damga_tween != null and _damga_tween.is_valid():
+		_damga_tween.kill()
+	_damga_boya(Tema.SARI)
+	_damga_puf(0.0)
+	if Gecis.sade():
+		return
+	_damga_tween = _bk_damga.create_tween()
+	_damga_tween.tween_method(_damga_puf, 6.0, 0.0, 0.16).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+	for k in 5:
+		_damga_tween.tween_callback(_damga_boya.bind(Tema.akis_rengi(Tema.aktif, k))).set_delay(0.09)
+	_damga_tween.tween_callback(_damga_boya.bind(Tema.SARI)).set_delay(0.09)
+
+func _damga_puf(m: float) -> void:
+	(_bk_damga.get_theme_stylebox("panel") as StyleBoxFlat).set_expand_margin_all(m)
+
+func _damga_boya(c: Color) -> void:
+	(_bk_damga.get_theme_stylebox("panel") as StyleBoxFlat).bg_color = c
+	_bk_damga_yazi.add_theme_color_override("font_color", Tema.yazi_rengi(c, Tema.aktif))
 
 ## Ustalik zinciri gostergesi: iki ve ustu zincirde gorunur.
 func _akis_yaz() -> void:
 	if _akis_etiket == null:
 		return
 	_akis_etiket.visible = _zincir >= 2
-	_akis_etiket.text = "Akış ×%d" % _zincir
+	_akis_etiket.text = tr("AKIŞ ×%d") % _zincir
 
 ## Madalya sureleri ms hassasiyetinde uretildigi icin gosterim de ms.
 static func _bicim(saniye: float) -> String:
@@ -684,110 +752,262 @@ static func _bicim(saniye: float) -> String:
 		return "--:--"
 	return "%02d:%06.3f" % [int(saniye) / 60, fmod(saniye, 60.0)]
 
+## 0 altin, 1 gumus, 2 bronz, 3 = gorunmez.
+static func madalya_simgesi(no: int) -> Control:
+	return Cizim.Madalya.new(no)
+
+## HUD rozeti: zemin renginde %88 opak kucuk plaka. Yazi blok renginde, boylece
+## hem bos zeminde hem blogun onunde okunur (dunya cizimini kapatmaz).
+func _rozet(ic: Control) -> PanelContainer:
+	var p := PanelContainer.new()
+	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	p.add_theme_stylebox_override("panel", Tema.kutu(Color(Tema.zemin(), 0.88), 3, 6, 4))
+	p.add_child(ic)
+	return p
+
+func _kutu_dikey(ayirim: int = 0) -> VBoxContainer:
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", ayirim)
+	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return v
+
 func _arayuzu_kur() -> void:
-	var katman := CanvasLayer.new()
-	katman.name = "Arayuz"
-	add_child(katman)
+	_arayuz = CanvasLayer.new()
+	_arayuz.name = "Arayuz"
+	add_child(_arayuz)
+	var blok := Tema.blok()
+	var soluk := Tema.etiket_rengi(blok)
 
-	_sure_etiket = _serit(_etiket("", 16, Color(1, 1, 1)))
-	_sure_etiket.position = Vector2(12, 8)
-	katman.add_child(_sure_etiket)
-
-	_akis_etiket = _serit(_etiket("", 12, Palet.ALTIN))
-	_akis_etiket.position = Vector2(12, 78)
-	_akis_etiket.visible = false
-	katman.add_child(_akis_etiket)
-
-	var en_iyi := Kayit.gunluk_en_iyi(Gunluk.tohum()) if _gunluk else Kayit.en_iyi(bolum_no)
-	_eniyi_etiket = _serit(_etiket("En iyi  %s" % _bicim(en_iyi), 11, Ayarlar.RENK_METIN))
-	_eniyi_etiket.position = Vector2(12, 30)
-	katman.add_child(_eniyi_etiket)
-
-	# Sureler ms hassasiyetine gecince "En iyi 00:08.800" uzadi; simge 92'de
-	# metnin uzerine biniyordu.
-	_madalya_gorsel = madalya_simgesi(Bolumler.madalya(bolum_no, en_iyi))
-	_madalya_gorsel.position = Vector2(108, 30)
-	katman.add_child(_madalya_gorsel)
-
-	var baslik_metni := "%d. %s" % [bolum_no, _veri["ad"]]
+	# Sol ust: 01 / BOLUM ADI, buyuk sure, akis sayaci.
+	var sol := _kutu_dikey()
+	var baslik_metni := Tema.kisa_baslik(bolum_no, Bolumler.ad(bolum_no))
 	if _gunluk:
-		baslik_metni = "GÜNLÜK · %s" % String(Gunluk.degistirici()["ad"])
-	var baslik := _serit(_etiket(baslik_metni, 11,
-		Palet.ALTIN if _gunluk else Ayarlar.RENK_METIN_SOLUK))
-	baslik.position = Vector2(12, 46)
-	katman.add_child(baslik)
+		baslik_metni = "%s · %s" % [tr("GÜNLÜK"), Tema.buyuk(tr(String(Gunluk.degistirici()["ad"])))]
+	_sol_baslik = Tema.etiket(baslik_metni, 8, soluk)
+	sol.add_child(_sol_baslik)
+	_sure_etiket = Tema.etiket("", 16, blok, true, true)
+	sol.add_child(_sure_etiket)
+	_akis_etiket = Tema.etiket("", 8, Tema.TURUNCU, true, true)
+	_akis_etiket.visible = false
+	sol.add_child(_akis_etiket)
+	var sol_rozet := _rozet(sol)
+	sol_rozet.position = Vector2(8, 6)
+	_sol_stil = sol_rozet.get_theme_stylebox("panel") as StyleBoxFlat
+	_vurgu_kalan = 0.0
+	_arayuz.add_child(sol_rozet)
 
+	# Sag ust: en iyi sure + madalya, altin hedef, tus/duraklat.
+	var sag := _kutu_dikey()
+	var en_iyi := Kayit.gunluk_en_iyi(Gunluk.tohum()) if _gunluk else Kayit.en_iyi(bolum_no)
+	var satir := HBoxContainer.new()
+	satir.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	satir.alignment = BoxContainer.ALIGNMENT_END
+	satir.add_theme_constant_override("separation", 4)
+	_madalya_gorsel = madalya_simgesi(Bolumler.madalya(bolum_no, en_iyi))
+	satir.add_child(_madalya_gorsel)
+	_eniyi_etiket = Tema.etiket(tr("EN İYİ %s") % _bicim(en_iyi), 8, blok)
+	satir.add_child(_eniyi_etiket)
+	sag.add_child(satir)
 	var hedef: Array = _veri["madalya"]
-	var altin := _serit(_etiket("Altın hedefi  %s" % _bicim(hedef[0]), 10, Palet.ALTIN))
-	altin.position = Vector2(12, 62)
-	katman.add_child(altin)
-
+	var altin := Tema.etiket(tr("ALTIN %s") % _bicim(hedef[0]), 8, soluk)
+	altin.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	sag.add_child(altin)
 	# Dokunmatikte R/Esc yok; ayni koseye gercek bir duraklat dugmesi konur.
 	if Ayarlar.dokunmatik_mi():
 		var durakla := Button.new()
 		durakla.name = "DuraklatDugme"
-		durakla.text = "Duraklat"
+		durakla.text = tr("Duraklat")
 		durakla.add_theme_font_size_override("font_size", 10)
+		durakla.custom_minimum_size = Vector2(76, 24)
 		durakla.pressed.connect(_duraklat_degistir)
-		durakla.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
-		durakla.offset_left = -78.0
-		durakla.offset_top = 6.0
-		durakla.offset_right = -10.0
-		durakla.offset_bottom = 28.0
-		katman.add_child(durakla)
+		sag.add_child(durakla)
 	else:
-		var yardim := _serit(_etiket("R: yeniden   Esc: duraklat", 10, Ayarlar.RENK_METIN_SOLUK))
-		yardim.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
-		yardim.offset_left = -152.0
-		yardim.offset_top = 8.0
-		yardim.offset_right = -12.0
-		yardim.offset_bottom = 24.0
+		var yardim := Tema.etiket(tr("R: yeniden   Esc: duraklat"), 8, Color(blok, 0.5))
 		yardim.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-		katman.add_child(yardim)
+		sag.add_child(yardim)
+	var sag_rozet := _rozet(sag)
+	sag_rozet.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	sag_rozet.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	sag_rozet.offset_right = -8.0
+	sag_rozet.offset_left = -8.0
+	sag_rozet.offset_top = 6.0
+	sag_rozet.offset_bottom = 6.0
+	if Ayarlar.dokunmatik_mi():
+		sag_rozet.mouse_filter = Control.MOUSE_FILTER_PASS
+	_arayuz.add_child(sag_rozet)
 
 	if Ayarlar.dokunmatik_mi():
 		_yeniden_dugme = Button.new()
 		_yeniden_dugme.name = "YenidenDugme"
-		_yeniden_dugme.text = "Baştan başla"
+		_yeniden_dugme.text = tr("Baştan başla")
+		_yeniden_dugme.theme_type_variation = &"Birincil"
 		_yeniden_dugme.add_theme_font_size_override("font_size", 12)
 		_yeniden_dugme.pressed.connect(_dokunmatik_yeniden)
 		_yeniden_dugme.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
-		_yeniden_dugme.offset_left = -56.0
+		_yeniden_dugme.offset_left = -60.0
 		_yeniden_dugme.offset_top = 44.0
-		_yeniden_dugme.offset_right = 56.0
-		_yeniden_dugme.offset_bottom = 70.0
+		_yeniden_dugme.offset_right = 60.0
+		_yeniden_dugme.offset_bottom = 72.0
 		_yeniden_dugme.visible = false
-		katman.add_child(_yeniden_dugme)
+		_arayuz.add_child(_yeniden_dugme)
 
+	# Alt ortada bolum ipucu: yalniz bu bolum daha hic bitirilmediyse ve ilk
+	# kancadan sonra birkac saniye icinde solar (ogretme, sonra yol acma).
+	_ipucu_kutu = null
 	var ipucu := Bolumler.ipucu(bolum_no)
-	if ipucu != "":
-		var e := _serit(_etiket(ipucu, 11, Color(0.95, 0.9, 0.6)))
-		e.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
-		e.offset_top = -34.0
-		e.offset_bottom = -14.0
-		e.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		katman.add_child(e)
+	if ipucu != "" and not _gunluk and Kayit.en_iyi(bolum_no) <= 0.0:
+		var e := Tema.etiket(ipucu, 10, blok, false)
+		var kutu := _rozet(e)
+		kutu.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+		kutu.grow_horizontal = Control.GROW_DIRECTION_BOTH
+		kutu.grow_vertical = Control.GROW_DIRECTION_BEGIN
+		kutu.offset_bottom = -12.0
+		kutu.offset_top = -12.0
+		_arayuz.add_child(kutu)
+		_ipucu_kutu = kutu
 
-	_duraklat_panel = panel("DURAKLATILDI", [
-		{"ad": "Devam", "metin": "Devam", "islev": _duraklat_degistir},
-		{"ad": "Yeniden", "metin": "Bölümü yeniden başla", "islev": _yeniden},
-		{"ad": "Ayarlar", "metin": "Ayarlar", "islev": _ayarlara},
-		{"ad": "Menu", "metin": "Menüye dön", "islev": _menuye},
-	])
-	katman.add_child(_duraklat_panel)
-
-	_bitis_panel = panel("BÖLÜM BİTTİ", [
-		{"ad": "Sonraki", "metin": Ayarlar.kisayol("Sonraki bölüm", "Enter"), "islev": _sonraki},
-		{"ad": "Yeniden", "metin": Ayarlar.kisayol("Tekrar dene", "R"), "islev": _yeniden},
-		{"ad": "Menu", "metin": Ayarlar.kisayol("Menüye dön", "Esc"), "islev": _menuye},
-	])
-	katman.add_child(_bitis_panel)
-	_bitis_metin = _bitis_panel.find_child("Baslik", true, false)
-	_sonraki_dugme = _bitis_panel.find_child("Sonraki", true, false)
-
+	_duraklat_panel = _duraklat_paneli()
+	_arayuz.add_child(_duraklat_panel)
+	_bitis_panel = _bitis_paneli()
+	_arayuz.add_child(_bitis_panel)
 	# Ayarlar bolumu terk etmeden, duraklatma perdesinin uzerinde acilir.
-	_ayar_panel = AyarPanel.yap(_ayarlardan_don, true)
-	katman.add_child(_ayar_panel)
+	_ayar_panel = AyarPanel.yap(_ayarlardan_don, true, _dil_degisti)
+	_arayuz.add_child(_ayar_panel)
+	_sure_yaz()
+
+func _perde_kok() -> Control:
+	var kok := Control.new()
+	kok.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	kok.mouse_filter = Control.MOUSE_FILTER_STOP
+	kok.visible = false
+	var perde := Panel.new()
+	perde.theme_type_variation = &"Perde"
+	perde.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	perde.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	kok.add_child(perde)
+	return kok
+
+func _dugme(ad: String, metin: String, islev: Callable, birincil := false, boy := 12) -> Button:
+	var d := Button.new()
+	d.name = ad
+	d.text = metin
+	d.custom_minimum_size = Vector2(0, 26)
+	d.add_theme_font_size_override("font_size", boy)
+	if birincil:
+		d.theme_type_variation = &"Birincil"
+	d.pressed.connect(islev)
+	return d
+
+func _stil_birincil(d: Button, birincil: bool) -> void:
+	d.theme_type_variation = &"Birincil" if birincil else &"KartDugme"
+	d.add_theme_font_size_override("font_size", 14 if birincil else 12)
+
+## Duraklatma: koyu kart, Devam birincil. Esc / P ile de acilir.
+func _duraklat_paneli() -> Control:
+	var kok := _perde_kok()
+	var orta := CenterContainer.new()
+	orta.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	kok.add_child(orta)
+	var kart := PanelContainer.new()
+	kart.name = "Kart"
+	kart.add_theme_stylebox_override("panel", Tema.kutu(Tema.PANEL, 8, 26, 18,
+		Color(Tema.KAGIT, 0.22), 2))
+	orta.add_child(kart)
+	var kutu := VBoxContainer.new()
+	kutu.name = "Kutu"
+	kutu.add_theme_constant_override("separation", 6)
+	kart.add_child(kutu)
+	var ust := Tema.etiket(tr("DURAKLATILDI"), 8, Tema.etiket_rengi(Tema.KAGIT))
+	ust.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	kutu.add_child(ust)
+	var baslik := Tema.etiket(Tema.kisa_baslik(bolum_no, Bolumler.ad(bolum_no)), 10, Tema.KAGIT, true, true)
+	baslik.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	kutu.add_child(baslik)
+	var d1 := _dugme("Devam", tr("Devam"), _duraklat_degistir, true, 14)
+	d1.custom_minimum_size = Vector2(200, 32)
+	kutu.add_child(d1)
+	kutu.add_child(_dugme("Yeniden", tr("Bölümü baştan"), _yeniden))
+	kutu.add_child(_dugme("Ayarlar", tr("Ayarlar"), _ayarlara))
+	kutu.add_child(_dugme("Menu", tr("Menüye dön"), _menuye))
+	return kok
+
+## Bolum sonu: kagit kart. Buyuk sure, madalya, rekor damgasi, en iyi + akis.
+## Iki buyuk dugme: Tekrar dene / Sonraki bolum (hangisi birincil: _bitis_karti_doldur).
+func _bitis_paneli() -> Control:
+	var kok := _perde_kok()
+	var orta := CenterContainer.new()
+	orta.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	kok.add_child(orta)
+	var kart := PanelContainer.new()
+	kart.name = "Kart"
+	kart.add_theme_stylebox_override("panel", Tema.kutu(Tema.KAGIT, 12, 26, 18))
+	orta.add_child(kart)
+	_bitis_kart = kart
+	var kutu := VBoxContainer.new()
+	kutu.name = "Kutu"
+	kutu.add_theme_constant_override("separation", 5)
+	kart.add_child(kutu)
+
+	_bk_ust = Tema.etiket("", 8, Color(Tema.MUREKKEP, 0.65))
+	_bk_ust.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	kutu.add_child(_bk_ust)
+	_bk_sure = Tema.etiket("", 30, Tema.MUREKKEP, true, true)
+	_bk_sure.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	kutu.add_child(_bk_sure)
+
+	# Sari damga: yalniz yeni rekorda. Duz sari dolgu, murekkep yazi.
+	var damga := PanelContainer.new()
+	damga.add_theme_stylebox_override("panel", Tema.kutu(Tema.SARI, 3, 8, 2))
+	damga.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	_bk_damga_yazi = Tema.etiket(tr("YENİ REKOR"), 9, Tema.MUREKKEP, true, true)
+	damga.add_child(_bk_damga_yazi)
+	damga.visible = false
+	_bk_damga = damga
+	kutu.add_child(damga)
+
+	var m := HBoxContainer.new()
+	m.alignment = BoxContainer.ALIGNMENT_CENTER
+	m.add_theme_constant_override("separation", 5)
+	_bk_madalya = m
+	_bk_madalya_yazi = Tema.etiket("", 9, Tema.MUREKKEP, true, true)
+	m.add_child(_bk_madalya_yazi)
+	kutu.add_child(m)
+
+	_bk_alt = Tema.etiket("", 8, Color(Tema.MUREKKEP, 0.75))
+	_bk_alt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	kutu.add_child(_bk_alt)
+	_bk_esik = Tema.etiket("", 8, Color(Tema.MUREKKEP, 0.6))
+	_bk_esik.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	kutu.add_child(_bk_esik)
+
+	var dugmeler := HBoxContainer.new()
+	dugmeler.add_theme_constant_override("separation", 8)
+	_yeniden_kart_dugme = _dugme("Yeniden", Ayarlar.kisayol(tr("Tekrar dene"), "R"), _yeniden, true, 14)
+	_yeniden_kart_dugme.custom_minimum_size = Vector2(150, 32)
+	_sonraki_dugme = _dugme("Sonraki", Ayarlar.kisayol(tr("Sonraki bölüm"), "Enter"), _sonraki, false, 12)
+	_sonraki_dugme.custom_minimum_size = Vector2(150, 32)
+	dugmeler.add_child(_yeniden_kart_dugme)
+	dugmeler.add_child(_sonraki_dugme)
+	kutu.add_child(dugmeler)
+	var menu := _dugme("Menu", Ayarlar.kisayol(tr("Menüye dön"), "Esc"), _menuye, false, 10)
+	menu.theme_type_variation = &"KartMetin"
+	kutu.add_child(menu)
+	return kok
+
+## Kart girisi: 180 ms alfa, 220 ms olcek 0,96 -> 1 (ease-out cubic).
+func _kart_goster(kok: Control, kart: Control) -> void:
+	kok.visible = true
+	kok.modulate.a = 0.0
+	var t := kok.create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+	t.tween_property(kok, "modulate:a", 1.0, 0.18)
+	if kart != null:
+		kart.pivot_offset = kart.get_combined_minimum_size() * 0.5
+		kart.scale = Vector2(0.96, 0.96)
+		kart.create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC) \
+			.tween_property(kart, "scale", Vector2.ONE, 0.22)
+	var ilk := kok.find_child("Devam", true, false)
+	if ilk is Control:
+		(ilk as Control).grab_focus()
 
 func _ayarlara() -> void:
 	Ses.cal("menu")
@@ -802,77 +1022,23 @@ func _ayarlardan_don() -> void:
 	_duraklat_panel.visible = true
 	_duraklat_panel.find_child("Devam", true, false).grab_focus()
 
-func _etiket(metin: String, boy: int, renk: Color) -> Label:
-	return etiket_yap(metin, boy, renk)
+## Dil degisince arayuz yeniden kurulur (metinler kurulurken cevriliyor).
+## Ayar paneli kendi dugmesinden tetikledigi icin yikim bir kare ertelenir.
+func _dil_degisti() -> void:
+	Gecis.ara(&"glitch", Tema.aktif, _arayuzu_yenile)     # dil degisimi: glitch ortusunun altinda yeni metin
 
-# --- Ortak arayuz parcalari (menu.gd de kullanir) ----------------------
-
-## HUD metni dunya ciziminin onunde; koyu seffaf serit onu kanca noktasi gibi
-## sprite'larin uzerinde de okunur tutar (v0.3.1 web bulgusu).
-static func _serit(e: Label) -> Label:
-	var s := StyleBoxFlat.new()
-	s.bg_color = Color(0.04, 0.05, 0.10, 0.62)
-	s.content_margin_left = 4.0
-	s.content_margin_right = 4.0
-	s.content_margin_top = 1.0
-	s.content_margin_bottom = 1.0
-	s.corner_radius_top_left = 2
-	s.corner_radius_top_right = 2
-	s.corner_radius_bottom_left = 2
-	s.corner_radius_bottom_right = 2
-	e.add_theme_stylebox_override("normal", s)
-	return e
-
-static func etiket_yap(metin: String, boy: int, renk: Color) -> Label:
-	var e := Label.new()
-	e.text = metin
-	e.add_theme_font_size_override("font_size", boy)
-	e.add_theme_color_override("font_color", renk)
-	return e
-
-## 0 altin, 1 gumus, 2 bronz, 3 = gorunmez.
-static func madalya_simgesi(no: int) -> TextureRect:
-	var t := TextureRect.new()
-	var atlas := AtlasTexture.new()
-	atlas.atlas = DOKU_MADALYA
-	atlas.region = Rect2(clampi(no, 0, 2) * 12, 0, 12, 12)
-	t.texture = atlas
-	t.custom_minimum_size = Vector2(12, 12)
-	t.visible = no < 3
-	t.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	return t
-
-static func panel(baslik: String, dugmeler: Array) -> Control:
-	var kok := Control.new()
-	kok.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	kok.mouse_filter = Control.MOUSE_FILTER_STOP
-	kok.visible = false
-
-	var perde := ColorRect.new()
-	perde.color = Color(Palet.GOK_DIP, 0.85)
-	perde.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	kok.add_child(perde)
-
-	var orta := CenterContainer.new()
-	orta.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	kok.add_child(orta)
-
-	var kutu := VBoxContainer.new()
-	kutu.name = "Kutu"
-	kutu.add_theme_constant_override("separation", 8)
-	orta.add_child(kutu)
-
-	var b := etiket_yap(baslik, 16, Color(1, 1, 1))
-	b.name = "Baslik"
-	b.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	kutu.add_child(b)
-
-	for d: Dictionary in dugmeler:
-		var dugme := Button.new()
-		dugme.name = String(d["ad"])
-		dugme.text = String(d["metin"])
-		dugme.add_theme_font_size_override("font_size", 12)
-		dugme.pressed.connect(d["islev"])
-		kutu.add_child(dugme)
-
-	return kok
+func _arayuzu_yenile() -> void:
+	var ayarda := _ayar_panel != null and _ayar_panel.visible
+	var eski := _arayuz
+	_vurgu_kalan = 0.0
+	remove_child(eski)
+	eski.queue_free()
+	_arayuzu_kur()
+	_akis_yaz()
+	if ayarda:
+		AyarPanel.ana_kutuya_don(_ayar_panel)
+		_ayar_panel.visible = true
+		_ayar_panel.find_child("GeriAyar", true, false).grab_focus()
+	elif _duraklatildi:
+		_duraklat_panel.visible = true
+		_duraklat_panel.find_child("Devam", true, false).grab_focus()

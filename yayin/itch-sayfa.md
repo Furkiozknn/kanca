@@ -41,9 +41,9 @@ and a ghost of your own best run to chase.
   in the real physics with randomised reaction delays — it pumps the rope,
   re-routes when a line fails and grabs a rescue anchor mid-fall; the medals
   come from those runs, down to the millisecond.
-- Hand-made pixel art on a single limited palette, procedurally generated chiptune.
+- Flat-colour, shadowless look (navy and paper themes, teal player, orange accent) drawn in code, procedurally generated chiptune.
 - Keyboard + mouse, gamepad, and a **one-finger touch scheme** for phones.
-  Rebindable keys and adjustable aim assist. Turkish interface.
+  Rebindable keys and adjustable aim assist. Turkish and English interface.
 
 **Controls**
 
@@ -72,7 +72,7 @@ whole scheme on desktop from Settings.
 
 - Runs in the browser (single-threaded build — no SharedArrayBuffer needed) and
   as a Windows download.
-- Interface language is Turkish.
+- Interface language: Turkish or English (defaults to your browser language).
 
 ---
 
@@ -83,7 +83,7 @@ whole scheme on desktop from Settings.
 **Kancanı at, sarkaç gibi salın, tam zamanında bırak ve momentumla uç.
 Her bölümü olabildiğince hızlı bitir.**
 
-Fırtınalı gökyüzü adalarında geçen, hız odaklı 2B sallanma platform oyunu.
+Düz renkli, sade bir dünyada geçen, hız odaklı 2B sallanma platform oyunu.
 Çift zıplama yok, atılma yok — elindeki tek şey bir halat ve kendi momentumun.
 Bırakma zamanlaması oyunun tamamı: erken bırakırsan havada kalırsın, geç
 bırakırsan geri savrulursun. On dört bölüm, her birinde altın / gümüş / bronz
@@ -113,9 +113,9 @@ hedef süre ve kovalayacağın kendi en iyi koşunun hayaleti.
   fizikte, rastgele tepki gecikmeleriyle oynuyor — halatı pompalıyor, tıkandığı
   rotayı değiştiriyor, düşerken ara noktaya tutunuyor; madalyalar o koşulardan,
   ms hassasiyetinde.
-- Tek sınırlı palette elle üretilmiş pixel art, kodla üretilmiş chiptune müzik.
+- Kodla çizilen düz renkli görünüm (lacivert ve kâğıt tema, turkuaz oyuncu, turuncu vurgu), kodla üretilmiş chiptune müzik.
 - Klavye + fare, gamepad ve telefon için **tek parmak şeması**. Tuş atama ve
-  ayarlanabilir nişan yardımı. Türkçe arayüz.
+  ayarlanabilir nişan yardımı. Türkçe ve İngilizce arayüz.
 
 **Kontroller**
 
@@ -157,7 +157,7 @@ Masaüstünde Ayarlar'dan denenebilir.
 | Release status | Released |
 | Pricing | Free (donations off) |
 | Genre | Platformer |
-| Tags | pixel-art, speedrun, grappling-hook, physics, precision-platformer, godot, 2d, singleplayer, daily-challenge |
+| Tags | minimalist, speedrun, grappling-hook, physics, precision-platformer, godot, 2d, singleplayer, daily-challenge |
 | Input | Keyboard, Mouse, Gamepad, Touchscreen |
 | Cover image | `yayin/kapak.png` (630×500) |
 | GIF (sayfa metninin başına) | `yayin/tanitim.gif` — 3,6 sn, 640×360: kanca takma → salınım → fırlama bonusu |

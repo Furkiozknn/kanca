@@ -5,12 +5,11 @@ class_name KancaNoktasi
 ##   TUR_HAREKETLI - iki uc arasinda gidip gelir (halat capasi da hareket eder)
 ##   TUR_KIRILGAN  - bir kez tutulur; birakilinca kisa bir uyari sonrasi kirilir
 ##
-## Gorsel assets/sprites/kanca_noktasi.png (3 kare, 16x16). Vurgu ve bagli
-## durumlari modulate ile gosterilir.
+## Gorsel kodla cizilir (duz renk): sabit = dolu disk (video demirinin aynisi),
+## hareketli = disk + turuncu halka, kirilgan = kesik halka. Secili aday
+## turuncuya doner, bagliyken buyur; menzil disi soluk. PNG yok.
 
 const GRUP := &"kanca_noktasi"
-const DOKU := preload("res://assets/sprites/kanca_noktasi.png")
-const KARE := 16
 
 enum { TUR_SABIT, TUR_HAREKETLI, TUR_KIRILGAN }
 
@@ -27,7 +26,7 @@ var _rotada := false            ## altin madalyadan sonra acilan rota ipucu isar
 var _kirildi := false
 var _kirilma_sayaci := 0.0
 var _t := 0.0
-var _gorsel: Sprite2D
+var _gorsel: Node2D
 
 ## Bolum kurulumundan once cagrilir.
 static func yap(yer: Vector2, t: int = TUR_SABIT) -> KancaNoktasi:
@@ -41,10 +40,8 @@ static func yap(yer: Vector2, t: int = TUR_SABIT) -> KancaNoktasi:
 func _ready() -> void:
 	add_to_group(GRUP)
 	z_index = 6
-	_gorsel = Sprite2D.new()
-	_gorsel.texture = DOKU
-	_gorsel.hframes = 3
-	_gorsel.frame = tur
+	_gorsel = Node2D.new()
+	_gorsel.draw.connect(_ciz)
 	add_child(_gorsel)
 	if tur == TUR_HAREKETLI:
 		_t = faz * TAU
@@ -108,24 +105,41 @@ func _kir() -> void:
 	Ses.cal("kirilma")
 	var olay := get_tree().get_first_node_in_group(&"bolum")
 	if olay != null and olay.has_method("parcacik_at"):
-		olay.parcacik_at(global_position, Palet.NOKTA_KIRIK, 12)
+		olay.parcacik_at(global_position, Tema.blok(), 12)
 
 func _renk_guncelle() -> void:
 	if _gorsel == null:
 		return
 	if _bagli:
-		_gorsel.modulate = Color(1.35, 1.2, 0.75)
-		_gorsel.scale = Vector2(1.15, 1.15)
+		_gorsel.scale = Vector2(1.2, 1.2)
 	elif _vurgulu:
-		_gorsel.modulate = Color(1.5, 1.5, 1.5)
-		_gorsel.scale = Vector2(1.08, 1.08)
-	elif not _menzilde:
-		# Menzil disi: soluk ve grimsi - nereye kanca atilamayacagi bir bakista belli.
-		_gorsel.modulate = Color(0.55, 0.58, 0.62, 0.7)
-		_gorsel.scale = Vector2.ONE
-	elif _rotada:
-		_gorsel.modulate = Color(1.25, 1.15, 0.7)
+		_gorsel.scale = Vector2(1.12, 1.12)
+	elif _rotada and _menzilde:
 		_gorsel.scale = Vector2(1.05, 1.05)
 	else:
-		_gorsel.modulate = Color(1, 1, 1)
 		_gorsel.scale = Vector2.ONE
+	_gorsel.queue_redraw()
+
+func _ciz() -> void:
+	var b := Tema.blok()
+	var renk := b
+	if _bagli or _vurgulu:
+		renk = Tema.TURUNCU
+	elif not _menzilde:
+		# Menzil disi: soluk - nereye kanca atilamayacagi bir bakista belli.
+		renk = Color(b, 0.28)
+	match tur:
+		TUR_SABIT:
+			_gorsel.draw_circle(Vector2.ZERO, 4.5, renk, true, -1.0, true)
+		TUR_HAREKETLI:
+			_gorsel.draw_circle(Vector2.ZERO, 3.5, renk, true, -1.0, true)
+			var halka := Tema.TURUNCU if _menzilde else Color(Tema.TURUNCU, 0.3)
+			_gorsel.draw_arc(Vector2.ZERO, 6.5, 0.0, TAU, 24, halka, 1.6, true)
+		TUR_KIRILGAN:
+			# Kesik halka: sekiz yay, aralarinda bosluk.
+			for i in 8:
+				var a0 := float(i) * TAU / 8.0
+				_gorsel.draw_arc(Vector2.ZERO, 5.0, a0, a0 + TAU / 8.0 * 0.6, 5, renk, 2.0, true)
+	if _rotada and _menzilde and not (_bagli or _vurgulu):
+		# Altin madalyadan sonra acilan rota ipucu: turkuaz nokta halkasi.
+		_gorsel.draw_arc(Vector2.ZERO, 9.0, 0.0, TAU, 24, Color(Tema.TURKUAZ, 0.9), 1.2, true)

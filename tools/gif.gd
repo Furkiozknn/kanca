@@ -7,7 +7,7 @@ extends Node2D
 ## esik ustu hizda birak (firlama bonusu: altin parcacik + hiz izi) -> uc.
 ## Her 3. fizik karesi (20 fps) cizimden sonra yakalanir, bellekte tutulur
 ## (diske yazmak kare dusururdu), sonunda 640x360'a indirilip (taban
-## cozunurluk; 2x render edildigi icin kayipsiz) build/gif/kare_NNN.png yazilir.
+## cozunurluk; 2x render, Lanczos ile yumusak kenar) build/gif/kare_NNN.png yazilir.
 
 const BOLUM := 1
 const KARE_ARALIK := 3          ## 60 / 3 = 20 fps
@@ -52,7 +52,7 @@ func _ready() -> void:
 			_kareler.append(get_viewport().get_texture().get_image())
 	for i in _kareler.size():
 		var im := _kareler[i]
-		im.resize(640, 360, Image.INTERPOLATE_NEAREST)
+		im.resize(640, 360, Image.INTERPOLATE_LANCZOS)
 		im.save_png("%s/kare_%03d.png" % [CIKTI, i])
 	print("gif kareleri hazir: %d adet, asama %d, %s" % [_kareler.size(), _asama, CIKTI])
 	get_tree().quit(0 if _asama == 2 else 1)

@@ -58,21 +58,50 @@ var _kanca_tampon := 0.0          ## basis saklandi, hedef bekleniyor
 var _kojot_aday: Node2D = null    ## son gecerli aday (kaybolduktan sonra kisa sure tutulur)
 var _kojot_aday_yasi := 99.0
 
+var _erken_bas := false           ## _input bu basisi zaten isledi (fizik ikinci kez saymasin)
+var _erken_birak := false
 var _dokunmatik := false          ## tek parmak semasi acik mi
 var _dokunma_var := false
 var _dokunma_yer := Vector2.ZERO  ## dunya koordinatinda son dokunma noktasi
 var _dokunma_basti := false       ## bu karede dokunma basildi (karar fizikte verilir)
 var _halat_dokunma := 0.0         ## bu karede dikey kaydirmadan gelen halat degisimi (px)
 
-@onready var _gorsel: AnimatedSprite2D = $Gorsel
 @onready var _halat: Line2D = $Halat
 @onready var _iz: Line2D = $Iz
+
+var _govde := Cizim.govde_kutusu()
+var _poz_esnek := Vector2.ONE       ## havadayken uzama / yuruyus sarkmasi (govde ustune)
+var _nefes := 0.0
+var _adim := 0.0
 
 func _ready() -> void:
 	_halat.top_level = true
 	_halat.visible = false
+	_halat.default_color = Tema.blok()
+	_halat.width = 1.5
 	_iz.top_level = true
 	_iz.visible = false
+	_iz.default_color = Tema.TURUNCU
+
+## Gercek tus/fare olayi geldigi AN kancayi atar/birakir: fizik adimini (60 Hz)
+## beklemek ses, parcacik ve ucus sayacinin baslamasini ortalama ~8 ms
+## geciktiriyordu (tools/his_olc.gd, docs/TASARIM.md). Fizik zaman cizelgesi ayni
+## kalir: durum simdi degisir, konum bir sonraki adimda ilerler. Bot ve testler
+## Input.action_press ile basar (olay gelmez), o yola girmez.
+func _input(olay: InputEvent) -> void:
+	# Duraklatilinca / bolum bitince fizik kapanir; menu tiklari kancaya donmesin.
+	if not girdi_aktif or not is_physics_processing() or Ayarlar.dokunmatik_mi():
+		return
+	if olay.is_action_pressed(&"kanca_at", false):
+		var nisan := nisan_yonu()
+		_nisan = nisan
+		kanca_tamponla(nisan)
+		if not kancali() and not uculuyor() and kanca_at(nisan):
+			_kanca_tampon = 0.0
+		_erken_bas = true
+	elif olay.is_action_released(&"kanca_at"):
+		kanca_birak()
+		_erken_birak = true
 
 func _unhandled_input(olay: InputEvent) -> void:
 	if olay is InputEventMouseMotion:
@@ -264,9 +293,15 @@ func _physics_process(delta: float) -> void:
 		_nisan = nisan_yonu()
 		if not _dokunmatik:
 			if Input.is_action_just_pressed("kanca_at"):
-				kanca_tamponla(_nisan)
+				if _erken_bas:
+					_erken_bas = false          # _input bu basisi zaten kancaya cevirdi
+				else:
+					kanca_tamponla(_nisan)
 			if Input.is_action_just_released("kanca_at"):
-				kanca_birak()
+				if _erken_birak:
+					_erken_birak = false
+				else:
+					kanca_birak()
 		aday_guncelle(_nisan)
 
 	# Dokunmatik: dokun = hedef varsa kanca, yoksa zipla.
@@ -456,29 +491,36 @@ func aday_guncelle(nisan: Vector2) -> void:
 	if is_instance_valid(_aday) and _aday.has_method("vurgu"):
 		_aday.vurgu(true)
 
-## Hedef onizlemesi: secili noktaya kesik cizgi.
+## Hedef onizlemesi (secili noktaya kesik cizgi) + govde.
 func _draw() -> void:
-	if not girdi_aktif or kancali() or _ucus > 0.0 or not is_instance_valid(_aday):
-		return
-	draw_dashed_line(Vector2.ZERO, to_local(_aday.global_position),
-		Color(Palet.NOKTA_VURGU, 0.42), 1.0, 4.0)
+	if girdi_aktif and not kancali() and _ucus <= 0.0 and is_instance_valid(_aday):
+		draw_dashed_line(Vector2.ZERO, to_local(_aday.global_position),
+			Color(Tema.blok(), 0.45), 1.0, 4.0)
+	var goz := Tema.MUREKKEP
+	var esnek := _esnek * _poz_esnek
+	# Ayaklar yerde kalsin: uzama/ezilme tabandan olur (sallanirken merkezden).
+	var ofset := Vector2.ZERO if kancali() else Vector2(0.0, 10.0 * (1.0 - esnek.y))
+	Cizim.oyuncu_ciz(self, _govde, Tema.TURKUAZ, goz, _bakis, esnek, _nisan, ofset)
 
 func _gorsel_guncelle(delta: float) -> void:
 	if absf(velocity.x) > 5.0:
 		_bakis = signf(velocity.x)
-	_gorsel.flip_h = _bakis < 0.0
-	var hedef: StringName
+	# Poz: yerde durusta hafif nefes, kosarken adim sarkmasi, havada uzama.
+	var hedef := Vector2.ONE
 	if kancali():
-		hedef = &"sallan"
+		hedef = Vector2(0.94, 1.06)
 	elif is_on_floor():
-		hedef = &"idle" if absf(velocity.x) < 5.0 else &"yuru"
+		if absf(velocity.x) < 5.0:
+			_nefes += delta * 6.0
+			hedef = Vector2(1.0 - 0.015 * sin(_nefes), 1.0 + 0.03 * sin(_nefes))
+		else:
+			_adim += delta * 20.0
+			hedef = Vector2(1.0, 1.0 - 0.06 * absf(sin(_adim)))
 	else:
-		hedef = &"zipla" if velocity.y < 0.0 else &"dus"
-	if _gorsel.animation != hedef:
-		_gorsel.play(hedef)
+		hedef = Vector2(0.9, 1.12) if velocity.y < 0.0 else Vector2(0.95, 1.06)
+	_poz_esnek = _poz_esnek.lerp(hedef, minf(delta * 16.0, 1.0))
 	# Esneme-sikisma: her karede 1'e dogru toparlanir.
 	_esnek = _esnek.lerp(Vector2.ONE, minf(delta * 12.0, 1.0))
-	_gorsel.scale = _esnek
 
 func _halat_ciz() -> void:
 	if kancali():
@@ -505,6 +547,6 @@ func _iz_guncelle(delta: float) -> void:
 	if _iz_noktalar.size() >= 2:
 		_iz.visible = true
 		_iz.points = _iz_noktalar
-		_iz.modulate.a = clampf((velocity.length() - 300.0) / 400.0, 0.0, 0.55)
+		_iz.modulate.a = clampf((velocity.length() - 300.0) / 350.0, 0.0, 0.95)
 	else:
 		_iz.visible = false

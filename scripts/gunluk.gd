@@ -47,7 +47,7 @@ static func degistirici() -> Dictionary:
 
 ## "14. Final — Kısa halat"
 static func baslik() -> String:
-	return "%d. %s — %s" % [bolum_no(), Bolumler.ad(bolum_no()), String(degistirici()["ad"])]
+	return "%d. %s — %s" % [bolum_no(), Bolumler.ad(bolum_no()), TranslationServer.translate(String(degistirici()["ad"]))]
 
 ## Degistiriciyi oyuncuya uygular. Ayarlar'daki global sabitlere DOKUNMAZ:
 ## oradan degistirmek normal bolumlere de sizardi (Ayarlar autoload, sahne

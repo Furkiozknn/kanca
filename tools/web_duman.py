@@ -7,7 +7,7 @@ sorar:
 
 1. Motor acildi mi?  Godot'nun yukleme perdesi (#status) zaman asimindan once
    kalkmali; sayfada yakalanmamis JS hatasi ya da konsolda "error" olmamali.
-2. Menu girdiye cevap veriyor mu?  "Basla" dugmesine tiklaninca goruntu
+2. Menu girdiye cevap veriyor mu?  "Oyna" dugmesine tiklaninca goruntu
    menuden belirgin bicimde farkli olmali (1. bolum yuklendi).
 3. Oyuncu hareket ediyor mu?  Sag tus basili tutulunca kamera kayar;
    goruntu yine belirgin bicimde degismeli.
@@ -41,8 +41,9 @@ from playwright.sync_api import sync_playwright
 
 GENISLIK, YUKSEKLIK = 1280, 720
 # Taban cozunurluk 640x360, pencereyi dolduracak sekilde olcekleniyor
-# (canvas_resize_policy=2). "Basla" dugmesi menude ortada, ustten ~%39'da.
-BASLA_DUGMESI = (GENISLIK // 2, int(YUKSEKLIK * 0.39))
+# (canvas_resize_policy=2). Buyuk "Oyna" dugmesi menude ortada, ustten ~%49'da
+# (v1.0 arayuzu; eski menude "Basla" %39'daydi).
+BASLA_DUGMESI = (GENISLIK // 2, int(YUKSEKLIK * 0.49))
 ESIK = 0.10
 
 _FARK_JS = """
@@ -134,7 +135,7 @@ def main() -> int:
                 time.sleep(4.0)                       # gecis + bolum kurulumu
                 bolum = sayfa.screenshot()
                 fark = sayfa.evaluate(_FARK_JS, [_veri_url(menu), _veri_url(bolum)])
-                sonuc.append((fark >= ESIK, f"Basla -> 1. bolum: piksellerin %{fark * 100:.0f}'i degisti (esik %{ESIK * 100:.0f})"))
+                sonuc.append((fark >= ESIK, f"Oyna -> 1. bolum: piksellerin %{fark * 100:.0f}'i degisti (esik %{ESIK * 100:.0f})"))
 
                 sayfa.keyboard.down("d"); time.sleep(2.5); sayfa.keyboard.up("d")
                 time.sleep(0.3)

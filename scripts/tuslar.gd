@@ -56,8 +56,13 @@ static func tus_adi(eylem: String) -> String:
 		if olay is InputEventKey:
 			var k := olay as InputEventKey
 			var kod := k.physical_keycode if k.physical_keycode != 0 else k.keycode
+			# Isletim sistemi adlari Ingilizce ("Space", "Escape"): iki tanesi cevrilir.
+			if kod == KEY_SPACE:
+				return Ceviri.t("Boşluk")
+			if kod == KEY_ESCAPE:
+				return "Esc"
 			return OS.get_keycode_string(kod)
 	for olay: InputEvent in InputMap.action_get_events(eylem):
 		if olay is InputEventMouseButton:
-			return "Fare %d" % (olay as InputEventMouseButton).button_index
+			return Ceviri.t("Fare %d") % (olay as InputEventMouseButton).button_index
 	return "—"

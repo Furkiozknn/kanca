@@ -16,6 +16,14 @@ Kayit="*res://scripts/kayit.gd"
 Ses="*res://scripts/ses.gd"
 Gecis="*res://scripts/gecis.gd"
 
+[gui]
+
+theme/custom="res://assets/tema.tres"
+
+[internationalization]
+
+locale/fallback="tr"
+
 [display]
 
 window/size/viewport_width=640

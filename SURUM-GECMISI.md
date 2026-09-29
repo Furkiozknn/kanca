@@ -7,6 +7,42 @@ silinmedi, buraya taşındı.
 Güncel sürümün notları GitHub'da da duruyor:
 <https://github.com/Furkiozknn/kanca/releases>
 
+## Yayınlanmadı — arayüz yenilemesi (29 Eylül 2026, `yenileme/arayuz` dalı)
+
+Çekirdek mekanik, 14 bölüm, fizik ve bot eşikleri v0.5 ile aynı
+(`tools/rota.gd --denetle`: 14/14 bölüm bitiyor, altın eşikler geçerli,
+`rota_verisi.gd` değişmedi). Değişen: görünüm, arayüz, dil ve girdi tepkisi.
+
+- **Görünüm:** oyun tanıtım videosundaki dünyaya taşındı — düz renk, gölgesiz;
+  lacivert (1–7) ve kâğıt (8–14) tema, turkuaz hap oyuncu, turuncu iz ve seçili
+  kanca, kırmızı diken. Pixel-art sprite'lar `_eski/` altına alındı, hiç PNG
+  yok. Yazı: Instrument Sans + JetBrains Mono (OFL).
+- **Arayüz:** menüde tek büyük **Oyna** + tek satır yardım, canlı sarkaç
+  arka planı; HUD `01 / BÖLÜM ADI` + büyük süre + rozetler; duraklat ve bölüm
+  sonu kartları (rekor damgası, madalya, Tekrar dene / Sonraki bölüm); iki
+  sütunlu ayarlar; renk bandı geçişi (sonradan video geçişleri); sıralı giriş; ölümde flaş.
+- **Dil:** Türkçe / İngilizce. Varsayılan işletim sistemi / tarayıcı dili;
+  menüde ve Ayarlar'da dil düğmesi; kayıtlı en iyi süreler ve ilerleme aynen
+  korunur (yalnız yeni `ayarlar/dil` anahtarı).
+- **His:** kanca at/bırak olay geldiği anda uygulanır (bırakma gecikmesi
+  yüksek yenileme hızında ort. ~9 → ~2 ms; 60 Hz vsync'te fark ~0,7 ms).
+  İlk oyunda ipucu yalnız hiç bitirilmemiş bölümde ve ilk kancadan sonra solar.
+  Kayıtları sıfırla iki adımlı. Bölüm sonu `Enter` artık odaktaki düğmeyi
+  çalıştırır (eskiden hep sonraki bölüm).
+- **Günlük video imkânları (renk akışı + geçişler).** `Gecis` artık
+  `assets/gecis.gdshader` ile sekiz aile (iris, glitch, bloklar, itme, perde,
+  flaş, kararma, zoom) ve videolardaki paletlerden (gece: harita, kâğıt: kâğıt)
+  dönen renklerle çalışır: menü açılışı, bölüm geçişi, bölüm/oyun sonu, duraklat,
+  dil değişimi, süre chip'i (kontrol noktası, zincir), "yeni rekor" damgası.
+  Ayarlar'da "Sade geçişler" ve tarayıcı `prefers-reduced-motion`: anında.
+  Test 157 → 216 (`TEST_TABANI` 216). Ayrıntı: `docs/TASARIM.md` §7.
+  Ham kayıt (`tools/kayit.ps1`, 16 sn) yedi geçiş ailesi + bölüm sonu flaşı.
+- **Test:** 115 → 157 (menü, duraklat, bölüm sonu, dil, çeviri, tema, erken
+  girdi). `TEST_TABANI` 157.
+- **Boyut:** web `index.pck` 473.128 → 722.620 bayt (+%0,62 toplam).
+- **Araçlar:** `tools/tema_uret.gd`, `tools/fps.gd`, `tools/his_olc.gd`,
+  `tools/kayit.ps1` (yazısız dikey oynanış klibi), `tests/ekran.gd` yenilendi.
+
 ## v0.5.2 — belge ve depo hijyeni turu (22 Eylül 2026)
 
 Oynanış v0.5 ile aynı. MIT lisansı, `main`'e her push ve PR'da **115 testin**

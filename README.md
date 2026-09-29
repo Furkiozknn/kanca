@@ -6,7 +6,7 @@
 <p align="center"><sub><a href="docs/reel/reel.mp4">Sesli MP4 sürümü</a></sub></p>
 <h3 align="center"><a href="https://furkiozknn.github.io/kanca/">Tarayıcıda oyna → furkiozknn.github.io/kanca</a></h3>
 
-*Throw a hook at the ceiling, swing, release at the right moment and carry the momentum. A speed-focused 2D swinging platformer (Godot 4, Turkish UI); medal times come from real bot runs rather than formulas — 13 of 14 levels measured. 115 tests.*
+*Throw a hook at the ceiling, swing, release at the right moment and carry the momentum. A speed-focused 2D swinging platformer (Godot 4, Turkish and English UI, flat-colour look matching the trailer); medal times come from real bot runs rather than formulas — 13 of 14 levels measured. 216 tests.*
 
 [![CI](https://github.com/Furkiozknn/kanca/actions/workflows/ci.yml/badge.svg)](https://github.com/Furkiozknn/kanca/actions/workflows/ci.yml)
 
@@ -14,15 +14,19 @@
 bölümü en kısa sürede bitir.**
 
 Hız odaklı 2B sallanma platform oyunu. Godot 4.7.2, GL Compatibility,
-640×360 taban çözünürlük. Tema: **fırtınalı gökyüzü adaları**.
+640×360 taban çözünürlük. Görünüm: **tanıtım videosundaki dünya** — düz renk,
+gölgesiz; lacivert (bölüm 1–7) ve kâğıt (8–14) tema, turkuaz oyuncu, turuncu
+vurgu, kırmızı diken. Arayüz **Türkçe ve İngilizce**.
 
 ![Tanıtım](yayin/tanitim.gif)
 
-Durum: **v0.5.2** — MIT lisansı, her push'ta ve her PR'da **115 testin** koştuğu CI.
-Oynanış v0.5 ile aynı; v0.5.1 ve v0.5.2 belge ve depo hijyeni turlarıydı.
+Durum: **arayüz yenilemesi** (son yayın v0.5.2) — her push'ta ve her PR'da
+**216 testin** koştuğu CI. Çekirdek mekanik, bölümler ve bot eşikleri v0.5 ile
+aynı; yenilenen şey görünüm, arayüz, dil ve girdi tepkisi. Denetim ve tasarım
+kararları: [`docs/DENETIM.md`](docs/DENETIM.md), [`docs/TASARIM.md`](docs/TASARIM.md).
 
-**Oyunda ne var:** 14 bölüm, gerçek pixel art, ses ve müzik, ayarlar ekranı,
-madalyalar, hayalet tekrarı (kendi koşun ya da **altın hayalet**), kontrol noktaları,
+**Oyunda ne var:** 14 bölüm, düz renkli vektör dünya (PNG yok), ses ve müzik,
+Türkçe/İngilizce arayüz, ayarlar ekranı, madalyalar, hayalet tekrarı (kendi koşun ya da **altın hayalet**), kontrol noktaları,
 günlük meydan okuma, puanlamalı hedefleme, kancada tampon + kojot, halat pompası,
 bırakma bonusu, ileri bakan kamera, tek parmak dokunmatik şeması, tuş atama, rota
 ipucu ve ustalık zinciri.
@@ -33,7 +37,8 @@ değil. Kalan biri hâlâ tahmin ve "Bilinen sınırlar" bölümünde öyle yaz�
 Sürüm sürüm ne değiştiği: **[SURUM-GECMISI.md](SURUM-GECMISI.md)** · güncel sürümün
 notları [Releases](https://github.com/Furkiozknn/kanca/releases) sayfasında.
 
-![Menü](docs/ekran/menu.png)
+![Menü](docs/ekran/menu_tr.png)
+![6. bölüm](docs/ekran/bolum_06.png)
 ![13. bölüm](docs/ekran/bolum_13.png)
 
 ## Hızlı başlangıç
@@ -43,14 +48,19 @@ notları [Releases](https://github.com/Furkiozknn/kanca/releases) sayfasında.
 bronz eşiğiyle karşılaştırılır; ilk bölümün altını **3,456 sn**.
 
 **Platform:** Windows ve Web (tarayıcı). Klavye + fare, gamepad ya da
-dokunmatik (tek parmak). Arayüz Türkçe.
+dokunmatik (tek parmak). Arayüz Türkçe ve İngilizce: varsayılan dil işletim
+sistemi / tarayıcı dili (Türkçeyse Türkçe, değilse İngilizce), menüden ve
+Ayarlar'dan değiştirilir.
 
 **Oynamanın üç yolu:**
 
 1. **Tarayıcıda:** **[furkiozknn.github.io/kanca](https://furkiozknn.github.io/kanca/)** —
-   kurulum gerekmez. 29 Eylül 2026'da masaüstü Chromium'da açıldı: menü geldi,
-   **Başla** 1. bölümü yükledi, klavyeyle koşuldu, konsolda hata yok.
-   Dokunmatik ve mobil tarayıcı bu kontrolde denenmedi.
+   kurulum gerekmez. 29 Eylül 2026'da yerel web dışa aktarması masaüstü
+   Chromium'da açıldı: menü geldi, **Oyna** 1. bölümü yükledi, klavyeyle
+   koşuldu, duraklat ve dil değişimi çalıştı, konsolda hata yok (yalnız WebGL
+   `Attachment has zero size` uyarıları). Yalnız pencere boyutu emülasyonuyla
+   (375×812 dikey, 812×375 yatay) bakıldı; gerçek dokunmatik ve mobil tarayıcı
+   denenmedi.
 2. **Hazır paket (Godot gerekmez):** [Releases](https://github.com/Furkiozknn/kanca/releases)
    sayfasında yayımlanan her sürüme Windows ve Web zip'i **Yapi** iş akışıyla
    otomatik eklenir. Bu, v0.5.2'den *sonraki* sürümlerden itibaren geçerli;
@@ -97,8 +107,8 @@ düğmelerdeki tuş ekleri düşer ("Geri  (Esc)" → "Geri"): tek eylemli düğ
 geçer; garantiyi bütün ekranları tarayan test veriyor.
 
 Nişan yoksa (fare hareketsiz, çubuk boşta) kanca, bakış yönündeki en uygun
-noktaya gider. Seçili aday nokta beyaz halkayla vurgulanır ve araya **kesik
-çizgi** çekilir, bağlı olan altın rengi yanar, **menzil dışındakiler grileşir**.
+noktaya gider. Seçili aday nokta **turuncuya döner** ve araya **kesik çizgi**
+çekilir, bağlı olan büyür, **menzil dışındakiler soluklaşır**.
 
 ### Tek parmak şeması (mobil)
 
@@ -132,7 +142,7 @@ Nişan, parmağın ekranda bulunduğu noktaya bakar.
 - **İleri bakan kamera.** Kamera hız yönüne kayar (en çok 84 px) ve yüksek hızda
   görüntü %9'a kadar genişler — nereye uçtuğun önceden görünür.
 - **Ustalık zinciri ("Akış").** Yere değmeden art arda taktığın her kanca zinciri
-  uzatır; sol üstte `Akış ×N` görünür, bölüm sonunda en uzun zincir süreden ayrı
+  uzatır; sol üstte `AKIŞ ×N` görünür, bölüm sonunda en uzun zincir süreden ayrı
   not olarak yazılır ve kaydedilir.
 - **Rota ipucu.** Bir bölümde altın madalya kazandıktan sonra, bot rotasının
   kullandığı kanca noktaları altın tonda işaretlenir. Ayarlardan kapatılabilir.
@@ -159,20 +169,21 @@ Nişan, parmağın ekranda bulunduğu noktaya bakar.
 
 Yere değmeden art arda tutulan her nokta zinciri uzatır; HUD'da "Akış ×N"
 olarak görünür (ikiden itibaren). Bölüm başına en uzun zincir kaydedilir
-(`Kayit.akis`), bitiş ekranında "yeni en uzun zincir!" diye kutlanır ve
-**Bölüm Seç** ekranında her düğmenin sağ altında altın "×N" rozeti olarak
+(`Kayit.akis`), bitiş kartında "YENİ EN UZUN ZİNCİR" diye anılır ve
+**Bölüm Seç** ekranında her düğmenin sağ altında turuncu "×N" rozeti olarak
 durur. Süreden ayrı bir not: en hızlı koşu her zaman en şık koşu değil.
 
 ### Bölüm öğeleri
 
 | Öğe | Görünüm | Davranış |
 |---|---|---|
-| Sabit kanca noktası | gri halka | Yerinde durur. |
-| Hareketli kanca noktası | camgöbeği halka | İki uç arasında gidip gelir; halat çapası da hareket eder. |
-| Kırılgan kanca noktası | mor halka, çatlak kaya | Bir kez tutulur; bıraktığın an yanıp söner ve kırılır. |
-| Rüzgâr / itici alan | mavi perde + akan çizgiler | İçindeyken sürekli ivme uygular. Halatı bırakıp akıntıya girmek en hızlı yol. |
-| Diken / tavan dikeni | kırmızı testere | Değince ölüm. Tavan dikenleri halatı kısa tutmayı zorunlu kılar. |
-| Kontrol noktası | direk + halka (yeşilken aktif) | Ölünce buradan devam; süre durmaz. |
+| Sabit kanca noktası | dolu disk (blok rengi) | Yerinde durur. |
+| Hareketli kanca noktası | disk + turuncu halka | İki uç arasında gidip gelir; halat çapası da hareket eder. |
+| Kırılgan kanca noktası | kesik halka | Bir kez tutulur; bıraktığın an yanıp söner ve kırılır. |
+| Rüzgâr / itici alan | soluk perde + akan çizgiler | İçindeyken sürekli ivme uygular. Halatı bırakıp akıntıya girmek en hızlı yol. |
+| Diken / tavan dikeni | kırmızı üçgenler | Değince ölüm. Tavan dikenleri halatı kısa tutmayı zorunlu kılar. |
+| Kontrol noktası | ince direk + flama (turkuazken aktif) | Ölünce buradan devam; süre durmaz. |
+| Bitiş | yüksek direk + turuncu bayrak | Değince bölüm biter. |
 
 ## Bölümler
 
@@ -210,10 +221,11 @@ Her iki yolda da web paketi önce **tarayıcıda duman testinden** geçer
 (`tools/web_duman.py`, [aşağıda](#web-duman-testi)); açılmayan bir paket ne
 artifact'e, ne Pages'e, ne de sürüm sayfasına gider.
 
-Ölçülen boyutlar: web `index.pck` **473.048 bayt**, açılmış web klasörü
-~40 MB (bunun 39,5 MB'ı motorun `index.wasm`'ı), zip'li web paketi ~10 MB,
-zip'li Windows paketi ~38 MB. (`index.pck` 25 Eylül 2026'da yerel dışa
-aktarmadan; zip boyutları Yapi'nin 22 Eylül koşusundan.)
+Ölçülen boyutlar (29 Eylül 2026, yerel dışa aktarma): web `index.pck`
+**722.620 bayt** (arayüz yenilemesinden önce 473.128; fark dört yazı tipi ve
+tema), açılmış web klasörü ~40,5 MB (bunun 39,5 MB'ı motorun `index.wasm`'ı).
+Zip'li web paketi ~10 MB ve zip'li Windows paketi ~38 MB, Yapi'nin 22 Eylül
+koşusundan (yenilemeden önce; yeniden ölçülmedi).
 
 Varsayılanı hiçbir şey yayımlamamaktır. Oynayıp "yayınlanabilir" dediğinde
 aynı pencerede **`sayfaya_yayinla`** kutusunu işaretlemen yeterli: o zaman
@@ -237,8 +249,13 @@ powershell -ExecutionPolicy Bypass -File tools\kilitli.ps1 -- --path . --scene r
 # Testler (çıkış kodu 0 = hepsi geçti, n = kalan test sayısı, 99 = zaman aşımı)
 powershell -ExecutionPolicy Bypass -File tests\calistir.ps1
 
-# Her şey sırayla: varlık üretimi + import + rota + test + ölçüm + ekran + dışa aktarma
+# Her şey sırayla: ses üretimi + import + tema + rota + test + ölçüm + ekran + dışa aktarma
 powershell -ExecutionPolicy Bypass -File tools\tam_dogrulama.ps1
+
+# Kare süresi (A/B için bölüm no + kare sayısı), girdi gecikmesi, ham oynanış kaydı
+powershell -ExecutionPolicy Bypass -File tools\kilitli.ps1 -- --path . -s res://tools/fps.gd -- 10 600
+powershell -ExecutionPolicy Bypass -File tools\kilitli.ps1 -- --path . --scene res://tools/his_olc.tscn -- 80 hizli
+powershell -ExecutionPolicy Bypass -File tools\kayit.ps1        # yazısız dikey 1080x1920 klip (bot kaydı)
 ```
 
 **Yapı dosyaları depoda yok** (`.gitignore`). Dışa aktarma çıktısı
@@ -256,7 +273,7 @@ Ayrıntı ve tuzaklar: `CLAUDE.md`.
 ### Sorun giderme
 
 - **"Not a WAV file … found 'vers'", "Could not preload resource file
-  res://assets/sprites/…png".** Depo Git LFS olmadan klonlanmış; varlıkların
+  res://assets/fonts/…ttf".** Depo Git LFS olmadan klonlanmış; varlıkların
   yerinde ~130 baytlık LFS işaretçileri duruyor. Dikkat: Godot bu durumda
   izlenen `*.import` dosyalarını `valid=false` diye **yeniden yazıyor**, yani
   yalnız `git lfs pull` yetmiyor. Düzeltme:
@@ -282,10 +299,15 @@ Ayrıntı ve tuzaklar: `CLAUDE.md`.
 | Dosya | Ne yapar |
 |---|---|
 | `scripts/ayarlar.gd` | **Tüm ayarlanabilir sabitler.** Oynanış hissi buradan ayarlanır. |
-| `scripts/palet.gd` | Tek palet (Endesga 32 alt kümesi). Her renk buradan gelir. |
-| `scripts/oyuncu.gd` | Koş/zıpla, halat kısıtlı sarkaç, kanca uçuşu, esneme-sıkışma, hız izi. |
-| `scripts/kanca_noktasi.gd` | Kanca noktası: sabit / hareketli / kırılgan. |
-| `scripts/karo_seti.gd` | `karo.png` üzerinden TileSet'i kodla kurar (ayrı `.tres` yok). |
+| `scripts/tema.gd` | Renkler (iki tema + oyuncu/vurgu/tehlike), kutu ve etiket yardımcıları. Her renk buradan gelir. |
+| `scripts/ceviri.gd` | TR → EN tablosu (`tr()` anahtarı Türkçe metnin kendisi) + belirteç denetimi. |
+| `scripts/ui.gd` | Menü öğelerinin sıralı girişi, düğme basış hareketi. |
+| `scripts/cizim.gd` | Oyuncu gövdesi, parçacık dokusu, madalya simgesi (kodla çizim). |
+| `scripts/isaret.gd` | Kontrol noktası ve bitiş bayrağı (kodla çizim). |
+| `scripts/oyuncu.gd` | Koş/zıpla, halat kısıtlı sarkaç, kanca uçuşu, **olay anında kanca at/bırak**, esneme-sıkışma, hız izi. |
+| `scripts/kanca_noktasi.gd` | Kanca noktası: sabit / hareketli / kırılgan (kodla çizim). |
+| `scripts/karo_seti.gd` | Yalnız çarpışma için TileSet'i kodla kurar (ayrı `.tres` yok); çizim `Bolum`'da. |
+| `scripts/ayar_panel.gd` | İki sütunlu ayarlar paneli (ses, dil, oynanış, tuş atama). |
 | `scripts/bolumler.gd` | 14 bölümün tamamının verisi + madalya eşiği seçimi + karo hizalama + görüş hattı. |
 | `scripts/rota_verisi.gd` | **Üretilmiş** — `tools/rota.gd`'nin yazdığı bot süreleri, madalya eşikleri ve rotalar. |
 | `scripts/tuslar.gd` | Tuş atama: kayıttaki özel tuşları `InputMap`'e uygular. |
@@ -296,40 +318,38 @@ Ayrıntı ve tuzaklar: `CLAUDE.md`.
 | `scripts/menu.gd` | Ana menü + bölüm seçme + ayarlar. |
 | `scripts/kayit.gd` | `user://kayit.cfg` — ilerleme, en iyi süreler, ayarlar. Hayaletler `user://hayalet_NN.dat`. |
 | `scripts/ses.gd` | `Muzik` / `Efekt` veri yolları, efekt havuzu, döngülü müzik. |
-| `scripts/gecis.gd` | Sahne geçişi (kararma → değiştir → açılma). |
+| `scripts/gecis.gd`, `assets/gecis.gdshader` | Sahne/bölüm geçişleri: sekiz shader ailesi (iris, glitch, bloklar, itme, perde, flaş, kararma, zoom) + tema paleti; ölüm flaşı, dikey telefon uyarısı. Ayarlar'da "Sade geçişler" ve tarayıcı hareket azaltma: anında. |
 
 Autoload sırası: `Ayarlar`, `Kayit`, `Ses`, `Gecis`.
 
 ## Varlıklar kodla üretilir
 
-GUI aracı kullanılamadığı için **bütün sprite'lar ve sesler betikle üretiliyor**.
-Çıktılar deterministik: aynı tohum, aynı PNG.
+Görüntü tarafında **hiç PNG yok**: dünya (blok, diken, kanca noktası, oyuncu,
+bayrak, madalya) `_draw` ve `Polygon2D` ile vektör çiziliyor. Tema
+(`assets/tema.tres`, düğme/etiket/kaydırıcı stilleri, kodla çizilen anahtar
+simgeleri) ve sesler betikle üretiliyor. Çıktılar deterministik.
 
 ```powershell
-# Sprite'lar (+ docs/sprite_onizleme.png — 4x büyütülmüş kontrol sayfası)
-powershell -ExecutionPolicy Bypass -File tools\kilitli.ps1 -- --headless --path . -s res://tools/sprite_uret.gd
+# Tema (yazı tipleri içe aktarıldıktan sonra; sonra --import)
+powershell -ExecutionPolicy Bypass -File tools\kilitli.ps1 -- --headless --path . -s res://tools/tema_uret.gd
 
 # Ses efektleri (rFXGen ham dosyalarından)
 powershell -ExecutionPolicy Bypass -File tools\kilitli.ps1 -- --headless --path . -s res://tools/ses_uret.gd
 ```
 
-- `tools/sprite_uret.gd` — oyuncu (10 kare), karo seti, kanca noktaları, diken,
-  bayrak, kontrol noktası, madalya, logo, parçacık, rüzgâr çizgisi ve
-  3 parallaks arka plan katmanı.
+- `tools/tema_uret.gd` — `assets/tema.tres`: Instrument Sans + JetBrains Mono
+  (OFL, `assets/fonts/`), birincil / ikincil / kart düğmeleri, rozetler.
 - `tools/ses_uret.gd` + `tools/sesler.md` — 12 efekt, reçete tablosu dosyada.
 - `tools/muzik_uret.gd` — chiptune döngü (oyun `hizli`, menü `sakin`).
+- Eski pixel-art sprite'lar ve üreticisi `_eski/` altında (yenilemeden önceki
+  hâl; dışa aktarmaya girmiyor).
 
-Oyuncu sprite'ı ASCII haritalarla yazılıyor (üst gövde + bacak blokları ayrı,
-kareler bunların birleşimi) — bir pozu değiştirmek birkaç satır düzenlemek demek.
+### Renkler
 
-### Palet
-
-Endesga 32'den 21 renk, 35 adla (`scripts/palet.gd`) — aynı hex birkaç anlamda
-geçiyor (gök ortası = kaya koyusu gibi). Tema kararı: kaya ve gökyüzü soğuk
-gri-mavi, yosun yeşil, **oyuncu turuncu** — arka plandan ve zeminden net ayrışsın
-diye. Tehlike kırmızı — bu kırmızıyı başka hiçbir öğe kullanmıyor. Camgöbeği
-yalnız iki yerde: rüzgâr alanı ve hareketli kanca noktasının halkası (ikisi de
-"hareket" demek, bilerek aynı renk).
+Kancanın tanıtım videosundan örneklendi (`docs/TASARIM.md`): lacivert `#0d1218`,
+kâğıt `#edf2f1`, oyuncu turkuazı `#2ec3b6`, turuncu vurgu `#ff9e1b`, düğme
+`#f0b459`, tehlike `#e94f36` (diken). Turuncu "hareket" demek: iz, seçili kanca
+noktası, hareketli noktanın halkası. Kırmızı yalnız dikenin.
 
 ## Sallanma sabitleri nasıl seçildi
 
@@ -499,6 +519,14 @@ var; müzik döngüsü ayrıca `finished` sinyalinde elle yeniden başlatılıyo
 - **Tuş atama** `InputMap`'e yazılıyor, fare atamasını silmiyor, sıfırlanabiliyor.
 - **Üretilmiş rota verisi** tutarlı: her adım gerçek bir kanca noktası, ardışık
   noktalar zincir menzilinde ve aralarında katı zemin yok; eşikler ms hassasiyetinde.
+- **Arayüz yenilemesi:** proje teması + yazı tipleri (Türkçe harfler, simge
+  yedeği), her `tr()` metninin İngilizcesi ve belirteç uyumu, dil seçimi (otomatik
+  / kayıtlı / geçersiz) ve **eski kaydın bozulmaması**, menü (Oyna ilk odakta, tek
+  satır yardım, iki dil), duraklat (kart, Devam odağı, Ayarlar, dil değişince
+  arayüz yeniden kurulur), bölüm sonu kartı (rekor damgası, madalya, ilk odak
+  kuralı, son bölüm, İngilizce), ilk oyun ipucu, iki adımlı kayıt sıfırlama,
+  olay anında kanca at/bırak (fizik adımı beklemeden, çift sayım yok, duraklatılmış
+  oyuncu kanca atmıyor).
 - **v0.5:** dokunmatikte hiçbir ekranda tuş adı yok (menü, bölüm seçme, ayarlar,
   HUD, duraklat/bitiş panelleri taranıyor; masaüstünde ekler duruyor); bölüm
   seçme ekranında akış rozeti (kayda dokunmadan); botun bekleme/kenar
@@ -528,8 +556,9 @@ Hepsi ölçüldü veya yapılandırmadan doğrulandı — tahmin yok.
   `Windows Masaustu` ve `Web (HTML5)` — adlar `export_presets.cfg`'de aksansız,
   `--export-release` ile birebir böyle yazılmalı. Linux, macOS ve Android dışarı
   aktarımı yok.
-- **Arayüz yalnızca Türkçe.** `project.godot` içinde çeviri/locale girdisi
-  bulunmuyor.
+- **Arayüz Türkçe ve İngilizce; başka dil yok.** Çeviri tablosu
+  `scripts/ceviri.gd`; İngilizce metinler doğal ve kısa tutuldu ama **ana dili
+  İngilizce olan biri okumadı**. Bölüm ipuçları iki dilde de aynı bilgiyi verir.
 - **Web yapısı tek iş parçacıklı** (`thread_support=false`). itch.io'ya
   yüklerken **SharedArrayBuffer kutusu işaretlenmemeli**.
 - **Madalya eşikleri üretilmiş veriden geliyor.** `scripts/rota_verisi.gd`
@@ -570,14 +599,14 @@ Windows'ta sarmalı: `powershell -ExecutionPolicy Bypass -File tests\calistir.ps
 
 `main`'e her push'ta ve her pull request'te **aynı sahne** GitHub Actions'ta
 koşuyor (Godot 4.7.2, Linux
-headless, Git LFS çekilerek). Son ölçüm: **115/115 geçti**.
+headless, Git LFS çekilerek). Son ölçüm: **216/216 geçti**.
 
 **Çıkış kodu tek başına yetmiyor.** Bir test fonksiyonundaki çalışma zamanı
 hatası (null erişimi, eksik metot) yalnızca o fonksiyonu keser: motor
 `SCRIPT ERROR` yazar, kalan testler sayılmaz — toplam da küçülür — ve takım
 yine `N/N gecti` ile 0 döner (gerçek motorla denendi: `114/114 gecti`,
 çıkış 0). CI bu yüzden günlüğü `tests/kapi.sh`'a veriyor: `=== G/T gecti ===`
-satırı olmalı, G = T olmalı, G tabanın (`ci.yml` → `TEST_TABANI`, şu an 115)
+satırı olmalı, G = T olmalı, G tabanın (`ci.yml` → `TEST_TABANI`, şu an 216)
 altına düşmemeli, günlükte `SCRIPT ERROR` / `Parse Error` olmamalı. Bot
 denetimi de aynı kapıdan geçiyor (`--bot`: `denetim temiz` ve
 `denetim bitti: 14/14`, `BOLUM_TABANI`). Kapının kendisi
@@ -587,7 +616,7 @@ yükselt**; düşürmek, bir bölümün sessizce kaybolduğunu kabul etmektir.
 
 ```bash
 godot --headless --path . --scene res://tests/test_kanca.tscn 2>&1 | tee test.log
-bash tests/kapi.sh test.log 115                                  # CI'daki kapının aynısı
+bash tests/kapi.sh test.log 216                                  # CI'daki kapının aynısı
 ```
 
 ### Web duman testi
@@ -595,7 +624,7 @@ bash tests/kapi.sh test.log 115                                  # CI'daki kapı
 Testler oyunun mantığını ölçüyor; dışa aktarılmış web paketinin tarayıcıda
 gerçekten açıldığını değil. `tools/web_duman.py` paketi yerelde sunar,
 Chromium'da açar ve üç şey sorar: motor açıldı mı (konsolda hata yok), menüde
-**Başla**'ya tıklayınca 1. bölüm yüklendi mi, sağ tuş basılıyken oyuncu
+**Oyna**'ya tıklayınca 1. bölüm yüklendi mi, sağ tuş basılıyken oyuncu
 ilerledi mi. Karşılaştırma ekran görüntülerinin piksel farkıyla yapılıyor.
 
 ```bash
@@ -609,6 +638,12 @@ değişti, konsolda hata yok — **3/3**. Bozuk bir `index.pck` ile aynı betik
 Godot'nun "Couldn't load project data" hatasını yakalayıp 1 ile çıkıyor.
 Kare hızı ölçülmüyor: yazılım WebGL'deki sayı oyuncunun makinesi hakkında
 bir şey söylemez.
+
+Arayüz yenilemesinden sonra düğme adı **Oyna** oldu ve konumu değişti
+(`BASLA_DUGMESI`, ekranın %39'undan %49'una): betik güncellendi ama **bu turda
+yerelde koşulamadı** (Playwright kurulu değil); aynı üç adım (açılış, Oyna → 1.
+bölüm, klavyeyle koşu) yerel web dışa aktarmasında Claude Browser ile elle
+denendi, konsolda hata yok.
 
 
 ### Kırık kaynak referansları

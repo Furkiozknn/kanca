@@ -1,4 +1,4 @@
-extends Sprite2D
+extends Node2D
 class_name Hayalet
 ## Bolumun en iyi kosusunun yari saydam tekrari. Ornekler sabit araliklarla
 ## alinmis konumlar; oynatirken aradaki kareler dogrusal ara degerle bulunur.
@@ -14,27 +14,31 @@ class_name Hayalet
 ## sabiti degistirmek eski kayitlari yari hizda oynatirdi.
 
 const ARALIK := 0.10                  ## saniyede 10 ornek
-const DOKU := preload("res://assets/sprites/oyuncu.png")
 
+## Sag/sol bakis: hareket yonunden (Sprite2D.flip_h ile ayni ad).
+var flip_h := false
+var _renk := Color(Tema.TURKUAZ, 0.4)
+var _govde := Cizim.govde_kutusu()
 var _ornekler := PackedVector2Array()
 var _aralik := ARALIK
 var _t := 0.0
 var _onceki := Vector2.ZERO
 
 func _ready() -> void:
-	texture = DOKU
-	hframes = 10
-	frame = 8                          # sallanma karesi
-	modulate = Color(0.55, 0.8, 1.0, 0.42)
 	z_index = 3   # oyuncunun (4) arkasinda
 	visible = false
+
+func _draw() -> void:
+	Cizim.oyuncu_ciz(self, _govde, _renk, Color(Tema.MUREKKEP, _renk.a),
+		-1.0 if flip_h else 1.0, Vector2.ONE, Vector2.ZERO, Vector2.ZERO)
 
 ## altin=true: botun rotasi. Renk ayrisir ki hangisini izledigin belli olsun.
 func kur(ornekler: PackedVector2Array, aralik := ARALIK, altin := false) -> void:
 	_ornekler = ornekler
 	_aralik = aralik if aralik > 0.001 else ARALIK
 	if altin:
-		modulate = Color(Palet.ALTIN, 0.62)
+		_renk = Color(Tema.TURUNCU, 0.62)   # bot izi: turuncu, kendi kosun: soluk turkuaz
+	queue_redraw()
 	basla()
 
 func basla() -> void:
@@ -53,7 +57,8 @@ func _process(delta: float) -> void:
 		visible = false
 		return
 	var yeni := _ornekler[i].lerp(_ornekler[i + 1], fmod(_t, _aralik) / _aralik)
-	if absf(yeni.x - _onceki.x) > 0.5:
+	if absf(yeni.x - _onceki.x) > 0.5 and flip_h != (yeni.x < _onceki.x):
 		flip_h = yeni.x < _onceki.x
+		queue_redraw()
 	_onceki = yeni
 	position = yeni

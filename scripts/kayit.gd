@@ -14,6 +14,8 @@ var salt_okunur := false
 
 func _ready() -> void:
 	_cfg.load(YOL)
+	Ceviri.kur()
+	dil_uygula()
 	Tuslar.uygula()
 	_pencere_uygula()   # Ses autoload'i henuz yok; ses duzeyini Ses kendi _ready'sinde okur
 
@@ -94,9 +96,11 @@ const VARSAYILAN := {
 	"tam_ekran": false,
 	"hayalet_kip": 1,            ## 0 kapali, 1 kendi en iyi kosun, 2 altin hayalet (bot)
 	"sarsinti": true,
+	"gecis_sade": false,          ## true: ekran gecisleri aninda (hareket azaltma); efekt yok, bekleme yok
 	"rota_ipucu": true,          ## altin madalyadan sonra rota noktalarini isaretle
 	"dokunmatik": false,         ## tek parmak semasi (mobilde zaten acik)
 	"nisan_hassasiyet": 0.5,     ## 0 = genis nisan yardimi, 1 = dar ve tam nisan
+	"dil": "",                   ## "" = otomatik (isletim sistemi/tarayici dili), "tr" ya da "en"
 }
 
 func ayar(ad: String) -> Variant:
@@ -110,6 +114,18 @@ func ayar_yaz(ad: String, deger: Variant) -> void:
 func _ayarlari_uygula() -> void:
 	_pencere_uygula()
 	Ses.ses_duzeyi_guncelle()
+	dil_uygula()
+
+## Etkin dil kodu: kullanici secmisse o, degilse sistem dili
+## (OS.get_locale_language; web'de navigator.language): tr ise "tr", digerleri "en".
+func dil_etkin() -> String:
+	var d := String(ayar("dil"))
+	if d == "tr" or d == "en":
+		return d
+	return "tr" if OS.get_locale_language() == "tr" else "en"
+
+func dil_uygula() -> void:
+	TranslationServer.set_locale(dil_etkin())
 
 func _pencere_uygula() -> void:
 	if DisplayServer.get_name().begins_with("headless"):
