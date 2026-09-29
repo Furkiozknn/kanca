@@ -81,7 +81,7 @@ func _ready() -> void:
 	_halat.width = 1.5
 	_iz.top_level = true
 	_iz.visible = false
-	_iz.default_color = Color(Tema.TURUNCU, 0.7)
+	_iz.default_color = Tema.TURUNCU
 
 ## Gercek tus/fare olayi geldigi AN kancayi atar/birakir: fizik adimini (60 Hz)
 ## beklemek ses, parcacik ve ucus sayacinin baslamasini ortalama ~8 ms
@@ -547,6 +547,6 @@ func _iz_guncelle(delta: float) -> void:
 	if _iz_noktalar.size() >= 2:
 		_iz.visible = true
 		_iz.points = _iz_noktalar
-		_iz.modulate.a = clampf((velocity.length() - 300.0) / 400.0, 0.0, 0.55)
+		_iz.modulate.a = clampf((velocity.length() - 300.0) / 350.0, 0.0, 0.95)
 	else:
 		_iz.visible = false

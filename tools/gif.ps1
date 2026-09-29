@@ -6,13 +6,14 @@ $ErrorActionPreference = 'Continue'
 . "$PSScriptRoot\kilit.ps1"
 
 $kok = Split-Path -Parent $PSScriptRoot
+Set-Location $kok   # yolda bosluk olabilir: Godot'a '.' verilir
 $log = Join-Path $env:TEMP 'kanca_gif.log'
 
 # Eski kareler kalmasin: kisa bir kosu eski karelerle karisir.
 $kareKlasor = Join-Path $kok 'build\gif'
 if (Test-Path $kareKlasor) { Remove-Item (Join-Path $kareKlasor 'kare_*.png') -Force -ErrorAction SilentlyContinue }
 
-$kod = Godot-Calistir @('--path', $kok, '--scene', 'res://tools/gif.tscn') $log 120
+$kod = Godot-Calistir @('--path', '.', '--scene', 'res://tools/gif.tscn') $log 120
 if (Test-Path $log) { Get-Content $log }
 if (Test-Path "$log.err") { Get-Content "$log.err" }
 # Start-Process'in ExitCode'u bu ortamda bos donuyor (tam_dogrulama'da da
@@ -25,8 +26,8 @@ if (-not $bitti -or -not (Test-Path (Join-Path $kareKlasor 'kare_000.png'))) {
 
 $kareler = Join-Path $kok 'build\gif\kare_%03d.png'
 $cikti = Join-Path $kok 'yayin\tanitim.gif'
-# Pixel art: titreme (dither) yok, 128 renk yeter; palet tum karelerden.
-$filtre = 'split[a][b];[a]palettegen=max_colors=128:stats_mode=diff[p];[b][p]paletteuse=dither=none:diff_mode=rectangle'
+# Duz renkli dunya: titreme (dither) yok, 64 renk yeter; palet tum karelerden.
+$filtre = 'split[a][b];[a]palettegen=max_colors=64:stats_mode=diff[p];[b][p]paletteuse=dither=none:diff_mode=rectangle'
 & ffmpeg -y -loglevel error -framerate 20 -i $kareler -vf $filtre -loop 0 $cikti
 if ($LASTEXITCODE -ne 0) { Write-Output "ffmpeg EXIT=$LASTEXITCODE"; exit $LASTEXITCODE }
 $boyut = (Get-Item $cikti).Length

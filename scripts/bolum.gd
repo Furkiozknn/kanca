@@ -94,9 +94,9 @@ func _alanlari_ac() -> void:
 ## parallaks. Doku yok, hepsi duz poligon (her olcekte keskin, ucuz).
 func _arka_plani_kur() -> void:
 	var blok := Tema.blok()
-	_bant_katmani(Vector2(0.12, 0.05), Color(blok, 0.025), [[40.0, 56.0], [200.0, 30.0]], 120.0, -9)
-	_bant_katmani(Vector2(0.25, 0.10), Color(blok, 0.035), [[90.0, 24.0], [250.0, 70.0]], 100.0, -8)
-	_bant_katmani(Vector2(0.45, 0.18), Color(blok, 0.05), [[20.0, 14.0], [180.0, 40.0]], 80.0, -7)
+	_bant_katmani(Vector2(0.12, 0.05), Color(blok, 0.02), [[40.0, 56.0], [200.0, 30.0]], 120.0, -9)
+	_bant_katmani(Vector2(0.25, 0.10), Color(blok, 0.026), [[90.0, 24.0], [250.0, 70.0]], 100.0, -8)
+	_bant_katmani(Vector2(0.45, 0.18), Color(blok, 0.032), [[20.0, 14.0], [180.0, 40.0]], 80.0, -7)
 
 func _bant_katmani(olcek: Vector2, renk: Color, bantlar: Array, egim: float, z: int) -> void:
 	var p := Parallax2D.new()

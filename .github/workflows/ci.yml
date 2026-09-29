@@ -31,7 +31,7 @@ env:
   # Test kapisinin tabani: gecen test sayisi bunun altina duserse CI
   # kirmizi. Test EKLEYINCE yukselt (README ile birlikte); dusurmek, bir
   # bolumun sessizce kayboldugunu kabul etmek demek.
-  TEST_TABANI: 115
+  TEST_TABANI: 157
   # Bot denetiminin en az kac bolumu kosup "temiz" saymasi gerektigi.
   BOLUM_TABANI: 14
 

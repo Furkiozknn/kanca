@@ -60,6 +60,7 @@ const EN := {
 	"Varsayılana dön": "Reset to default",
 	"bir tuşa bas…": "press a key…",
 	"Fare %d": "Mouse %d",
+	"Boşluk": "Space",
 	# --- tus adlari (Tuslar.EYLEMLER) ---
 	"Sol / geri sallan": "Left / swing back",
 	"Sağ / ileri sallan": "Right / swing forward",

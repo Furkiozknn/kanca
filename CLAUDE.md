@@ -8,9 +8,18 @@ Godot yolu: PATH'teki `godot` (winget kurulumu `%LOCALAPPDATA%\Microsoft\WinGet\
 
 - **Renderer: GL Compatibility.** Tümleşik Intel UHD hedefi. `gl_compatibility`
   hem masaüstü hem mobil için ayarlı; değiştirme.
-- **Pixel art:** taban çözünürlük 640×360, pencere 1280×720, `stretch/mode=canvas_items`,
-  `aspect=keep`, doku filtresi **nearest** (`default_texture_filter=0`),
-  `snap_2d_transforms_to_pixel` ve `snap_2d_vertices_to_pixel` açık.
+- **Çözünürlük ve görünüm:** taban çözünürlük 640×360, pencere 1280×720,
+  `stretch/mode=canvas_items`, `aspect=keep`, `snap_2d_*_to_pixel` açık. Görünüm
+  **düz renk vektör**: dünyada hiç PNG yok (blok/diken/kanca/oyuncu `_draw` ve
+  `Polygon2D`), pixel-art sprite'lar `_eski/` altında. Tanıtım videosundaki dünya:
+  `docs/TASARIM.md` (renk kodları videodan örneklendi).
+- **Arayüz teması:** `assets/tema.tres` (`gui/theme/custom`), `tools/tema_uret.gd`
+  üretir; yazı tipleri `assets/fonts/` (Instrument Sans + JetBrains Mono, OFL).
+  `.tres` dosyasını elle yazma: betikle üret, sonra `--import`.
+- **Dil:** kaynak Türkçe, `tr("Türkçe metin")` (static metotlarda `Ceviri.t`);
+  İngilizce tablo `scripts/ceviri.gd`. Yeni metinde EN karşılığını eklemezsen
+  `_test_ceviri` kırılır. Varsayılan dil `OS.get_locale_language()`; kayıtlı tercih
+  `ayarlar/dil`.
 - **Karo boyutu 16 px.** Bütün bölüm geometrisi 16'nın katı (`Bolumler.karola()` zorlar).
 - **İkili varlıklar Git LFS'te** (`.gitattributes`: png/wav/ogg/ttf/gif). Taze klonda
   `git lfs pull` yapılmazsa işaretçi dosyalar gelir ve sahneler "bozuk kaynak" der;
@@ -32,11 +41,12 @@ Godot yolu: PATH'teki `godot` (winget kurulumu `%LOCALAPPDATA%\Microsoft\WinGet\
 
 | Yol | Ne var |
 |---|---|
-| `scripts/` | Oyun kodu. Autoload'lar: `Ayarlar`, `Kayit`, `Ses`, `Gecis` (bu sırayla). |
+| `scripts/` | Oyun kodu. Autoload'lar: `Ayarlar`, `Kayit`, `Ses`, `Gecis` (bu sırayla). Tema/dil/çizim: `tema.gd`, `ceviri.gd`, `ui.gd`, `cizim.gd`, `isaret.gd`. |
 | `scripts/rota_verisi.gd` | **Üretilmiş** — `tools/rota.gd` yazar. Elle düzenleme. Madalya eşiği, rota ipucu ve **altın hayalet izi** bu dosyadan gelir. |
 | `scripts/gunluk.gd` | Günlük meydan okuma: tarihten tohum → bölüm + değiştirici. |
 | `scenes/` | `menu.tscn`, `oyuncu.tscn`, `bolumler/bolum_NN.tscn` (sadece `bolum_no` taşır). |
-| `assets/sprites/` | **Üretilmiş** PNG'ler — elle düzenleme, `tools/sprite_uret.gd`'yi düzenle. |
+| `assets/tema.tres`, `assets/fonts/` | **Üretilmiş** tema (`tools/tema_uret.gd`) ve OFL yazı tipleri. |
+| `_eski/` | Yenilemeden önceki sprite'lar, `sprite_uret.gd`, `palet.gd` (`.gdignore` var, dışa aktarmaya girmiyor). |
 | `assets/audio/` | **Üretilmiş** WAV'lar. `_ham/` rFXGen çıktısı, kök dizin işlenmiş efektler. |
 | `tools/` | Varlık üretim ve çalıştırma betikleri. Dışa aktarmaya girmez. |
 | `tests/` | Otomatik testler + ekran görüntüsü aracı. Dışa aktarmaya girmez. |
@@ -51,10 +61,8 @@ arkasında bırakır:
 
 | z | Ne |
 |---|---|
-| CanvasLayer −10 | Gökyüzü degradesi (kameradan bağımsız) |
-| −9 … −7 | Parallaks: uzak ada, bulut, yakın ada |
-| CanvasLayer −1 | Fırtına rüzgâr çizgileri (ekran uzayında) |
-| 1 | Zemin `TileMapLayer` |
+| −9 … −7 | Parallaks: üç katman eğik bant (`Polygon2D`) |
+| 1 | `ZeminCizim` (blok dikdörtgenleri); çarpışma gizli `TileMapLayer`'da |
 | 2 | Diken, tavan dikeni, bayrak, kontrol noktası |
 | 3 | Hayalet, rüzgâr alanı perdesi + parçacıkları |
 | **4** | **Oyuncu** |
@@ -107,8 +115,8 @@ v0.3 ile eklenen `SALLANMA_YERCEKIMI` de aynı sebeple `var` (ölçüm botu tar�
 Hedefleme puanlaması (`NISAN_PUAN_*`), tampon/kojot süreleri, pompa verimi,
 bırakma eşiği ve kamera ayarları da `ayarlar.gd` içinde.
 
-Renkler `scripts/palet.gd` (Endesga 32 alt kümesi). Yeni renk eklemeden önce
-paletteki bir rengi kullanmayı dene.
+Renkler `scripts/tema.gd` (`Tema`): iki tema (gece 1–7, kâğıt 8–14), oyuncu turkuaz,
+vurgu turuncu, tehlike kırmızı. Yeni renk eklemeden önce mevcut birini kullanmayı dene.
 
 ## Komutlar
 
@@ -120,12 +128,12 @@ powershell -ExecutionPolicy Bypass -File tools\kilitli.ps1 -- --headless --path 
 
 # Testler (çıkış kodu 0 = hepsi geçti, n = kalan test sayısı, 99 = zaman aşımı)
 powershell -ExecutionPolicy Bypass -File tests\calistir.ps1
-# CI aynı sahnenin günlüğünü tests/kapi.sh'a verir (taban: ci.yml → TEST_TABANI, şu an 115;
+# CI aynı sahnenin günlüğünü tests/kapi.sh'a verir (taban: ci.yml → TEST_TABANI, şu an 157;
 # SCRIPT ERROR olursa kırmızı, çünkü yarıda kalan test fonksiyonu yine "N/N gecti" der).
 # Test ekleyince TEST_TABANI'nı yükselt. Kapının sınaması (Godot'suz): bash tests/kapi_sinama.sh
 
 # Varlık üretimi (deterministik, her çalıştırmada aynı çıktı)
-powershell -ExecutionPolicy Bypass -File tools\kilitli.ps1 -- --headless --path . -s res://tools/sprite_uret.gd
+powershell -ExecutionPolicy Bypass -File tools\kilitli.ps1 -- --headless --path . -s res://tools/tema_uret.gd   # sonra --import
 powershell -ExecutionPolicy Bypass -File tools\kilitli.ps1 -- --headless --path . -s res://tools/ses_uret.gd
 powershell -ExecutionPolicy Bypass -File tools\kilitli.ps1 -- --headless --path . -s res://tools/muzik_uret.gd -- --cikti res://assets/audio/muzik.wav --ruh hizli --tohum 3
 
@@ -150,7 +158,7 @@ powershell -ExecutionPolicy Bypass -File tools\tam_dogrulama.ps1
 powershell -ExecutionPolicy Bypass -File tools\tam_dogrulama.ps1 -Atla varlik_sprite,varlik_ses,olcum
 ```
 
-Adım adları: `varlik_sprite`, `varlik_ses`, `import`, `rota`, `test`, `olcum`,
+Adım adları: `varlik_ses`, `import`, `tema`, `import2`, `rota`, `test`, `olcum`,
 `ekran`, `export_win`, `export_web`. Her adımın çıktısı `%TEMP%\kanca_<adim>.log`.
 
 ### Kilit kuralı
@@ -237,6 +245,23 @@ hiç Godot süreci yoksa hemen devralır. **Godot'u kilitsiz çalıştırma.**
    ilk satırlarında `Kayit.salt_okunur = true`); yalnız hayalet dosyasını
    gerçekten yazıp okuyan test bayrağı kısa süre kapatıp geri açıyor. v0.5'e
    kadar 98/99 yuvaları ve 1999-01-01/02 günlük tohumu oyuncunun kaydına giriyordu.
+
+19. **Yolda boşluk varsa `--path .` kullan.** `Start-Process -ArgumentList`
+   argümanları tırnaklamıyor: boşluklu bir `--path` "Invalid project path" der.
+   Betikler proje klasörüne `Set-Location` yapıp `.` verir.
+20. **Headless'ta `Input.parse_input_event` düğümlere ulaşmıyor.** Pencereli
+   çalışırsa ulaşıyor (olay bir sonraki kare başında dağıtılır). Bu yüzden erken girdi
+   testi olayı doğrudan `Oyuncu._input()`'a verir; gecikme ölçümü (`tools/his_olc.gd`)
+   pencereli koşar.
+21. **`TileMapLayer.rendering_enabled` yok (4.7).** Yalnız-çarpışma katmanı için
+   `visible = false` yeterli; fizik görünürlüğe bağlı değil. Görünüm `ZeminCizim`'de.
+22. **Heredoc çift ters bölüyü teke indirir** (Python/GDScript yapıştırırken kaçış
+   dizileri bozulur): kaçış içeren betikleri Write aracıyla dosyaya yaz.
+23. **`tr()` static metotta yok** (Object metodu): `Ceviri.t("…")` kullan.
+24. **`ConfigFile.get_value(bölüm, anahtar, null)` "varsayılan yok" sayılır** ve hata
+   basar; yoksa `has_section_key` ile bak.
+25. **Kayıt klibi:** `tools/kayit.ps1` (bot `--kayit`, `--write-movie`). Pencere
+   1280×720 kaydedilir (`--resolution` proje ayarını ezmiyor); ffmpeg 1080'e indirir.
 
 ## Bu depoda yapılmayacaklar
 

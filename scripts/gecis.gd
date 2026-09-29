@@ -64,20 +64,31 @@ func git(yol: String, renk: Color = Tema.TURUNCU) -> void:
 	if _mesgul:
 		return
 	_mesgul = true
+	await kapat(renk)
+	get_tree().change_scene_to_file(yol)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	await ac()
+	_mesgul = false
+
+
+## Bant ekrani soldan ORTER (260 ms, ease-out). tools/rota.gd kayit kipi de bunu
+## sahne degistirmeden kullanir.
+func kapat(renk: Color = Tema.TURUNCU) -> void:
 	_bant.color = renk
 	_bant.position.x = -GENISLIK
 	_bant.visible = true
 	var t := create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
 	t.tween_property(_bant, "position:x", -10.0, ORTME)
 	await t.finished
-	get_tree().change_scene_to_file(yol)
-	await get_tree().process_frame
-	await get_tree().process_frame
-	var t2 := create_tween().set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_CUBIC)
-	t2.tween_property(_bant, "position:x", GENISLIK, ACMA)
-	await t2.finished
+
+
+## Bant saga cikip ekrani ACAR (200 ms, ease-in).
+func ac() -> void:
+	var t := create_tween().set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_CUBIC)
+	t.tween_property(_bant, "position:x", GENISLIK, ACMA)
+	await t.finished
 	_bant.visible = false
-	_mesgul = false
 
 
 ## Sahne degistirmeden kisa flas (olum, bolum basa alma). Girdiyi kilitlemez.

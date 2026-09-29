@@ -129,6 +129,12 @@ const BRONZ_PAY := 2.60
 var _tani := false
 var _denetle := false              ## yazilmis esikleri yeniden olcup sinar, dosya yazmaz
 var _tani_bolum := 1
+## Kayit kipi (sosyal medya klibi): ekranli, arayuzsuz tek oynanis; --write-movie ile.
+##   godot --path . --write-movie kare.png --fixed-fps 60 --resolution 1080x608 \
+##     --scene res://tools/rota.tscn -- --kayit 2,3,6 --hata 3
+## --hata N: N. bolumde ilk kancayi 0,22 sn sonra erken birakir (bir olum-yeniden dogus).
+var _kayit_bolumleri: Array = []
+var _kayit_hata := 0
 
 var _sonuc: Dictionary = {}
 ## Isleneni bolumde sarkacin dibinin girmemesi gereken dikdortgenler (_guvenli_boy).
@@ -158,6 +164,14 @@ func _calistir() -> void:
 	for i in kullanici.size():
 		if kullanici[i] == "--tani" and i + 1 < kullanici.size():
 			_tani_bolum = int(kullanici[i + 1])
+		if kullanici[i] == "--kayit" and i + 1 < kullanici.size():
+			for parca in kullanici[i + 1].split(","):
+				_kayit_bolumleri.append(int(parca))
+		if kullanici[i] == "--hata" and i + 1 < kullanici.size():
+			_kayit_hata = int(kullanici[i + 1])
+	if not _kayit_bolumleri.is_empty():
+		await _kayit_modu()
+		return
 	print("=== Kanca rota + bot kosusu ===")
 	print("bolum basina %d kosu, tepki gecikmesi %.2f-%.2f sn, azami %d kare" % [
 		KOSU_SAYISI, GECIKME_ALT, GECIKME_UST, AZAMI_KARE])
@@ -648,12 +662,20 @@ func _guvenli_boy(capa: Vector2) -> float:
 
 ## Bolumu rotayi izleyerek oynar.
 ## Donen deger: {"sure": sn (0 = bitiremedi), "takildi": rota adimi, "iz": 10 Hz ornekler}
-func _kos(no: int, rota: Array, tohum: int) -> Dictionary:
+func _kos(no: int, rota: Array, tohum: int, ozel: Dictionary = {}) -> Dictionary:
 	var rastgele := RandomNumberGenerator.new()
 	rastgele.seed = hash("kanca-%d-%d" % [no, tohum])
 
 	var bolum: Bolum = load(Bolumler.yol(no)).instantiate()
 	add_child(bolum)
+	if bool(ozel.get("ekran", false)):
+		# Kayit: arayuz katmani gizli (yazi yok), onceki bolumden kalan bant aciliyor.
+		var arayuz: CanvasLayer = bolum.find_child("Arayuz", true, false)
+		if arayuz != null:
+			arayuz.visible = false
+		if bool(ozel.get("ac", false)):
+			Gecis.ac()
+	var hata_yapildi := false
 	for i in 4:
 		await get_tree().physics_frame
 	var oyuncu: Oyuncu = bolum.find_child("Oyuncu", true, false)
@@ -715,6 +737,14 @@ func _kos(no: int, rota: Array, tohum: int) -> Dictionary:
 
 		if oyuncu.kancali():
 			tutma += dt
+			if ozel.has("hata_tutma") and not hata_yapildi and tutma > float(ozel["hata_tutma"]):
+				# Kayit klibi icin bilerek erken birakis: sarkac kurulmadan dusus.
+				hata_yapildi = true
+				oyuncu.kanca_birak()
+				oyuncu.bot_yon = 1.0
+				tutma = 0.0
+				gecikme = 0.6
+				continue
 			var capa: Vector2 = oyuncu.kanca_nokta.global_position
 			var disa := (pos - capa).normalized()
 			var teget := Vector2(-disa.y, disa.x)
@@ -836,6 +866,12 @@ func _kos(no: int, rota: Array, tohum: int) -> Dictionary:
 				kurtarma_mi = true
 				gecikme = rastgele.randf_range(GECIKME_ALT, GECIKME_UST)
 
+	if bool(ozel.get("ekran", false)) and bitti:
+		# Bayragin yaninda kisa bir nefes (parcaciklar), sonra bant ekrani orter.
+		for i in 40:
+			await get_tree().physics_frame
+		if not bool(ozel.get("son", false)):
+			await Gecis.kapat()
 	bolum.free()
 	await get_tree().physics_frame
 	# takildi: bitiremediyse en cok olunen rota adimi (yoksa ulasilan adim).
@@ -845,6 +881,23 @@ func _kos(no: int, rota: Array, tohum: int) -> Dictionary:
 		"olum": olumler.size(),
 		"iz": iz,
 	}
+
+## Kayit kipi: verilen bolumleri sirayla botla oynar (ekranli, arayuzsuz).
+## Sure kare sayisindan gelir; --write-movie kareleri gercek zamandan bagimsiz yazar.
+func _kayit_modu() -> void:
+	print("KAYIT KIPI: bolumler %s, hata bolumu %d" % [str(_kayit_bolumleri), _kayit_hata])
+	for i in _kayit_bolumleri.size():
+		var no: int = _kayit_bolumleri[i]
+		_tehlikeleri_topla(no)
+		var rota := _plan(no)
+		var ozel := {"ekran": true, "ac": i > 0, "son": i == _kayit_bolumleri.size() - 1}
+		if no == _kayit_hata:
+			ozel["hata_tutma"] = 0.22
+		var sonuc := await _kos(no, rota, 1, ozel)
+		print("  kayit bolum %d: %.2f sn, olum %d" % [no, float(sonuc["sure"]), int(sonuc["olum"])])
+	print("=== kayit bitti ===")
+	get_tree().quit(0)
+
 
 ## Olumden sonra: oyuncunun onundeki ilk rota adimina don.
 func _rota_hizala(rota: Array, pos: Vector2) -> int:
