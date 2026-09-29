@@ -4,6 +4,7 @@
 
 <p align="center"><img src="docs/reel/reel.gif" alt="kanca - 15 saniyelik tanıtım videosu" width="720"></p>
 <p align="center"><sub><a href="docs/reel/reel.mp4">Sesli MP4 sürümü</a></sub></p>
+<h3 align="center"><a href="https://furkiozknn.github.io/kanca/">Tarayıcıda oyna → furkiozknn.github.io/kanca</a></h3>
 
 *Throw a hook at the ceiling, swing, release at the right moment and carry the momentum. A speed-focused 2D swinging platformer (Godot 4, Turkish UI); medal times come from real bot runs rather than formulas — 13 of 14 levels measured. 115 tests.*
 
@@ -46,8 +47,10 @@ dokunmatik (tek parmak). Arayüz Türkçe.
 
 **Oynamanın üç yolu:**
 
-1. **Tarayıcıda:** henüz yayında değil. GitHub Pages bu depoda henüz
-   açılmadı; açıldığında adres bu satıra yazılacak.
+1. **Tarayıcıda:** **[furkiozknn.github.io/kanca](https://furkiozknn.github.io/kanca/)** —
+   kurulum gerekmez. 29 Eylül 2026'da masaüstü Chromium'da açıldı: menü geldi,
+   **Başla** 1. bölümü yükledi, klavyeyle koşuldu, konsolda hata yok.
+   Dokunmatik ve mobil tarayıcı bu kontrolde denenmedi.
 2. **Hazır paket (Godot gerekmez):** [Releases](https://github.com/Furkiozknn/kanca/releases)
    sayfasında yayımlanan her sürüme Windows ve Web zip'i **Yapi** iş akışıyla
    otomatik eklenir. Bu, v0.5.2'den *sonraki* sürümlerden itibaren geçerli;
