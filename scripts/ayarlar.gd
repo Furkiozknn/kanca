@@ -62,15 +62,6 @@ const KAMERA_YUMUSAKLIK := 6.0
 const SARSINTI_SONUMU := 9.0         ## sarsinti genligi saniyede bu carpanla soner
 const SARSINTI_HIZ := 34.0           ## sarsinti titresim frekansi
 
-# --- Renkler: tek kaynak scripts/palet.gd ---
-const RENK_ARKAPLAN := Palet.GOK_DIP
-const RENK_HALAT := Palet.HALAT
-const RENK_NOKTA := Palet.NOKTA
-const RENK_NOKTA_VURGU := Palet.NOKTA_VURGU
-const RENK_NOKTA_BAGLI := Palet.NOKTA_BAGLI
-const RENK_METIN := Palet.METIN
-const RENK_METIN_SOLUK := Palet.METIN_SOLUK
-
 # --- Girdi semasi ---
 
 ## Testlerin ezmesi icin: -1 otomatik, 0 zorla kapali, 1 zorla acik.

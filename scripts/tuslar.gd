@@ -59,5 +59,5 @@ static func tus_adi(eylem: String) -> String:
 			return OS.get_keycode_string(kod)
 	for olay: InputEvent in InputMap.action_get_events(eylem):
 		if olay is InputEventMouseButton:
-			return "Fare %d" % (olay as InputEventMouseButton).button_index
+			return Ceviri.t("Fare %d") % (olay as InputEventMouseButton).button_index
 	return "—"

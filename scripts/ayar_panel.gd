@@ -3,21 +3,27 @@ class_name AyarPanel
 ## Ayarlar paneli. Hem ana menude hem duraklatma menusunde ayni panel kullanilir
 ## (duraklatmadaki "Ayarlar" dugmesi bolumu terk etmesin diye).
 ##
-## Butun degerler Kayit uzerinden okunur/yazilir; Kayit.ayar_yaz zaten ses
-## duzeyini ve pencere kipini uyguluyor.
+## Iki sutun: SES ve GORUNTU (muzik, efekt, DIL, tam ekran) | OYNANIS (nisan,
+## hayalet, sarsinti, rota ipucu, tek parmak). Butun degerler Kayit uzerinden
+## okunur/yazilir; Kayit.ayar_yaz zaten ses duzeyini, pencere kipini ve dili
+## uyguluyor.
+
+const SUTUN_G := 236.0
 
 ## geri: "Geri" dugmesine basilinca cagrilacak islev.
 ## perde: arkaya karartma koyulsun mu (bolum icinde evet, menude hayir).
-static func yap(geri: Callable, perde := false) -> Control:
+## dil_degisti: dil dugmesine basilinca cagrilir (cagiran arayuzu yeniden kurar).
+static func yap(geri: Callable, perde := false, dil_degisti := Callable()) -> Control:
 	var kok := Control.new()
 	kok.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	kok.mouse_filter = Control.MOUSE_FILTER_STOP if perde else Control.MOUSE_FILTER_PASS
 	kok.visible = false
 
 	if perde:
-		var p := ColorRect.new()
-		p.color = Color(Palet.GOK_DIP, 0.85)
+		var p := Panel.new()
+		p.theme_type_variation = &"Perde"
 		p.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		p.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		kok.add_child(p)
 
 	var orta := CenterContainer.new()
@@ -27,36 +33,37 @@ static func yap(geri: Callable, perde := false) -> Control:
 
 	var kutu := VBoxContainer.new()
 	kutu.name = "Kutu"
-	# Taban cozunurluk 360 px: v0.3'te uc satir eklenince "Geri" ekrandan
-	# tasti, araliklar daraltildi.
-	kutu.add_theme_constant_override("separation", 3)
+	kutu.add_theme_constant_override("separation", 6)
 	orta.add_child(kutu)
 
-	var baslik := Bolum.etiket_yap("AYARLAR", 20, Color(1, 1, 1))
+	var baslik := Tema.etiket(Ceviri.t("AYARLAR"), 16, Tema.KAGIT, false, true)
 	baslik.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	kutu.add_child(baslik)
-	kutu.add_child(_bosluk(3))
-	kutu.add_child(_kaydirac("Müzik", "muzik_ses", "muzik_acik"))
-	kutu.add_child(_kaydirac("Efekt", "efekt_ses", "efekt_acik"))
-	kutu.add_child(_oran("Nişan", "nisan_hassasiyet", "yardım", "tam nişan"))
-	kutu.add_child(_bosluk(3))
-	kutu.add_child(_anahtar("Tam ekran", "tam_ekran"))
-	kutu.add_child(_secim("Hayalet", "hayalet_kip",
-		["Kapalı", "En iyi koşun", "Altın hayalet (bot)"]))
-	kutu.add_child(_anahtar("Ekran sarsıntısı", "sarsinti"))
-	kutu.add_child(_anahtar("Rota ipucu (altın madalyadan sonra)", "rota_ipucu"))
-	kutu.add_child(_anahtar("Tek parmak şeması (dokunmatik)", "dokunmatik"))
-	kutu.add_child(_bosluk(5))
+
+	var sutunlar := HBoxContainer.new()
+	sutunlar.add_theme_constant_override("separation", 30)
+	kutu.add_child(sutunlar)
+
+	var sol := _sutun(Ceviri.t("SES VE GÖRÜNTÜ"))
+	sol.add_child(_kaydirac(Ceviri.t("Müzik"), "muzik_ses", "muzik_acik"))
+	sol.add_child(_kaydirac(Ceviri.t("Efekt"), "efekt_ses", "efekt_acik"))
+	sol.add_child(_dil(dil_degisti))
+	sol.add_child(_anahtar(Ceviri.t("Tam ekran"), "tam_ekran"))
+	sutunlar.add_child(sol)
+
+	var sag := _sutun(Ceviri.t("OYNANIŞ"))
+	sag.add_child(_oran(Ceviri.t("Nişan"), "nisan_hassasiyet", Ceviri.t("yardım"), Ceviri.t("tam nişan")))
+	sag.add_child(_secim(Ceviri.t("Hayalet"), "hayalet_kip",
+		[Ceviri.t("Kapalı"), Ceviri.t("En iyi koşun"), Ceviri.t("Altın hayalet (bot)")]))
+	sag.add_child(_anahtar(Ceviri.t("Ekran sarsıntısı"), "sarsinti"))
+	sag.add_child(_anahtar(Ceviri.t("Rota ipucu (altından sonra)"), "rota_ipucu"))
+	sag.add_child(_anahtar(Ceviri.t("Tek parmak şeması (dokunmatik)"), "dokunmatik"))
+	sutunlar.add_child(sag)
 
 	# Tus atama ayri bir kutuda; ayni kok icinde gorunurluk degistiriliyor.
-	# Dokunmatikte HIC KURULMAZ: telefonda klavye yok, atanacak tus da yok
-	# ("Tuşa bas: değiştir" ekrani orada anlamsiz).
+	# Dokunmatikte HIC KURULMAZ: telefonda klavye yok, atanacak tus da yok.
 	if Ayarlar.dokunmatik_mi():
-		var d2 := Button.new()
-		d2.name = "GeriAyar"
-		d2.text = "Geri"
-		d2.add_theme_font_size_override("font_size", 13)
-		d2.pressed.connect(geri)
+		var d2 := _geri_dugmesi("GeriAyar", Ceviri.t("Geri"), geri)
 		kutu.add_child(d2)
 		return kok
 
@@ -71,24 +78,34 @@ static func yap(geri: Callable, perde := false) -> Control:
 		kok.find_child("TusAtama", true, false).grab_focus()
 		Ses.cal("menu")))
 
+	var alt := HBoxContainer.new()
+	alt.alignment = BoxContainer.ALIGNMENT_CENTER
+	alt.add_theme_constant_override("separation", 10)
 	var t := Button.new()
 	t.name = "TusAtama"
-	t.text = "Tuş atama"
-	t.add_theme_font_size_override("font_size", 13)
+	t.text = Ceviri.t("Tuş atama")
+	t.custom_minimum_size = Vector2(150, 28)
 	t.pressed.connect(func() -> void:
 		orta.visible = false
 		tus_orta.visible = true
 		tus_orta.find_child("GeriTus", true, false).grab_focus()
 		Ses.cal("menu"))
-	kutu.add_child(t)
-
-	var d := Button.new()
-	d.name = "GeriAyar"
-	d.text = Ayarlar.kisayol("Geri", "Esc")
+	alt.add_child(t)
+	var d := _geri_dugmesi("GeriAyar", Ayarlar.kisayol(Ceviri.t("Geri"), "Esc"), geri)
+	d.theme_type_variation = &"Birincil"
 	d.add_theme_font_size_override("font_size", 13)
-	d.pressed.connect(geri)
-	kutu.add_child(d)
+	d.custom_minimum_size = Vector2(150, 28)
+	alt.add_child(d)
+	kutu.add_child(alt)
 	return kok
+
+static func _geri_dugmesi(ad: String, metin: String, geri: Callable) -> Button:
+	var d := Button.new()
+	d.name = ad
+	d.text = metin
+	d.custom_minimum_size = Vector2(0, 28)
+	d.pressed.connect(geri)
+	return d
 
 ## Ayarlar her acilista ana kutudan baslasin (tus atama acik kalmasin).
 static func ana_kutuya_don(kok: Control) -> void:
@@ -99,59 +116,90 @@ static func ana_kutuya_don(kok: Control) -> void:
 	if ana != null:
 		ana.visible = true
 
+static func _sutun(baslik: String) -> VBoxContainer:
+	var v := VBoxContainer.new()
+	v.custom_minimum_size = Vector2(SUTUN_G, 0)
+	v.add_theme_constant_override("separation", 4)
+	v.add_child(Tema.etiket(baslik, 8, Tema.etiket_rengi(Tema.KAGIT)))
+	return v
+
+## Dil: etkin dilin adini gosteren dugme; basinca digerine gecer.
+static func _dil(degisti: Callable) -> Control:
+	var satir := HBoxContainer.new()
+	satir.add_theme_constant_override("separation", 8)
+	var e := Tema.etiket(Ceviri.t("Dil"), 12, Tema.KAGIT, false)
+	e.custom_minimum_size = Vector2(56, 0)
+	satir.add_child(e)
+	var d := Button.new()
+	d.name = "Dil"
+	d.text = "English" if Kayit.dil_etkin() == "tr" else "Türkçe"
+	d.tooltip_text = "Türkçe / English"
+	d.custom_minimum_size = Vector2(110, 24)
+	d.pressed.connect(func() -> void:
+		Kayit.ayar_yaz("dil", "en" if Kayit.dil_etkin() == "tr" else "tr")
+		Ses.cal("menu")
+		if degisti.is_valid():
+			degisti.call())
+	satir.add_child(d)
+	return satir
+
 ## Tus atama kutusu: her eylem icin bir TusDugmesi + varsayilana don.
 static func _tus_kutusu(geri: Callable) -> Control:
 	var kutu := VBoxContainer.new()
 	kutu.add_theme_constant_override("separation", 3)
-	var baslik := Bolum.etiket_yap("TUŞ ATAMA", 16, Color(1, 1, 1))
+	var baslik := Tema.etiket(Ceviri.t("TUŞ ATAMA"), 16, Tema.KAGIT, false, true)
 	baslik.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	kutu.add_child(baslik)
-	kutu.add_child(Bolum.etiket_yap("Tuşa bas: değiştir · Esc: vazgeç", 10, Ayarlar.RENK_METIN_SOLUK))
+	var not_e := Tema.etiket(Ceviri.t("Tuşa bas: değiştir · Esc: vazgeç"), 8, Tema.etiket_rengi(Tema.KAGIT))
+	not_e.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	kutu.add_child(not_e)
 
 	var dugmeler: Array[TusDugmesi] = []
 	for eylem: String in Tuslar.EYLEMLER:
 		var satir := HBoxContainer.new()
 		satir.add_theme_constant_override("separation", 8)
-		var e := Bolum.etiket_yap(String(Tuslar.EYLEMLER[eylem]), 11, Ayarlar.RENK_METIN)
-		e.custom_minimum_size = Vector2(150, 0)
+		var e := Tema.etiket(Ceviri.t(String(Tuslar.EYLEMLER[eylem])), 11, Tema.KAGIT, false)
+		e.custom_minimum_size = Vector2(170, 0)
 		satir.add_child(e)
 		var d := TusDugmesi.yap(eylem)
 		dugmeler.append(d)
 		satir.add_child(d)
 		kutu.add_child(satir)
 
-	kutu.add_child(_bosluk(3))
+	var alt := HBoxContainer.new()
+	alt.alignment = BoxContainer.ALIGNMENT_CENTER
+	alt.add_theme_constant_override("separation", 8)
 	var sifirla := Button.new()
-	sifirla.text = "Varsayılana dön"
-	sifirla.add_theme_font_size_override("font_size", 12)
+	sifirla.text = Ceviri.t("Varsayılana dön")
+	sifirla.custom_minimum_size = Vector2(150, 26)
 	sifirla.pressed.connect(func() -> void:
 		Kayit.tuslari_sifirla()
 		for d: TusDugmesi in dugmeler:
 			d._yaz()
 		Ses.cal("menu"))
-	kutu.add_child(sifirla)
-
+	alt.add_child(sifirla)
 	var g := Button.new()
 	g.name = "GeriTus"
-	g.text = "Geri"
+	g.text = Ceviri.t("Geri")
+	g.custom_minimum_size = Vector2(120, 26)
+	g.theme_type_variation = &"Birincil"
 	g.add_theme_font_size_override("font_size", 12)
 	g.pressed.connect(geri)
-	kutu.add_child(g)
+	alt.add_child(g)
+	kutu.add_child(alt)
 	return kutu
 
 ## Coktan secmeli ayar (deger = secenegin sirasi). Hayalet kaynagi icin:
 ## acik/kapali yetmiyor, ucuncu bir secenek var (botun altin kosusu).
-## Satir sayisi artmasin diye ayri bir anahtar degil, tek OptionButton.
 static func _secim(baslik: String, ad: String, secenekler: Array) -> Control:
 	var satir := HBoxContainer.new()
 	satir.add_theme_constant_override("separation", 8)
-	var e := Bolum.etiket_yap(baslik, 12, Ayarlar.RENK_METIN)
+	var e := Tema.etiket(baslik, 12, Tema.KAGIT, false)
 	e.custom_minimum_size = Vector2(56, 0)
 	satir.add_child(e)
 	var s := OptionButton.new()
 	s.name = ad
-	s.add_theme_font_size_override("font_size", 11)
-	s.custom_minimum_size = Vector2(190, 0)
+	s.custom_minimum_size = Vector2(170, 24)
 	for metin: String in secenekler:
 		s.add_item(metin)
 	s.selected = clampi(int(Kayit.ayar(ad)), 0, secenekler.size() - 1)
@@ -165,23 +213,24 @@ static func _secim(baslik: String, ad: String, secenekler: Array) -> Control:
 static func _oran(baslik: String, ad: String, sol: String, sag: String) -> Control:
 	var satir := HBoxContainer.new()
 	satir.add_theme_constant_override("separation", 8)
-	var e := Bolum.etiket_yap(baslik, 12, Ayarlar.RENK_METIN)
+	var e := Tema.etiket(baslik, 12, Tema.KAGIT, false)
 	e.custom_minimum_size = Vector2(56, 0)
 	satir.add_child(e)
 	var k := HSlider.new()
-	k.custom_minimum_size = Vector2(150, 18)
+	k.custom_minimum_size = Vector2(100, 20)
+	k.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	k.min_value = 0.0
 	k.max_value = 1.0
 	k.step = 0.05
 	k.value = float(Kayit.ayar(ad))
-	var not_metni := Bolum.etiket_yap("", 10, Ayarlar.RENK_METIN_SOLUK)
-	not_metni.custom_minimum_size = Vector2(72, 0)
+	var not_metni := Tema.etiket("", 8, Tema.etiket_rengi(Tema.KAGIT))
+	not_metni.custom_minimum_size = Vector2(60, 0)
 	k.value_changed.connect(func(v: float) -> void:
 		Kayit.ayar_yaz(ad, v)
-		not_metni.text = sol if v < 0.34 else (sag if v > 0.66 else "orta")
+		not_metni.text = sol if v < 0.34 else (sag if v > 0.66 else Ceviri.t("orta"))
 		Ses.cal("menu"))
 	satir.add_child(k)
-	not_metni.text = sol if k.value < 0.34 else (sag if k.value > 0.66 else "orta")
+	not_metni.text = sol if k.value < 0.34 else (sag if k.value > 0.66 else Ceviri.t("orta"))
 	satir.add_child(not_metni)
 	return satir
 
@@ -189,15 +238,16 @@ static func _oran(baslik: String, ad: String, sol: String, sag: String) -> Contr
 static func _kaydirac(baslik: String, oran_ad: String, acik_ad: String) -> Control:
 	var satir := HBoxContainer.new()
 	satir.add_theme_constant_override("separation", 8)
-	var e := Bolum.etiket_yap(baslik, 12, Ayarlar.RENK_METIN)
+	var e := Tema.etiket(baslik, 12, Tema.KAGIT, false)
 	e.custom_minimum_size = Vector2(56, 0)
 	satir.add_child(e)
 
-	var yuzde := Bolum.etiket_yap("", 11, Ayarlar.RENK_METIN_SOLUK)
-	yuzde.custom_minimum_size = Vector2(38, 0)
+	var yuzde := Tema.etiket("", 8, Tema.etiket_rengi(Tema.KAGIT))
+	yuzde.custom_minimum_size = Vector2(28, 0)
 
 	var k := HSlider.new()
-	k.custom_minimum_size = Vector2(150, 18)
+	k.custom_minimum_size = Vector2(100, 20)
+	k.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	k.min_value = 0.0
 	k.max_value = 1.0
 	k.step = 0.05
@@ -221,14 +271,9 @@ static func _kaydirac(baslik: String, oran_ad: String, acik_ad: String) -> Contr
 static func _anahtar(baslik: String, ad: String) -> Control:
 	var c := CheckButton.new()
 	c.text = baslik
-	c.add_theme_font_size_override("font_size", 12)
 	c.button_pressed = bool(Kayit.ayar(ad))
+	c.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	c.toggled.connect(func(v: bool) -> void:
 		Kayit.ayar_yaz(ad, v)
 		Ses.cal("menu"))
-	return c
-
-static func _bosluk(yukseklik: int) -> Control:
-	var c := Control.new()
-	c.custom_minimum_size = Vector2(0, yukseklik)
 	return c

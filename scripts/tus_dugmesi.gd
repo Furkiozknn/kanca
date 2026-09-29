@@ -20,7 +20,7 @@ func _ready() -> void:
 
 func _basla() -> void:
 	_bekliyor = true
-	text = "bir tuşa bas…"
+	text = Ceviri.t("bir tuşa bas…")
 	Ses.cal("menu")
 
 func _input(olay: InputEvent) -> void:

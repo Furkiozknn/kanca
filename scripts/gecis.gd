@@ -1,53 +1,103 @@
 extends CanvasLayer
-## Sahne gecisi: kararma -> sahne degistir -> acilma. Otomatik yuklenen tekil.
+## Sahne gecisi (autoload "Gecis"): tam ekran renk bandi soldan girer (~260 ms),
+## sahne degisir, bant saga cikar (~200 ms). Stil rehberi: turuncu bant.
+## Olumde sahne degismez: ekran kisa bir tehlike rengi flasiyla yanip soner.
 ## Duraklatma sirasinda da calisir (PROCESS_MODE_ALWAYS).
 
-const SURE := 0.22
+const ORTME := 0.26
+const ACMA := 0.20
+const GENISLIK := 660.0
+const FLAS := 0.30
 
-var _perde: ColorRect
+var _bant: ColorRect
+var _flas: ColorRect
 var _mesgul := false
+var _ipucu: Label
+var _dikey_kart: Panel
+var _ipucu_sayac := 0.0
+
 
 func _ready() -> void:
-	process_mode = Node.PROCESS_MODE_ALWAYS
 	layer = 100
-	_perde = ColorRect.new()
-	_perde.color = Color(Palet.GOK_DIP, 1.0)
-	_perde.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	_perde.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_perde.visible = false
-	add_child(_perde)
-	ac()
+	process_mode = Node.PROCESS_MODE_ALWAYS
+	_bant = ColorRect.new()
+	_bant.color = Tema.TURUNCU
+	_bant.size = Vector2(GENISLIK, 380.0)
+	_bant.position = Vector2(-GENISLIK, -10.0)
+	_bant.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_bant.visible = false
+	add_child(_bant)
+	_flas = ColorRect.new()
+	_flas.color = Color(Tema.DIKEN, 0.0)
+	_flas.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_flas.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_flas)
+	# Dikey telefon: oyun 16:9'a kilitli, yatay tutmak gerekir. Pencere dikeye
+	# donunce 4 sn'lik bir ipucu cikar.
+	_dikey_kart = Panel.new()
+	_dikey_kart.theme_type_variation = &"Kagit"
+	_dikey_kart.position = Vector2(40.0, 110.0)
+	_dikey_kart.size = Vector2(560.0, 140.0)
+	_dikey_kart.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_dikey_kart.visible = false
+	add_child(_dikey_kart)
+	_ipucu = Label.new()
+	_ipucu.theme_type_variation = &"KartBaslik"
+	_ipucu.add_theme_font_size_override("font_size", 24)
+	_ipucu.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_ipucu.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_ipucu.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_ipucu.position = Vector2(20.0, 10.0)
+	_ipucu.size = Vector2(520.0, 120.0)
+	_ipucu.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_dikey_kart.add_child(_ipucu)
+	get_tree().root.size_changed.connect(_boyut_degisti)
+	_boyut_degisti.call_deferred()
 
-## Ekrani karart, sahneyi degistir, tekrar ac.
-func git(yol: String) -> void:
+
+func mesgul_mu() -> bool:
+	return _mesgul
+
+
+## Sahneyi bantla degistirir. Bant sirasinda ikinci cagri yok sayilir (cift tik).
+func git(yol: String, renk: Color = Tema.TURUNCU) -> void:
 	if _mesgul:
 		return
 	_mesgul = true
-	await _karart()
+	_bant.color = renk
+	_bant.position.x = -GENISLIK
+	_bant.visible = true
+	var t := create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+	t.tween_property(_bant, "position:x", -10.0, ORTME)
+	await t.finished
 	get_tree().change_scene_to_file(yol)
 	await get_tree().process_frame
+	await get_tree().process_frame
+	var t2 := create_tween().set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_CUBIC)
+	t2.tween_property(_bant, "position:x", GENISLIK, ACMA)
+	await t2.finished
+	_bant.visible = false
 	_mesgul = false
-	ac()
 
-## Sahne degistirmeden karart-ac (olum, bolum basa alma).
+
+## Sahne degistirmeden kisa flas (olum, bolum basa alma). Girdiyi kilitlemez.
 func yanip_son() -> void:
-	if _mesgul:
-		return
-	_mesgul = true
-	await _karart()
-	_mesgul = false
-	ac()
+	_flas.color = Color(Tema.DIKEN, 0.34)
+	var t := create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+	t.tween_property(_flas, "color:a", 0.0, FLAS)
 
-func _karart() -> void:
-	_perde.visible = true
-	_perde.modulate.a = 0.0
-	var t := create_tween()
-	t.tween_property(_perde, "modulate:a", 1.0, SURE)
-	await t.finished
 
-func ac() -> void:
-	_perde.visible = true
-	_perde.modulate.a = 1.0
-	var t := create_tween()
-	t.tween_property(_perde, "modulate:a", 0.0, SURE)
-	t.tween_callback(func() -> void: _perde.visible = false)
+## Pencere dikeyse (telefon) "yatay tut" ipucu; yataya donunce kaybolur.
+func _boyut_degisti() -> void:
+	var boyut := get_tree().root.size
+	var dikey: bool = boyut.y > boyut.x
+	_ipucu.text = tr("Cihazını yatay çevir")
+	_dikey_kart.visible = dikey
+	_ipucu_sayac = 4.0 if dikey else 0.0
+
+
+func _process(delta: float) -> void:
+	if _ipucu_sayac > 0.0:
+		_ipucu_sayac -= delta
+		if _ipucu_sayac <= 0.0:
+			_dikey_kart.visible = false

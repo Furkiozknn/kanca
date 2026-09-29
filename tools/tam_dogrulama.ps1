@@ -2,7 +2,7 @@
 #   powershell -ExecutionPolicy Bypass -File tools\tam_dogrulama.ps1
 #   powershell -ExecutionPolicy Bypass -File tools\tam_dogrulama.ps1 -Atla varlik,ekran
 #
-# Adimlar: varlik (sprite+ses) -> import -> rota -> test -> olcum -> ekran -> disa aktarma
+# Adimlar: varlik (ses) -> tema -> import -> rota -> test -> olcum -> ekran -> disa aktarma
 # 'rota' madalya surelerini ve rota ipucunu uretir; testler bu veriyi kontrol
 # ettigi icin testten ONCE calisir.
 # Her adimin ciktisi $env:TEMP\kanca_<adim>.log dosyasina yazilir; ozet ekrana basilir.
@@ -33,9 +33,11 @@ function Adim {
 
 Kilit-Al
 try {
-  Adim 'varlik_sprite' @('--headless', '--path', $kok, '-s', 'res://tools/sprite_uret.gd')
   Adim 'varlik_ses'    @('--headless', '--path', $kok, '-s', 'res://tools/ses_uret.gd')
   Adim 'import'        @('--headless', '--path', $kok, '--import')
+  # Tema, yazi tipleri iceri aktarildiktan SONRA uretilir (tools/tema_uret.gd).
+  Adim 'tema'          @('--headless', '--path', $kok, '-s', 'res://tools/tema_uret.gd')
+  Adim 'import2'       @('--headless', '--path', $kok, '--import')
   # --fixed-fps: fizik kareleri gercek zamandan koparilir, yoksa bot kosusu
   # bolum basina ~4 dakika surer (bkz. tools/rota.gd basligi).
   Adim 'rota'          @('--headless', '--fixed-fps', '60', '--path', $kok, '--scene', 'res://tools/rota.tscn') 900

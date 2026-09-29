@@ -90,7 +90,7 @@ const VERI := [
 	},
 	{
 		"ad": "Sallanan Kayalar",
-		"ipucu": "Camgöbeği halkalar yerinde durmaz. Zamanlamayı yakala.",
+		"ipucu": "Turuncu halkalı noktalar yerinde durmaz. Zamanlamayı yakala.",
 		"basla": Vector2(64, 256),
 		"bitis": Vector2(2128, 272),
 		"zemin": [Rect2(0, 304, 352, 64), Rect2(688, 304, 240, 64),
@@ -121,7 +121,7 @@ const VERI := [
 	},
 	{
 		"ad": "Tek Kullanımlık",
-		"ipucu": "Mor halkalar bir kez tutulur; bıraktığın an kırılır. Duraklama.",
+		"ipucu": "Kesik halkalar bir kez tutulur; bıraktığın an kırılır. Duraklama.",
 		"basla": Vector2(64, 256),
 		"bitis": Vector2(2224, 272),
 		"zemin": [Rect2(0, 304, 336, 64), Rect2(720, 304, 208, 64),
@@ -135,7 +135,7 @@ const VERI := [
 	},
 	{
 		"ad": "Rüzgâr",
-		"ipucu": "Mavi akıntı seni taşır. Halatı bırakıp akıntıya gir.",
+		"ipucu": "Akan çizgiler seni taşır. Halatı bırakıp akıntıya gir.",
 		"basla": Vector2(64, 256),
 		"bitis": Vector2(2464, 272),
 		"zemin": [Rect2(0, 304, 352, 64), Rect2(848, 304, 224, 64),
@@ -274,11 +274,12 @@ static func madalya_esikleri(bolum_no: int) -> Array:
 static func ipucu(bolum_no: int) -> String:
 	var d := veri(bolum_no)
 	if Ayarlar.dokunmatik_mi() and d.has("ipucu_dokunma"):
-		return String(d["ipucu_dokunma"])
-	return String(d["ipucu"])
+		return TranslationServer.translate(String(d["ipucu_dokunma"]))
+	return TranslationServer.translate(String(d["ipucu"]))
 
+## Bolum adi, etkin dile cevrilmis (kaynak metin Turkce).
 static func ad(bolum_no: int) -> String:
-	return String(VERI[clampi(bolum_no, 1, VERI.size()) - 1]["ad"])
+	return TranslationServer.translate(String(VERI[clampi(bolum_no, 1, VERI.size()) - 1]["ad"]))
 
 ## Bolum sahnesinin yolu.
 static func yol(bolum_no: int) -> String:
@@ -359,3 +360,7 @@ static func madalya(bolum_no: int, sure: float) -> int:
 	return 3
 
 const MADALYA_ADI: PackedStringArray = ["Altın", "Gümüş", "Bronz", "—"]
+
+## Madalya adi, etkin dile cevrilmis.
+static func madalya_adi(i: int) -> String:
+	return TranslationServer.translate(MADALYA_ADI[clampi(i, 0, 3)])
