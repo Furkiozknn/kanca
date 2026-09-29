@@ -49,6 +49,7 @@ static func yap(geri: Callable, perde := false, dil_degisti := Callable()) -> Co
 	sol.add_child(_kaydirac(Ceviri.t("Efekt"), "efekt_ses", "efekt_acik"))
 	sol.add_child(_dil(dil_degisti))
 	sol.add_child(_anahtar(Ceviri.t("Tam ekran"), "tam_ekran"))
+	sol.add_child(_anahtar(Ceviri.t("Sade geçişler (hareketi azalt)"), "gecis_sade"))
 	sutunlar.add_child(sol)
 
 	var sag := _sutun(Ceviri.t("OYNANIŞ"))

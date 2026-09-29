@@ -42,6 +42,7 @@ const EN := {
 	"Efekt": "Effects",
 	"Dil": "Language",
 	"Tam ekran": "Fullscreen",
+	"Sade geçişler (hareketi azalt)": "Simple transitions (reduce motion)",
 	"Nişan": "Aim",
 	"yardım": "assist",
 	"tam nişan": "precise",

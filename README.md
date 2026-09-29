@@ -6,7 +6,7 @@
 <p align="center"><sub><a href="docs/reel/reel.mp4">Sesli MP4 sürümü</a></sub></p>
 <h3 align="center"><a href="https://furkiozknn.github.io/kanca/">Tarayıcıda oyna → furkiozknn.github.io/kanca</a></h3>
 
-*Throw a hook at the ceiling, swing, release at the right moment and carry the momentum. A speed-focused 2D swinging platformer (Godot 4, Turkish and English UI, flat-colour look matching the trailer); medal times come from real bot runs rather than formulas — 13 of 14 levels measured. 157 tests.*
+*Throw a hook at the ceiling, swing, release at the right moment and carry the momentum. A speed-focused 2D swinging platformer (Godot 4, Turkish and English UI, flat-colour look matching the trailer); medal times come from real bot runs rather than formulas — 13 of 14 levels measured. 216 tests.*
 
 [![CI](https://github.com/Furkiozknn/kanca/actions/workflows/ci.yml/badge.svg)](https://github.com/Furkiozknn/kanca/actions/workflows/ci.yml)
 
@@ -21,7 +21,7 @@ vurgu, kırmızı diken. Arayüz **Türkçe ve İngilizce**.
 ![Tanıtım](yayin/tanitim.gif)
 
 Durum: **arayüz yenilemesi** (son yayın v0.5.2) — her push'ta ve her PR'da
-**157 testin** koştuğu CI. Çekirdek mekanik, bölümler ve bot eşikleri v0.5 ile
+**216 testin** koştuğu CI. Çekirdek mekanik, bölümler ve bot eşikleri v0.5 ile
 aynı; yenilenen şey görünüm, arayüz, dil ve girdi tepkisi. Denetim ve tasarım
 kararları: [`docs/DENETIM.md`](docs/DENETIM.md), [`docs/TASARIM.md`](docs/TASARIM.md).
 
@@ -318,7 +318,7 @@ Ayrıntı ve tuzaklar: `CLAUDE.md`.
 | `scripts/menu.gd` | Ana menü + bölüm seçme + ayarlar. |
 | `scripts/kayit.gd` | `user://kayit.cfg` — ilerleme, en iyi süreler, ayarlar. Hayaletler `user://hayalet_NN.dat`. |
 | `scripts/ses.gd` | `Muzik` / `Efekt` veri yolları, efekt havuzu, döngülü müzik. |
-| `scripts/gecis.gd` | Sahne geçişi (turuncu renk bandı), ölüm flaşı, dikey telefon uyarısı. |
+| `scripts/gecis.gd`, `assets/gecis.gdshader` | Sahne/bölüm geçişleri: sekiz shader ailesi (iris, glitch, bloklar, itme, perde, flaş, kararma, zoom) + tema paleti; ölüm flaşı, dikey telefon uyarısı. Ayarlar'da "Sade geçişler" ve tarayıcı hareket azaltma: anında. |
 
 Autoload sırası: `Ayarlar`, `Kayit`, `Ses`, `Gecis`.
 
@@ -599,14 +599,14 @@ Windows'ta sarmalı: `powershell -ExecutionPolicy Bypass -File tests\calistir.ps
 
 `main`'e her push'ta ve her pull request'te **aynı sahne** GitHub Actions'ta
 koşuyor (Godot 4.7.2, Linux
-headless, Git LFS çekilerek). Son ölçüm: **157/157 geçti**.
+headless, Git LFS çekilerek). Son ölçüm: **216/216 geçti**.
 
 **Çıkış kodu tek başına yetmiyor.** Bir test fonksiyonundaki çalışma zamanı
 hatası (null erişimi, eksik metot) yalnızca o fonksiyonu keser: motor
 `SCRIPT ERROR` yazar, kalan testler sayılmaz — toplam da küçülür — ve takım
 yine `N/N gecti` ile 0 döner (gerçek motorla denendi: `114/114 gecti`,
 çıkış 0). CI bu yüzden günlüğü `tests/kapi.sh`'a veriyor: `=== G/T gecti ===`
-satırı olmalı, G = T olmalı, G tabanın (`ci.yml` → `TEST_TABANI`, şu an 157)
+satırı olmalı, G = T olmalı, G tabanın (`ci.yml` → `TEST_TABANI`, şu an 216)
 altına düşmemeli, günlükte `SCRIPT ERROR` / `Parse Error` olmamalı. Bot
 denetimi de aynı kapıdan geçiyor (`--bot`: `denetim temiz` ve
 `denetim bitti: 14/14`, `BOLUM_TABANI`). Kapının kendisi
@@ -616,7 +616,7 @@ yükselt**; düşürmek, bir bölümün sessizce kaybolduğunu kabul etmektir.
 
 ```bash
 godot --headless --path . --scene res://tests/test_kanca.tscn 2>&1 | tee test.log
-bash tests/kapi.sh test.log 157                                  # CI'daki kapının aynısı
+bash tests/kapi.sh test.log 216                                  # CI'daki kapının aynısı
 ```
 
 ### Web duman testi

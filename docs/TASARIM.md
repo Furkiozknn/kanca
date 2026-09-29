@@ -126,7 +126,7 @@ Kâğıt teması ve rüzgâr alanı:
   üretici `_eski/` altında (`.gdignore` + dışa aktarma filtresi). Çarpışma
   `TileMapLayer`'da kaldı (`visible=false`; fizik görünürlüğe bağlı değil) —
   botun 14 bölümü aynı sonuçla bitirmesi bunun kanıtı.
-- **Sahne geçişi**: `scripts/gecis.gd` (`Gecis.git`, `kapat`, `ac`, `yanip_son`).
+- **Sahne geçişi**: `scripts/gecis.gd` + `assets/gecis.gdshader` (`Gecis.git`, `kapat`, `ac`, `acilis`, `ara`, `yanip_son`); ayrıntı §7.
 - **Menü animasyonu**: `scripts/ui.gd` (`UI.sirayla_gir`, `UI.dugmeleri_bagla`).
 - **TR/EN**: `scripts/ceviri.gd`. Kaynak dil Türkçe: `tr("Türkçe metin")`
   (static metotlarda `Ceviri.t`); İngilizce tablo `Ceviri.EN`. Varsayılan dil
@@ -195,3 +195,69 @@ koşu: 10. bölüm 2,68 ms → 3,0–3,4 ms.
 - Kanca / kojot / tampon süreleri bir insanla denenmedi.
 - Videodaki başlık yazı tipi (Archivo benzeri) oyunda yok; marka tabanı yazı
   tipi Instrument Sans kullanıldı.
+
+## 7. Günlük video imkânlarından alınanlar
+
+Ek istek (29 Eylül 2026): günlük videolarda kullanılan renk ve geçiş imkânları
+oyuna da girdi. **Oyunun kendi kimliği ağır bastı:** kancanın tanıtım
+videosundaki düz renk dünya (lacivert gece, kâğıt, turkuaz oyuncu, turuncu iz,
+kırmızı diken) **değişmedi**; akış paletleri ve geçişler yalnız geçişlerde, süre
+chip'inde ve rekor damgasında.
+
+**Kaynaklar:** `sosyal/uret/tema.mjs` → `TEMALAR` (palet `akis.vurgular`, geçiş
+havuzu `gecis`), `sosyal/uret/sahne.js` → `GECIS` (ailelerin hareketi),
+`tema.mjs` okunurluk eşiği; canlı örnek `videolar/*/_yapim/kontak-*.jpg`.
+Shader ve `Gecis` mantığı yercekimi-cevir referans uygulamasından (244fb12)
+uyarlandı; paletler ve havuzlar kancanın dünyasına göre ayrıca seçildi.
+
+| Oyun teması | Video teması | Vurgu renkleri (sırayla döner) | Geçiş havuzu |
+|---|---|---|---|
+| Gece (bölüm 1–7, menü) | **harita** (lacivert zemin, turuncu/kum/camgöbeği/nane) | `#ff9e1b` (oyunun turuncusu) `#62d6ff #ffd166 #7bf1a8 #ff9ebb` | itme, iris, glitch, zoom, bloklar (harita `itme/zoom`, neon `iris/glitch`, klasik `bloklar`) |
+| Kâğıt (8–14) | **kâğıt** (risograf mürekkepleri) | `#c1121f #1f45c9 #13632f #6a1b9a #9a3a00` | perde, kararma, bloklar, itme (kâğıt `perde/yatay/kararma`, limon `bloklar`) |
+
+Neden: gece dünyası videonun lacivert sarkaç paneli, harita teması aynı
+lacivert+turuncu ruhta; ilk renk oyunun kendi turuncusu, yani eski turuncu bant
+kimliği (`itme`) korunuyor. Açık/koyu uç renkler oyunun kâğıt/mürekkebi
+(`#edf2f1`, `#0d1218`). Neon/arcade/fosfor/poster/uzay/klasik/limon paletleri
+düz dünyayı boğacağı için alınmadı.
+
+**Geçiş aileleri:** tek `canvas_item` shader'ı (GL Compatibility, ekran dokusu
+yalnız glitch ve zoom'da okunur): iris, glitch (28 dilim, 30 Hz), bloklar (12x7
+kare), itme, perde, flaş, kararma, zoom. Örtme 260 ms, açma 200 ms. Tür havuzu
+sırayla gezilir, art arda tekrar yok (`Gecis.sec`).
+
+| Yer | Ne oluyor |
+|---|---|
+| Menü açılışı | İlk açılışta iris ortadan açılır |
+| Menü → bölüm, bölüm → sonraki, bölüm → menü | Havuzdan sıradaki aile; çıkılan bölümün teması. Eski turuncu bant yerine |
+| Bölüm sonu | Tek flaş vuruşu; **yeni rekorda** "YENİ REKOR" damgası palet renginde döner (90 ms adım, dışa doğru genişleyip oturur) ve ödül sarısında durur |
+| Oyun sonu (14. bölüm) | Kart iris ile ortadan açılır |
+| Süre/skor sayacı | Kontrol noktasında ve zincir (AKIŞ) uzadıkça sol chip palet rengine adımla döner, 0,30 sn sonra normale; en çok ~3/sn |
+| Duraklat | Perde ailesi açılır |
+| Dil değişimi | Menüde ve Ayarlar'da glitch örtüsünün altında yeniden kurulur (`Gecis.ara`) |
+| Ölüm | Tehlike flaşı aynı; sade kipte yok |
+
+**Okunurluk:** yazı rengi vurgu üzerinde kodla seçilir (`Tema.yazi_rengi`).
+Eşik 4,5:1; testte tüm paletler doğrulanıyor (ölçülen en düşük çift testin
+çıktısında yazıyor). **Hareket azaltma:** Ayarlar'da yeni "Sade geçişler" ya da
+tarayıcıda `prefers-reduced-motion` → geçiş anında, bekleme yok, chip/damga
+animasyonu ve ölüm flaşı kapalı. Kayıtlı diğer ayarlara dokunulmadı.
+
+**Performans (Intel UHD, `tools/fps.gd`, vsync kapalı, 10. bölüm):**
+
+| | Önce | Sonra |
+|---|---|---|
+| Oynanış karesi | ort. 2,72 ms, %99 4,36 ms (368 FPS) | ort. 2,63 / 2,49 ms, %99 4,18 / 3,80 ms (iki koşu) |
+| Geçiş süren kareler (`fps.gd 10 1600 gecis`, 11 geçiş) | yok | ort. 3,51 ms (285 FPS), %99 5,28 ms, en kötü 6,27 ms |
+
+İlk çalıştırmada ilk geçişte shader derlemesi tek 153 ms kare yaptı (sürücü
+önbelleğinden sonra kaybolur); menü açılışı bu maliyeti oyuna girmeden örtünün
+altında öder. Geçişler `await` yalnız örtmede (260 ms, eski bantla aynı);
+açma oyun akışını beklemez.
+
+**Test:** `_test_gecis` (59 yeni doğrulama, 157 → 216): palet okunurluğu, havuz/tekrar,
+shader, sekiz ailenin örtüp açması, süre, `ara`, hareket azaltma, ayar anahtarı,
+chip vurgusu, duraklat perdesi, dil glitch'i, damga, oyun sonu iris, menü açılışı.
+Çekirdek mekanik ve `rota_verisi.gd` değişmedi (`--denetle` 14/14).
+Kanıt kareleri: `kanit/kanca/sonra/gecis_*.png`, `sayac_*.png` (`tests/ekran.tscn -- <klasor> gecis`).
+Ham kayıt: `sosyal/medya/oyunlar/kanca.mp4` (`tools/kayit.ps1`, 16 sn).

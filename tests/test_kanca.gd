@@ -73,6 +73,7 @@ func _calistir() -> void:
 	await _test_bolum_sonu_karti()
 	await _test_ilk_oyun_ipucu()
 	await _test_erken_girdi()
+	await _test_gecis()
 	print("=== %d/%d gecti ===" % [_toplam - _kalan, _toplam])
 	get_tree().quit(_kalan)
 
@@ -1480,6 +1481,15 @@ func _test_menu_akisi() -> void:
 
 ## Duraklat: Esc ile acilir/kapanir, Devam ilk odakta, Ayarlar acilip geri donulur,
 ## dil degisince arayuz yeniden kurulur ve durum korunur.
+## Gecis bitene kadar bekler (en cok ~2 sn); hareket azaltmada aninda doner.
+func _gecis_bitsin() -> void:
+	await get_tree().process_frame
+	var n := 0
+	while Gecis.mesgul_mu() and n < 120:
+		await get_tree().process_frame
+		n += 1
+	await get_tree().process_frame
+
 func _test_duraklat_akisi() -> void:
 	Ayarlar.dokunmatik_zorla = 0
 	_dil_ayarla("tr")
@@ -1503,8 +1513,7 @@ func _test_duraklat_akisi() -> void:
 	var dil_dugme: Button = ayar.find_child("Dil", true, false)
 	var oncekiler: Node = bolum.get("_arayuz")
 	dil_dugme.emit_signal("pressed")
-	await get_tree().process_frame
-	await get_tree().process_frame
+	await _gecis_bitsin()        # dil degisimi glitch ortusunun altinda yapilir
 	var yeni: Node = bolum.get("_arayuz")
 	var yeni_ayar: Control = bolum.get("_ayar_panel")
 	var baslik: Label = yeni_ayar.find_child("Kutu", true, false).get_child(0)
@@ -1701,4 +1710,228 @@ func _test_erken_girdi() -> void:
 	_bildir("erken girdi: fizigi kapali oyuncu (duraklat) kanca atmiyor", not duraklatilmis_uctu)
 	o.free()
 	nokta.free()
+	Ayarlar.dokunmatik_zorla = -1
+
+func _sade_ayarla(acik: bool) -> void:
+	Kayit._cfg.set_value("ayarlar", "gecis_sade", acik)
+
+## Gunluk video imkanlari: renk akisi paleti (okunurluk >= Tema.ESIK), gecis aileleri
+## (shader), art arda tekrar yok, hareket azaltmada aninda gecis, sure chip'i
+## vurgusu, rekor damgasi, duraklat perdesi, bolum/oyun sonu, menu acilisi, dil glitch'i.
+func _test_gecis() -> void:
+	Ayarlar.dokunmatik_zorla = 0
+	_dil_ayarla("tr")
+	_sade_ayarla(false)
+	# --- palet: her vurgu rengi uzerinde yazi >= ESIK (yazi rengi kodla secilir) ---
+	var en_dusuk := 99.0
+	for t in Tema.AKIS.size():
+		var a: Dictionary = Tema.AKIS[t]
+		_bildir("gecis: tema %d akis paleti (%s, %d renk)" % [t, a["kaynak"], a["vurgu"].size()],
+			a["vurgu"].size() >= 4 and String(a["kaynak"]) != "")
+		for v: Color in a["vurgu"]:
+			en_dusuk = minf(en_dusuk, Tema.kontrast(v, Tema.yazi_rengi(v, t)))
+		_bildir("gecis: tema %d acik/koyu yazi cifti >= 10:1" % t, Tema.kontrast(a["acik"], a["koyu"]) >= 10.0)
+	_bildir("gecis: akis renkleri uzerinde yazi en az %.1f:1 (en dusuk %.2f)" % [Tema.ESIK, en_dusuk],
+		en_dusuk >= Tema.ESIK)
+	_bildir("gecis: kontrast hesabi siyah/beyaz 21:1", is_equal_approx(Tema.kontrast(Color.BLACK, Color.WHITE), 21.0))
+	_bildir("gecis: akis rengi sarmal doner", Tema.akis_rengi(0, 0).is_equal_approx(Tema.akis_rengi(0, 5)))
+	_bildir("gecis: gece paleti oyunun turuncusuyla basliyor (kimlik)", Tema.akis_rengi(0, 0).is_equal_approx(Tema.TURUNCU))
+	_bildir("gecis: odul sarisi murekkep yazi %.2f:1" % Tema.kontrast(Tema.SARI, Tema.MUREKKEP),
+		Tema.kontrast(Tema.SARI, Tema.MUREKKEP) >= Tema.ESIK)
+	# --- shader ve havuzlar ---
+	var shader_ad: Array = []
+	for u in Gecis.SHADER.get_shader_uniform_list():
+		shader_ad.append(String(u["name"]))
+	_bildir("gecis: shader uniform'lari var (tur, p, renk, renk2)",
+		"tur" in shader_ad and "p" in shader_ad and "renk" in shader_ad and "renk2" in shader_ad)
+	var kullanilan: Dictionary = {}
+	for t in Tema.AKIS.size():
+		var havuz: Array = Tema.AKIS[t]["gecis"]
+		var hepsi := true
+		for g in havuz:
+			hepsi = hepsi and g in Tema.GECIS_TURLERI
+		_bildir("gecis: tema %d havuzu shader ailesinden (%s)" % [t, havuz], hepsi and havuz.size() >= 4)
+		var onceki: StringName = &""
+		var tekrar := 0
+		var disari := 0
+		var gorulen: Dictionary = {}
+		for i in 40:
+			var g: StringName = Gecis.sec(t)
+			if g == onceki:
+				tekrar += 1
+			if not g in havuz:
+				disari += 1
+			gorulen[g] = true
+			kullanilan[g] = true
+			onceki = g
+			Gecis.son_tur = g
+			Gecis._sayac += 1
+		_bildir("gecis: tema %d 40 secimde tekrar yok, hepsi havuzda, hepsi kullanildi" % t,
+			tekrar == 0 and disari == 0 and gorulen.size() == havuz.size())
+	kullanilan[&"flas"] = true    # bolum sonu vurusu havuz disinda, dogrudan cagrilir
+	_bildir("gecis: sekiz ailenin hepsi oyunda kullaniliyor (%d)" % kullanilan.size(), kullanilan.size() == Tema.GECIS_TURLERI.size())
+	Gecis.son_tur = &""
+	# --- her aile ortuyor ve aciliyor ---
+	for tur in Tema.GECIS_TURLERI:
+		await Gecis.kapat(tur, 0, 0.05)
+		var p: float = Gecis._mat.get_shader_parameter("p")
+		_bildir("gecis: %s tam ortuyor (p=%.2f)" % [tur, p],
+			Gecis._kaplama.visible and is_equal_approx(p, 1.0) and Gecis.son_tur == tur)
+		await Gecis.ac(0.05)
+		_bildir("gecis: %s aciliyor, kaplama gizli" % tur, not Gecis._kaplama.visible)
+	# --- sure: ortme ~260 ms ---
+	var t0 := Time.get_ticks_msec()
+	await Gecis.kapat(&"itme", 1)
+	var ms := Time.get_ticks_msec() - t0
+	_bildir("gecis: ortme %d ms (rehber ~260)" % ms, ms >= 240 and ms < 500)
+	await Gecis.ac()
+	# --- ara(): degisim ortunun altinda, sonra kapanir ---
+	var cagri := [0]
+	await Gecis.ara(&"glitch", 0, func() -> void: cagri[0] += 1)
+	_bildir("gecis: ara() degistir bir kez cagrildi, gecis bitti",
+		cagri[0] == 1 and not Gecis.mesgul_mu() and not Gecis._kaplama.visible)
+	# --- hareket azaltma: aninda, bekleme yok, flas yok ---
+	_sade_ayarla(true)
+	_bildir("gecis: 'Sade gecisler' acik = sade()", Gecis.sade())
+	t0 = Time.get_ticks_msec()
+	await Gecis.kapat(&"iris", 0)
+	await Gecis.ara(&"bloklar", 1, func() -> void: cagri[0] += 1)
+	await Gecis.acilis(&"perde", 1)
+	Gecis.yanip_son()
+	var sade_ms := Time.get_ticks_msec() - t0
+	_bildir("gecis: hareket azaltma: gecis aninda, kaplama hic acilmadi (%d ms)" % sade_ms,
+		sade_ms < 100 and cagri[0] == 2 and not Gecis._kaplama.visible)
+	_bildir("gecis: hareket azaltma: olum flasi yok", Gecis._flas.color.a < 0.01)
+	_sade_ayarla(false)
+	Gecis.yanip_son()
+	_bildir("gecis: olum flasi normalde var", Gecis._flas.color.a > 0.3)
+	await get_tree().create_timer(0.4).timeout
+	# --- ayar anahtari ---
+	var panel := AyarPanel.yap(func() -> void: pass, false, Callable())
+	add_child(panel)
+	var anahtar: CheckButton = null
+	for c in panel.find_children("*", "CheckButton", true, false):
+		if (c as CheckButton).text.begins_with("Sade geçişler"):
+			anahtar = c
+	_bildir("gecis: ayar panelinde 'Sade gecisler' anahtari var", anahtar != null)
+	if anahtar != null:
+		anahtar.button_pressed = true
+		_bildir("gecis: anahtar ayari yaziyor", Gecis.sade())
+		anahtar.button_pressed = false
+		_bildir("gecis: anahtar kapaninca gecis geri", not Gecis.sade())
+	panel.free()
+	# --- sure chip'i renk akisi ---
+	var b: Bolum = load(Bolumler.yol(1)).instantiate()
+	add_child(b)
+	for i in 3:
+		await get_tree().physics_frame
+	var stil: StyleBoxFlat = b.get("_sol_stil")
+	var normal: Color = stil.bg_color
+	b.call("_sayac_vurgula")
+	var v: Color = Tema.akis_rengi(Tema.aktif, 0)
+	var etiket: Label = b.get("_sure_etiket")
+	var yazi: Color = etiket.get_theme_color("font_color")
+	_bildir("gecis: sure chip'i akis rengine dondu", stil.bg_color.is_equal_approx(v) and not normal.is_equal_approx(v))
+	_bildir("gecis: chip yazisi vurgu uzerinde %.2f:1" % Tema.kontrast(v, yazi), Tema.kontrast(v, yazi) >= Tema.ESIK)
+	var i0: int = b.get("_akis_i")
+	b.call("_sayac_vurgula")
+	_bildir("gecis: vurgu suresince ikinci tetik yok sayildi (hiz siniri)", int(b.get("_akis_i")) == i0)
+	await get_tree().create_timer(0.45).timeout
+	_bildir("gecis: vurgu bitti, chip normale dondu",
+		stil.bg_color.is_equal_approx(normal) and etiket.get_theme_color("font_color").is_equal_approx(Tema.blok()))
+	_sade_ayarla(true)
+	i0 = b.get("_akis_i")
+	b.call("_sayac_vurgula")
+	_bildir("gecis: hareket azaltmada chip vurgusu kapali", int(b.get("_akis_i")) == i0 and stil.bg_color.is_equal_approx(normal))
+	_sade_ayarla(false)
+	b.call("_kanca_takildi", Vector2(480, 128))
+	b.call("_kanca_takildi", Vector2(480, 128))      # ikinci zincir: vurgu tetiklenir
+	_bildir("gecis: zincir uzayinca chip vurgusu", int(b.get("_akis_i")) > i0)
+	await get_tree().create_timer(0.45).timeout
+	# --- duraklatma perdesi ---
+	b.call("_duraklat_degistir")
+	_bildir("gecis: duraklat perdesi basladi", Gecis._kaplama.visible and Gecis.son_tur == &"perde")
+	await get_tree().create_timer(0.45).timeout
+	_bildir("gecis: duraklat perdesi acildi", not Gecis._kaplama.visible)
+	b.call("_duraklat_degistir")
+	# --- dil degisimi glitch ---
+	b.call("_dil_degisti")
+	_bildir("gecis: dil degisimi glitch ortusuyle", Gecis.son_tur == &"glitch" and Gecis.mesgul_mu())
+	await _gecis_bitsin()
+	_bildir("gecis: dil degisimi bitti, arayuz yenilendi", not Gecis.mesgul_mu() and b.get("_arayuz") != null)
+	b.free()
+	await get_tree().physics_frame
+	# --- bolum sonu: flas vurusu + yeni rekor damgasi ---
+	var eski: Variant = _cfg_al("sureler", "1")
+	Kayit._cfg.set_value("sureler", "1", 99.0)
+	var b1: Bolum = load(Bolumler.yol(1)).instantiate()
+	add_child(b1)
+	for i in 3:
+		await get_tree().physics_frame
+	b1.set("_sure", 5.0)
+	b1.call("_bitise_degdi", b1.find_child("Oyuncu", true, false))
+	await get_tree().process_frame
+	var damga: PanelContainer = b1.get("_bk_damga")
+	_bildir("gecis: bolum sonu flas vurusu", Gecis.son_tur == &"flas")
+	_bildir("gecis: rekor damgasi gorunur, renk akisi animasyonu kurulu", damga.visible and b1.get("_damga_tween") != null)
+	var dv: Color = (damga.get_theme_stylebox("panel") as StyleBoxFlat).bg_color
+	var dy: Color = (b1.get("_bk_damga_yazi") as Label).get_theme_color("font_color")
+	_bildir("gecis: damga yazisi okunuyor (%.2f:1)" % Tema.kontrast(dv, dy), Tema.kontrast(dv, dy) >= Tema.ESIK)
+	await get_tree().create_timer(0.95).timeout
+	dv = (damga.get_theme_stylebox("panel") as StyleBoxFlat).bg_color
+	_bildir("gecis: damga renk akisindan sonra odul sarisinda durdu",
+		dv.is_equal_approx(Tema.SARI) and is_equal_approx((damga.get_theme_stylebox("panel") as StyleBoxFlat).expand_margin_left, 0.0))
+	b1.free()
+	await get_tree().physics_frame
+	# sade: damga animasyonsuz, dogrudan sari
+	_sade_ayarla(true)
+	Kayit._cfg.set_value("sureler", "1", 99.0)
+	var b2: Bolum = load(Bolumler.yol(1)).instantiate()
+	add_child(b2)
+	for i in 3:
+		await get_tree().physics_frame
+	b2.set("_sure", 4.0)
+	b2.call("_bitise_degdi", b2.find_child("Oyuncu", true, false))
+	await get_tree().process_frame
+	var damga2: PanelContainer = b2.get("_bk_damga")
+	_bildir("gecis: hareket azaltmada damga animasyonsuz sari",
+		damga2.visible and is_equal_approx((damga2.get_theme_stylebox("panel") as StyleBoxFlat).expand_margin_left, 0.0)
+		and (damga2.get_theme_stylebox("panel") as StyleBoxFlat).bg_color.is_equal_approx(Tema.SARI) and not Gecis._kaplama.visible)
+	b2.free()
+	await get_tree().physics_frame
+	_sade_ayarla(false)
+	# oyun sonu: son bolumde kart iris ile acilir
+	var son: Bolum = load(Bolumler.yol(Bolumler.sayi())).instantiate()
+	add_child(son)
+	for i in 3:
+		await get_tree().physics_frame
+	son.set("_sure", 0.5)
+	son.call("_bitise_degdi", son.find_child("Oyuncu", true, false))
+	await get_tree().process_frame
+	_bildir("gecis: oyun sonu iris", Gecis.son_tur == &"iris" and Gecis._kaplama.visible)
+	await get_tree().create_timer(0.6).timeout
+	_bildir("gecis: oyun sonu iris acildi", not Gecis._kaplama.visible)
+	son.free()
+	await get_tree().physics_frame
+	if eski == null:
+		Kayit._cfg.erase_section_key("sureler", "1")
+	else:
+		Kayit._cfg.set_value("sureler", "1", eski)
+	# --- menu acilisi: yalniz ilk acilista iris ---
+	Gecis.acilis_yapildi = false
+	var menu: Node = load("res://scenes/menu.tscn").instantiate()
+	add_child(menu)
+	await get_tree().process_frame
+	_bildir("gecis: menu ilk acilista iris", Gecis.son_tur == &"iris" and Gecis._kaplama.visible and Gecis.acilis_yapildi)
+	await get_tree().create_timer(0.7).timeout
+	menu.free()
+	Gecis.son_tur = &"flas"
+	var menu2: Node = load("res://scenes/menu.tscn").instantiate()
+	add_child(menu2)
+	await get_tree().process_frame
+	_bildir("gecis: menu ikinci acilista iris yok", Gecis.son_tur == &"flas")
+	menu2.free()
+	await get_tree().process_frame
+	Gecis.son_tur = &""
+	_sade_ayarla(false)
 	Ayarlar.dokunmatik_zorla = -1

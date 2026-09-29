@@ -96,6 +96,7 @@ const VARSAYILAN := {
 	"tam_ekran": false,
 	"hayalet_kip": 1,            ## 0 kapali, 1 kendi en iyi kosun, 2 altin hayalet (bot)
 	"sarsinti": true,
+	"gecis_sade": false,          ## true: ekran gecisleri aninda (hareket azaltma); efekt yok, bekleme yok
 	"rota_ipucu": true,          ## altin madalyadan sonra rota noktalarini isaretle
 	"dokunmatik": false,         ## tek parmak semasi (mobilde zaten acik)
 	"nisan_hassasiyet": 0.5,     ## 0 = genis nisan yardimi, 1 = dar ve tam nisan

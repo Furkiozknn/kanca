@@ -1,6 +1,8 @@
 extends Node2D
 ## Gorsel dogrulama + yayin gorselleri. Headless DEGIL calistirilir:
 ##   powershell -ExecutionPolicy Bypass -File tools\kilitli.ps1 -- --path . --scene res://tests/ekran.tscn -- [ek_klasor]
+## Yalniz gunluk video imkanlari kareleri (gecisler, sure chip'i, rekor damgasi):
+##   ... -- <ek_klasor> gecis      -> docs/ekran/gecis_*.png
 ##
 ## Cikti (pencere 1280x720, taban cozunurluk 640x360 -> yakalanan goruntu 1280x720):
 ##   docs/ekran/*.png      1280x720 - README ve gozle kontrol icin
@@ -24,6 +26,10 @@ func _ready() -> void:
 	if arg.size() > 0:
 		_ek = arg[0]
 		DirAccess.make_dir_recursive_absolute(_ek)
+	if arg.size() > 1 and arg[1] == "gecis":
+		await _gecis_cek()
+		get_tree().quit()
+		return
 	_cek()
 
 
@@ -397,3 +403,99 @@ func _yaz(im: Image, yol: String) -> void:
 	print("  %s  %dx%d" % [yol, im.get_width(), im.get_height()])
 	if _ek != "" and yol.begins_with("res://docs/ekran/"):
 		im.save_png("%s/%s" % [_ek, yol.get_file()])
+
+
+# --- Gunluk video imkanlari: gecis kareleri --------------------------
+
+## Gecis karesi: Gecis'i elle kurar ve ortuyu p'de dondurur (kare dosyasi icin).
+func _gecis_dondur(tur: StringName, tema: int, p: float) -> void:
+	Gecis._kur(tur, tema)
+	Gecis._kaplama.visible = true
+	Gecis._p_yaz(p)
+	await _bekle(0.1)
+	Gecis._p_yaz(p)
+
+
+func _gecis_kapat() -> void:
+	Gecis._kaplama.visible = false
+
+
+func _gecis_cek() -> void:
+	Kayit.salt_okunur = true
+	_sahte_ilerleme()
+	_dil("tr")
+	# Sekiz aile, yarim ortu, gercek bolum uzerinde; her ailenin kendi temasi/paletiyle.
+	var plan := [[&"itme", 1, 0.5], [&"iris", 3, 0.6], [&"glitch", 6, 0.5], [&"zoom", 7, 0.6],
+		[&"bloklar", 9, 0.6], [&"perde", 13, 0.55], [&"kararma", 14, 0.5], [&"flas", 10, 0.7]]
+	for pl in plan:
+		var no: int = pl[1]
+		var bolum: Bolum = load(Bolumler.yol(no)).instantiate()
+		add_child(bolum)
+		for i in 12:
+			await get_tree().process_frame
+		_sallandir(bolum, no)
+		for i in 16:
+			await get_tree().process_frame
+		await _gecis_dondur(pl[0], Tema.bolum_temasi(no), pl[2])
+		_yaz(await _goruntu(), "res://docs/ekran/gecis_%s.png" % pl[0])
+		_gecis_kapat()
+		bolum.free()
+		await get_tree().process_frame
+	# Sure chip'i renk akisi: uc adim (gece), kagit temada bir adim.
+	for no: int in [6, 10]:
+		var bolum: Bolum = load(Bolumler.yol(no)).instantiate()
+		add_child(bolum)
+		for i in 12:
+			await get_tree().process_frame
+		for k in (3 if no == 6 else 1):
+			bolum.set("_vurgu_kalan", 0.0)
+			bolum.call("_sayac_vurgula")
+			await _bekle(0.05)
+			_yaz(await _goruntu(), "res://docs/ekran/sayac_%02d_%d.png" % [no, k + 1])
+		bolum.free()
+		await get_tree().process_frame
+	# Duraklat perdesi (yarim), gece + kagit
+	var b := load(Bolumler.yol(9)).instantiate() as Bolum
+	add_child(b)
+	for i in 12:
+		await get_tree().process_frame
+	b.call("_duraklat_degistir")
+	await _gecis_dondur(&"perde", 1, 0.3)
+	_yaz(await _goruntu(), "res://docs/ekran/gecis_duraklat_perde.png")
+	_gecis_kapat()
+	b.free()
+	await get_tree().process_frame
+	# Yeni rekor damgasi: acilirken (renk akisi) ve durunca (odul sarisi)
+	for tema_bolum: int in [1, 9]:
+		var eski: Variant = Kayit._cfg.get_value("sureler", str(tema_bolum), 0.0)
+		Kayit._cfg.set_value("sureler", str(tema_bolum), 99.0)
+		var bl: Bolum = load(Bolumler.yol(tema_bolum)).instantiate()
+		add_child(bl)
+		for i in 12:
+			await get_tree().physics_frame
+		bl.set("_sure", float(Bolumler.madalya_esikleri(tema_bolum)[0]) - 0.5)
+		bl.set("_en_uzun_zincir", 5)
+		bl.call("_bitise_degdi", bl.find_child("Oyuncu", true, false))
+		await _bekle(0.32)
+		_yaz(await _goruntu(), "res://docs/ekran/gecis_damga_%02d_akis.png" % tema_bolum)
+		await _bekle(0.9)
+		_yaz(await _goruntu(), "res://docs/ekran/gecis_damga_%02d.png" % tema_bolum)
+		bl.free()
+		await get_tree().process_frame
+		Kayit._cfg.set_value("sureler", str(tema_bolum), eski)
+	# Dil degisimi: menude glitch ortusu; menu acilisi: iris
+	Gecis.acilis_yapildi = true
+	var katman := CanvasLayer.new()
+	add_child(katman)
+	var menu: Node = load("res://scenes/menu.tscn").instantiate()
+	katman.add_child(menu)
+	await _bekle(1.0)
+	await _gecis_dondur(&"glitch", 0, 0.5)
+	_yaz(await _goruntu(), "res://docs/ekran/gecis_dil_glitch.png")
+	_gecis_kapat()
+	await _gecis_dondur(&"iris", 0, 0.6)
+	_yaz(await _goruntu(), "res://docs/ekran/gecis_menu_iris.png")
+	_gecis_kapat()
+	katman.free()
+	print("Gecis kareleri hazir.")
+

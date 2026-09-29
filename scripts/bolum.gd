@@ -62,6 +62,15 @@ var _yeniden_kart_dugme: Button
 var _ipucu_kutu: Control = null
 var _ipucu_sayac := -1.0             ## >0: ilk kancadan sonra ipucu bu kadar daha gorunur
 var _ilk_kanca := false
+# Gunluk video imkanlari: sure chip'i renk akisi, rekor damgasi (docs/TASARIM.md bolum 8)
+const VURGU_SURESI := 0.30           ## chip akis renginde bu kadar kalir
+const VURGU_ARALIK := 0.12           ## vurgu bitmeden tekrar tetiklenmez (saniyede ~3 renk)
+var _sol_stil: StyleBoxFlat          ## sol ust chip'in zemini
+var _sol_baslik: Label
+var _vurgu_kalan := 0.0
+var _akis_i := 0
+var _bk_damga_yazi: Label
+var _damga_tween: Tween = null
 
 func _ready() -> void:
 	add_to_group(&"bolum")
@@ -383,6 +392,7 @@ func _kanca_takildi(yer: Vector2) -> void:
 	_en_uzun_zincir = maxi(_en_uzun_zincir, _zincir)
 	if _zincir >= 2:
 		Ses.cal("akis")
+		_sayac_vurgula()
 	_akis_yaz()
 
 ## bonus = esik ustu hizda birakildi (BIRAKMA_CARPANI uygulandi).
@@ -458,6 +468,10 @@ func _dogur() -> void:
 	_alanlari_ac.call_deferred()
 
 func _process(delta: float) -> void:
+	if _vurgu_kalan > 0.0:
+		_vurgu_kalan -= delta
+		if _vurgu_kalan <= 0.0:
+			_sayac_sifirla()
 	if _sayiyor:
 		_sure += delta
 		_sure_yaz()
@@ -500,6 +514,7 @@ func _kontrole_degdi(govde: Node2D, alan: Area2D) -> void:
 	g.frame = 1
 	Ses.cal("kontrol")
 	parcacik_at(alan.global_position, Tema.TURKUAZ, 10)
+	_sayac_vurgula()
 
 func _bitise_degdi(govde: Node2D) -> void:
 	if govde != _oyuncu or _bitti:
@@ -550,6 +565,8 @@ func _bitis_karti_doldur(ust: String, alt_baslik: String, rekor: bool, madalya: 
 	_bk_ust.text = ust if alt_baslik == "" else "%s · %s" % [ust, alt_baslik]
 	_bk_sure.text = _bicim(_sure)
 	_bk_damga.visible = rekor
+	if rekor:
+		_damga_animasyon()
 	_bk_madalya.visible = madalya < 3
 	for c in _bk_madalya.get_children():
 		if c is Cizim.Madalya:
@@ -566,6 +583,9 @@ func _bitis_karti_doldur(ust: String, alt_baslik: String, rekor: bool, madalya: 
 	var tekrar_birincil := gunluk or son or madalya != 0
 	_stil_birincil(_yeniden_kart_dugme, tekrar_birincil)
 	_stil_birincil(_sonraki_dugme, not tekrar_birincil)
+	# Bolum sonu: tek flas vurusu; son bolumde (oyun sonu) kart iris ile ortadan acilir.
+	var oyun_sonu := son and not gunluk
+	Gecis.acilis(&"iris" if oyun_sonu else &"flas", Tema.aktif, 0.45 if oyun_sonu else 0.22, 1.0 if oyun_sonu else 0.5)
 	_kart_goster(_bitis_panel, _bitis_kart)
 	if tekrar_birincil or _sonraki_dugme.disabled:
 		_yeniden_kart_dugme.grab_focus()
@@ -594,6 +614,7 @@ func _duraklat_degistir() -> void:
 	_ayar_panel.visible = false
 	_duraklat_panel.visible = false
 	if _duraklatildi:
+		Gecis.acilis(&"perde", Tema.aktif, 0.22)      # duraklatma: perde acilir
 		_kart_goster(_duraklat_panel, _duraklat_panel.find_child("Kart", true, false))
 	_sayiyor = not _duraklatildi
 	_oyuncu.set_physics_process(not _duraklatildi)
@@ -603,11 +624,11 @@ func _duraklat_degistir() -> void:
 
 func _sonraki() -> void:
 	if bolum_no < Bolumler.sayi():
-		Gecis.git(Bolumler.yol(bolum_no + 1))
+		Gecis.git(Bolumler.yol(bolum_no + 1), Tema.aktif)
 
 func _menuye() -> void:
 	Gunluk.aktif = false
-	Gecis.git(MENU_YOLU)
+	Gecis.git(MENU_YOLU, Tema.aktif)
 
 # --- Dokunmatik yeniden baslatma --------------------------------------
 
@@ -673,6 +694,51 @@ static func altin_kazanildi(no: int) -> bool:
 func _sure_yaz() -> void:
 	_sure_etiket.text = _bicim(_sure)
 
+## Sure chip'ine video renk akisindan siradaki vurgu rengi (Tema.AKIS): yazi rengi
+## vurgunun uzerinde kodla secilir (>= Tema.ESIK). Ara renk yok, palet adim adim
+## doner. Kontrol noktasinda ve zincir uzadikca tetiklenir; sade gecislerde kapali.
+func _sayac_vurgula() -> void:
+	if Gecis.sade() or _sol_stil == null or _vurgu_kalan > VURGU_SURESI - VURGU_ARALIK:
+		return
+	var v: Color = Tema.akis_rengi(Tema.aktif, _akis_i)
+	_akis_i += 1
+	_vurgu_kalan = VURGU_SURESI
+	var y: Color = Tema.yazi_rengi(v, Tema.aktif)
+	_sol_stil.bg_color = v
+	for e: Label in [_sol_baslik, _sure_etiket, _akis_etiket]:
+		e.add_theme_color_override("font_color", y)
+
+## Vurgu bitti: chip normal renklerine doner.
+func _sayac_sifirla() -> void:
+	_vurgu_kalan = 0.0
+	_sol_stil.bg_color = Color(Tema.zemin(), 0.88)
+	_sol_baslik.add_theme_color_override("font_color", Tema.etiket_rengi(Tema.blok()))
+	_sure_etiket.add_theme_color_override("font_color", Tema.blok())
+	_akis_etiket.add_theme_color_override("font_color", Tema.TURUNCU)
+
+## "YENI REKOR" damgasi: palet renginde doner (90 ms adim), damga disari dogru
+## genisleyip oturur (konteyner cocugu olceklenemez: stil expand_margin ile),
+## sonra odul sarisinda durur. Sade gecislerde animasyon yok, dogrudan sari.
+func _damga_animasyon() -> void:
+	if _damga_tween != null and _damga_tween.is_valid():
+		_damga_tween.kill()
+	_damga_boya(Tema.SARI)
+	_damga_puf(0.0)
+	if Gecis.sade():
+		return
+	_damga_tween = _bk_damga.create_tween()
+	_damga_tween.tween_method(_damga_puf, 6.0, 0.0, 0.16).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+	for k in 5:
+		_damga_tween.tween_callback(_damga_boya.bind(Tema.akis_rengi(Tema.aktif, k))).set_delay(0.09)
+	_damga_tween.tween_callback(_damga_boya.bind(Tema.SARI)).set_delay(0.09)
+
+func _damga_puf(m: float) -> void:
+	(_bk_damga.get_theme_stylebox("panel") as StyleBoxFlat).set_expand_margin_all(m)
+
+func _damga_boya(c: Color) -> void:
+	(_bk_damga.get_theme_stylebox("panel") as StyleBoxFlat).bg_color = c
+	_bk_damga_yazi.add_theme_color_override("font_color", Tema.yazi_rengi(c, Tema.aktif))
+
 ## Ustalik zinciri gostergesi: iki ve ustu zincirde gorunur.
 func _akis_yaz() -> void:
 	if _akis_etiket == null:
@@ -717,7 +783,8 @@ func _arayuzu_kur() -> void:
 	var baslik_metni := Tema.kisa_baslik(bolum_no, Bolumler.ad(bolum_no))
 	if _gunluk:
 		baslik_metni = "%s · %s" % [tr("GÜNLÜK"), Tema.buyuk(tr(String(Gunluk.degistirici()["ad"])))]
-	sol.add_child(Tema.etiket(baslik_metni, 8, soluk))
+	_sol_baslik = Tema.etiket(baslik_metni, 8, soluk)
+	sol.add_child(_sol_baslik)
 	_sure_etiket = Tema.etiket("", 16, blok, true, true)
 	sol.add_child(_sure_etiket)
 	_akis_etiket = Tema.etiket("", 8, Tema.TURUNCU, true, true)
@@ -725,6 +792,8 @@ func _arayuzu_kur() -> void:
 	sol.add_child(_akis_etiket)
 	var sol_rozet := _rozet(sol)
 	sol_rozet.position = Vector2(8, 6)
+	_sol_stil = sol_rozet.get_theme_stylebox("panel") as StyleBoxFlat
+	_vurgu_kalan = 0.0
 	_arayuz.add_child(sol_rozet)
 
 	# Sag ust: en iyi sure + madalya, altin hedef, tus/duraklat.
@@ -890,7 +959,8 @@ func _bitis_paneli() -> Control:
 	var damga := PanelContainer.new()
 	damga.add_theme_stylebox_override("panel", Tema.kutu(Tema.SARI, 3, 8, 2))
 	damga.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	damga.add_child(Tema.etiket(tr("YENİ REKOR"), 9, Tema.MUREKKEP, true, true))
+	_bk_damga_yazi = Tema.etiket(tr("YENİ REKOR"), 9, Tema.MUREKKEP, true, true)
+	damga.add_child(_bk_damga_yazi)
 	damga.visible = false
 	_bk_damga = damga
 	kutu.add_child(damga)
@@ -955,11 +1025,12 @@ func _ayarlardan_don() -> void:
 ## Dil degisince arayuz yeniden kurulur (metinler kurulurken cevriliyor).
 ## Ayar paneli kendi dugmesinden tetikledigi icin yikim bir kare ertelenir.
 func _dil_degisti() -> void:
-	_arayuzu_yenile.call_deferred()
+	Gecis.ara(&"glitch", Tema.aktif, _arayuzu_yenile)     # dil degisimi: glitch ortusunun altinda yeni metin
 
 func _arayuzu_yenile() -> void:
 	var ayarda := _ayar_panel != null and _ayar_panel.visible
 	var eski := _arayuz
+	_vurgu_kalan = 0.0
 	remove_child(eski)
 	eski.queue_free()
 	_arayuzu_kur()

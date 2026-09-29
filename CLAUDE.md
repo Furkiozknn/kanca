@@ -41,7 +41,7 @@ Godot yolu: PATH'teki `godot` (winget kurulumu `%LOCALAPPDATA%\Microsoft\WinGet\
 
 | Yol | Ne var |
 |---|---|
-| `scripts/` | Oyun kodu. Autoload'lar: `Ayarlar`, `Kayit`, `Ses`, `Gecis` (bu sırayla). Tema/dil/çizim: `tema.gd`, `ceviri.gd`, `ui.gd`, `cizim.gd`, `isaret.gd`. |
+| `scripts/` | Oyun kodu. Autoload'lar: `Ayarlar`, `Kayit`, `Ses`, `Gecis` (bu sırayla; geçişler `assets/gecis.gdshader` + `Tema.AKIS`, ayrıntı docs/TASARIM.md §7). Tema/dil/çizim: `tema.gd`, `ceviri.gd`, `ui.gd`, `cizim.gd`, `isaret.gd`. |
 | `scripts/rota_verisi.gd` | **Üretilmiş** — `tools/rota.gd` yazar. Elle düzenleme. Madalya eşiği, rota ipucu ve **altın hayalet izi** bu dosyadan gelir. |
 | `scripts/gunluk.gd` | Günlük meydan okuma: tarihten tohum → bölüm + değiştirici. |
 | `scenes/` | `menu.tscn`, `oyuncu.tscn`, `bolumler/bolum_NN.tscn` (sadece `bolum_no` taşır). |
@@ -128,7 +128,7 @@ powershell -ExecutionPolicy Bypass -File tools\kilitli.ps1 -- --headless --path 
 
 # Testler (çıkış kodu 0 = hepsi geçti, n = kalan test sayısı, 99 = zaman aşımı)
 powershell -ExecutionPolicy Bypass -File tests\calistir.ps1
-# CI aynı sahnenin günlüğünü tests/kapi.sh'a verir (taban: ci.yml → TEST_TABANI, şu an 157;
+# CI aynı sahnenin günlüğünü tests/kapi.sh'a verir (taban: ci.yml → TEST_TABANI, şu an 216;
 # SCRIPT ERROR olursa kırmızı, çünkü yarıda kalan test fonksiyonu yine "N/N gecti" der).
 # Test ekleyince TEST_TABANI'nı yükselt. Kapının sınaması (Godot'suz): bash tests/kapi_sinama.sh
 

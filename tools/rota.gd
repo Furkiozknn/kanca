@@ -135,6 +135,7 @@ var _tani_bolum := 1
 ## --hata N: N. bolumde ilk kancayi 0,22 sn sonra erken birakir (bir olum-yeniden dogus).
 var _kayit_bolumleri: Array = []
 var _kayit_hata := 0
+var _kayit_kes := 0                  ## >0: her kayit bolumu bu kadar kare sonra kesilir (gecis cesitliligi)
 
 var _sonuc: Dictionary = {}
 ## Isleneni bolumde sarkacin dibinin girmemesi gereken dikdortgenler (_guvenli_boy).
@@ -167,6 +168,8 @@ func _calistir() -> void:
 		if kullanici[i] == "--kayit" and i + 1 < kullanici.size():
 			for parca in kullanici[i + 1].split(","):
 				_kayit_bolumleri.append(int(parca))
+		if kullanici[i] == "--kes" and i + 1 < kullanici.size():
+			_kayit_kes = int(kullanici[i + 1])
 		if kullanici[i] == "--hata" and i + 1 < kullanici.size():
 			_kayit_hata = int(kullanici[i + 1])
 	if not _kayit_bolumleri.is_empty():
@@ -675,6 +678,8 @@ func _kos(no: int, rota: Array, tohum: int, ozel: Dictionary = {}) -> Dictionary
 			arayuz.visible = false
 		if bool(ozel.get("ac", false)):
 			Gecis.ac()
+		elif bool(ozel.get("acilis", false)):
+			Gecis.acilis(&"iris", Tema.aktif, 0.5)
 	var hata_yapildi := false
 	for i in 4:
 		await get_tree().physics_frame
@@ -696,9 +701,13 @@ func _kos(no: int, rota: Array, tohum: int, ozel: Dictionary = {}) -> Dictionary
 	var iz := PackedVector2Array()
 	var olumler: Array[int] = []       # hangi rota adiminda olundu (rota aramasi icin)
 	var kurtarma_mi := false           # su anki kanca rota adimi mi, ara kurtarma mi
+	var kes: int = int(ozel.get("kes", 0))
 	while kare < AZAMI_KARE:
 		await get_tree().physics_frame
 		kare += 1
+		if kes > 0 and kare >= kes:
+			bitti = true          # kayit: bolum kes kare sonra kesilir (gecis cesitliligi icin)
+			break
 		# Bolum._dogur() olumden sonra girdi_aktif'i geri aciyor; bot o zaman
 		# klavyeyi (bos) okumaya baslayip yerinde ziplamaya basliyor.
 		oyuncu.girdi_aktif = false
@@ -868,10 +877,10 @@ func _kos(no: int, rota: Array, tohum: int, ozel: Dictionary = {}) -> Dictionary
 
 	if bool(ozel.get("ekran", false)) and bitti:
 		# Bayragin yaninda kisa bir nefes (parcaciklar), sonra bant ekrani orter.
-		for i in 40:
+		for i in (10 if kes > 0 else 40):
 			await get_tree().physics_frame
 		if not bool(ozel.get("son", false)):
-			await Gecis.kapat()
+			await Gecis.kapat(&"", Tema.aktif)
 	bolum.free()
 	await get_tree().physics_frame
 	# takildi: bitiremediyse en cok olunen rota adimi (yoksa ulasilan adim).
@@ -890,7 +899,7 @@ func _kayit_modu() -> void:
 		var no: int = _kayit_bolumleri[i]
 		_tehlikeleri_topla(no)
 		var rota := _plan(no)
-		var ozel := {"ekran": true, "ac": i > 0, "son": i == _kayit_bolumleri.size() - 1}
+		var ozel := {"ekran": true, "ac": i > 0, "acilis": i == 0, "son": i == _kayit_bolumleri.size() - 1, "kes": _kayit_kes if i < _kayit_bolumleri.size() - 1 else 0}
 		if no == _kayit_hata:
 			ozel["hata_tutma"] = 0.22
 		var sonuc := await _kos(no, rota, 1, ozel)

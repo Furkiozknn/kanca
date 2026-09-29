@@ -20,7 +20,7 @@ Güncel sürümün notları GitHub'da da duruyor:
 - **Arayüz:** menüde tek büyük **Oyna** + tek satır yardım, canlı sarkaç
   arka planı; HUD `01 / BÖLÜM ADI` + büyük süre + rozetler; duraklat ve bölüm
   sonu kartları (rekor damgası, madalya, Tekrar dene / Sonraki bölüm); iki
-  sütunlu ayarlar; turuncu renk bandı geçişi; sıralı giriş; ölümde flaş.
+  sütunlu ayarlar; renk bandı geçişi (sonradan video geçişleri); sıralı giriş; ölümde flaş.
 - **Dil:** Türkçe / İngilizce. Varsayılan işletim sistemi / tarayıcı dili;
   menüde ve Ayarlar'da dil düğmesi; kayıtlı en iyi süreler ve ilerleme aynen
   korunur (yalnız yeni `ayarlar/dil` anahtarı).
@@ -29,6 +29,14 @@ Güncel sürümün notları GitHub'da da duruyor:
   İlk oyunda ipucu yalnız hiç bitirilmemiş bölümde ve ilk kancadan sonra solar.
   Kayıtları sıfırla iki adımlı. Bölüm sonu `Enter` artık odaktaki düğmeyi
   çalıştırır (eskiden hep sonraki bölüm).
+- **Günlük video imkânları (renk akışı + geçişler).** `Gecis` artık
+  `assets/gecis.gdshader` ile sekiz aile (iris, glitch, bloklar, itme, perde,
+  flaş, kararma, zoom) ve videolardaki paletlerden (gece: harita, kâğıt: kâğıt)
+  dönen renklerle çalışır: menü açılışı, bölüm geçişi, bölüm/oyun sonu, duraklat,
+  dil değişimi, süre chip'i (kontrol noktası, zincir), "yeni rekor" damgası.
+  Ayarlar'da "Sade geçişler" ve tarayıcı `prefers-reduced-motion`: anında.
+  Test 157 → 216 (`TEST_TABANI` 216). Ayrıntı: `docs/TASARIM.md` §7.
+  Ham kayıt (`tools/kayit.ps1`, 16 sn) yedi geçiş ailesi + bölüm sonu flaşı.
 - **Test:** 115 → 157 (menü, duraklat, bölüm sonu, dil, çeviri, tema, erken
   girdi). `TEST_TABANI` 157.
 - **Boyut:** web `index.pck` 473.128 → 722.620 bayt (+%0,62 toplam).

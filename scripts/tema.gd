@@ -25,7 +25,26 @@ const TEMALAR: Array = [
 ]
 const KONTRAST := {"ad": "kontrast", "zemin": Color("000000"), "blok": Color("ffffff")}
 
-const F_GOVDE := "res://assets/fonts/InstrumentSans-Regular.ttf"
+## Gunluk video imkanlarindan alinan renk akisi ve gecis aileleri
+## (sosyal/uret/tema.mjs TEMALAR; docs/TASARIM.md "Gunluk video imkanlarindan
+## alinanlar"). Dunya DUZ kalir; akis yalniz gecislerde, sure chip'inde ve rekor
+## damgasinda. Dizin = tema dizini (0 gece, 1 kagit). "vurgu" sirayla doner
+## (video: renkAkisi); yazi rengi vurgunun uzerinde kodla secilir (en az ESIK).
+## Oyunun kendi kimligi agir basar: gece paleti videonun "harita" temasindan
+## (lacivert zemin, turuncu-kum-camgobegi-nane) ama ilk renk oyunun turuncusu;
+## acik/koyu uc renkler oyunun kagit/murekkebi.
+const GECIS_TURLERI: Array[StringName] = [&"iris", &"glitch", &"bloklar", &"itme", &"perde", &"flas", &"kararma", &"zoom"]
+const ESIK := 4.5                  ## okunurluk alt siniri (video 5:1, burada 4,5:1)
+const AKIS: Array = [
+	{"kaynak": "harita", "acik": KAGIT, "koyu": MUREKKEP,
+		"vurgu": [TURUNCU, Color("62d6ff"), Color("ffd166"), Color("7bf1a8"), Color("ff9ebb")],
+		"gecis": [&"itme", &"iris", &"glitch", &"zoom", &"bloklar"]},
+	{"kaynak": "kagit", "acik": KAGIT, "koyu": MUREKKEP,
+		"vurgu": [Color("c1121f"), Color("1f45c9"), Color("13632f"), Color("6a1b9a"), Color("9a3a00")],
+		"gecis": [&"perde", &"kararma", &"bloklar", &"itme"]},
+]
+
+const F_GOVDE :="res://assets/fonts/InstrumentSans-Regular.ttf"
 const F_KALIN := "res://assets/fonts/InstrumentSans-Bold.ttf"
 const F_MONO := "res://assets/fonts/JetBrainsMono-Regular.ttf"
 const F_MONO_KALIN := "res://assets/fonts/JetBrainsMono-Bold.ttf"
@@ -47,6 +66,32 @@ static func zemin() -> Color:
 
 static func blok() -> Color:
 	return (TEMALAR[clampi(aktif, 0, TEMALAR.size() - 1)]["blok"] as Color)
+
+
+## WCAG goreli parlaklik.
+static func parlaklik(c: Color) -> float:
+	var k: Array[float] = []
+	for v in [c.r, c.g, c.b]:
+		k.append(v / 12.92 if v <= 0.04045 else pow((v + 0.055) / 1.055, 2.4))
+	return 0.2126 * k[0] + 0.7152 * k[1] + 0.0722 * k[2]
+
+
+static func kontrast(a: Color, b: Color) -> float:
+	var x := parlaklik(a)
+	var y := parlaklik(b)
+	return (maxf(x, y) + 0.05) / (minf(x, y) + 0.05)
+
+
+## Vurgu rengi uzerindeki yazi: acik ya da koyu, hangisi daha okunuyorsa.
+static func yazi_rengi(zemin_rengi: Color, tema: int) -> Color:
+	var a: Dictionary = AKIS[clampi(tema, 0, AKIS.size() - 1)]
+	return a["acik"] if kontrast(zemin_rengi, a["acik"]) >= kontrast(zemin_rengi, a["koyu"]) else a["koyu"]
+
+
+## Akis paletinden k. renk (sarmal).
+static func akis_rengi(tema: int, k: int) -> Color:
+	var v: Array = AKIS[clampi(tema, 0, AKIS.size() - 1)]["vurgu"]
+	return v[posmod(k, v.size())]
 
 
 ## Mono etiketlerin rengi: bloktan %70 opaklik.

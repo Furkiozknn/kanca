@@ -31,6 +31,9 @@ func _ready() -> void:
 	_ayar.visible = false
 	UI.dugmeleri_bagla(self)
 	_ana.find_child("Basla", true, false).grab_focus()
+	if not Gecis.acilis_yapildi and not Gecis.mesgul_mu():
+		Gecis.acilis(&"iris", 0, 0.5)      # menu acilisi: iris ortadan acilir (yalniz ilk acilista)
+	Gecis.acilis_yapildi = true
 	_ana_gir()
 	Ses.muzik_cal("muzik_menu")
 
@@ -265,12 +268,12 @@ func _basla() -> void:
 func _gunluge_git() -> void:
 	Gunluk.aktif = true
 	Ses.cal("menu")
-	Gecis.git(Bolumler.yol(Gunluk.bolum_no()))
+	Gecis.git(Bolumler.yol(Gunluk.bolum_no()), 0)
 
 
 func _bolume_git(no: int) -> void:
 	Ses.cal("menu")
-	Gecis.git(Bolumler.yol(no))
+	Gecis.git(Bolumler.yol(no), 0)
 
 
 func _secim_goster() -> void:
@@ -327,14 +330,15 @@ func _sifirla_iptal() -> void:
 
 
 func _dil_degistir() -> void:
-	Kayit.ayar_yaz("dil", "en" if Kayit.dil_etkin() == "tr" else "tr")
 	Ses.cal("menu")
-	get_tree().reload_current_scene()
+	Gecis.ara(&"glitch", 0, func() -> void:       # dil degisimi: glitch ortusunun altinda yeni metin
+		Kayit.ayar_yaz("dil", "en" if Kayit.dil_etkin() == "tr" else "tr")
+		get_tree().reload_current_scene())
 
 
 ## Ayarlar'daki dil dugmesi: menuyu yeni dilde yeniden kur, ayarlar acik kalsin.
 func _dil_yenile() -> void:
-	get_tree().reload_current_scene.call_deferred()
+	Gecis.ara(&"glitch", 0, func() -> void: get_tree().reload_current_scene())
 
 
 func _cikis() -> void:
