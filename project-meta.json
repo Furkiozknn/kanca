@@ -3,7 +3,7 @@
   "id": "kanca",
   "owner": "Furkiozknn",
   "repository": "https://github.com/Furkiozknn/kanca",
-  "homepage": "https://furkiozknn.github.io/#kanca",
+  "homepage": "https://furkiozknn.github.io/kanca/",
   "releases": "https://github.com/Furkiozknn/kanca/releases",
   "status": "active",
   "category": "game",
@@ -42,7 +42,7 @@
   "media": {
     "hero": "yayin/banner.svg",
     "screenshots": [
-      "docs/ekran/menu.png",
+      "docs/ekran/menu_tr.png",
       "docs/ekran/bolum_13.png"
     ],
     "gifs": [
@@ -51,9 +51,9 @@
     "videos": []
   },
   "tests": {
-    "count": 115,
-    "source": "CI log: `=== 115/115 gecti ===`",
-    "measured": "2026-09-22"
+    "count": 216,
+    "source": "CI log: `=== 216/216 gecti ===`",
+    "measured": "2026-09-29"
   },
   "ci": {
     "workflows": [
@@ -80,7 +80,7 @@
       "gamedev",
       "platformer"
     ],
-    "primary_link": "https://github.com/Furkiozknn/kanca"
+    "primary_link": "https://furkiozknn.github.io/kanca/"
   },
   "provenance": {
     "generated_at": "2026-09-22",
