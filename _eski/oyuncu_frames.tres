@@ -1,6 +1,6 @@
 [gd_resource type="SpriteFrames" load_steps=12 format=3]
 
-[ext_resource type="Texture2D" path="res://assets/sprites/oyuncu.png" id="1_tex"]
+[ext_resource type="Texture2D" path="res://_eski/sprites-v0.7/oyuncu.png" id="1_tex"]
 
 [sub_resource type="AtlasTexture" id="Atlas_0"]
 atlas = ExtResource("1_tex")
