@@ -662,6 +662,8 @@ indirmeden projeyi tarıyor ve bulguları SARIF olarak kod taramaya yüklüyor.
 
 [MIT](LICENSE) — Furki Özkan, 2026. Bütün görseller, sesler ve müzik de depodaki üreteclerle koddan üretilir; aynı lisans onları da kapsar.
 
+Claude Code ile yapıldı; commit geçmişindeki `Co-Authored-By` izleri kullanılan modelleri gösterir. Oyun döngüsü: [`scripts/oyuncu.gd`](scripts/oyuncu.gd).
+
 ---
 
 ## Bu ekosistemden başka projeler
