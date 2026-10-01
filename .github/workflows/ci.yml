@@ -42,7 +42,7 @@ jobs:
     # dongu) 6 saatlik varsayilan yerine 15 dakikada kirmizi.
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
           # Varliklar Git LFS'te. Cekilmezse checkout yalnizca isaretci
@@ -121,7 +121,7 @@ jobs:
       contents: read
       security-events: write
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
 
@@ -138,7 +138,7 @@ jobs:
       # yapiliyor; su an temiz (198 dosya, 57 referans, sifir
       # bulgu) ve bu commit'ten sonra oyle kalmasi garanti.
       - name: godot-refcheck
-        uses: Furkiozknn/godot-refcheck@b083e3d2998ca0d5101289b106c76794c6de866d  # v0.2.0 + the clean-project fix
+        uses: Furkiozknn/godot-refcheck@d999cd882bb3d023d73ac3882d23e6ba9ab24603  # v0.2.0 + the clean-project fix
         with:
           path: .
           fail-on: error
