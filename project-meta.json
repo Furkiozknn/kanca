@@ -31,7 +31,7 @@
     "speedrun",
     "turkce"
   ],
-  "summary": "Hook the ceiling, swing, release at the right moment and carry the momentum - a speed-focused 2D swinging platformer in Godot 4; medal times measured on 13 of 14 levels by a scripted bot. Turkish UI.",
+  "summary": "Speed-focused 2D swinging platformer in Godot 4: hook the ceiling, swing and release to carry momentum through 14 levels with bot-measured medal times. Turkish and English UI, playable in the browser.",
   "key_features": [
     "Swing physics with no jump button: hook a ceiling anchor, swing, release at the right moment and keep the momentum",
     "14 hand-built levels; medal times on 13 of them measured by a scripted bot rather than guessed",
