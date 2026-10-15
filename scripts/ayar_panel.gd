@@ -4,7 +4,7 @@ class_name AyarPanel
 ## (duraklatmadaki "Ayarlar" dugmesi bolumu terk etmesin diye).
 ##
 ## Iki sutun: SES ve GORUNTU (muzik, efekt, DIL, tam ekran) | OYNANIS (nisan,
-## hayalet, sarsinti, rota ipucu, tek parmak). Butun degerler Kayit uzerinden
+## hayalet, sarsinti, rota ipucu, tek parmak, assist mode). Butun degerler Kayit uzerinden
 ## okunur/yazilir; Kayit.ayar_yaz zaten ses duzeyini, pencere kipini ve dili
 ## uyguluyor.
 
@@ -59,6 +59,14 @@ static func yap(geri: Callable, perde := false, dil_degisti := Callable()) -> Co
 	sag.add_child(_anahtar(Ceviri.t("Ekran sarsıntısı"), "sarsinti"))
 	sag.add_child(_anahtar(Ceviri.t("Rota ipucu (altından sonra)"), "rota_ipucu"))
 	sag.add_child(_anahtar(Ceviri.t("Tek parmak şeması (dokunmatik)"), "dokunmatik"))
+	# Assist mode (Celeste-style speed, Geometry Dash-style practice points).
+	# Assisted runs never write times, medals or ghosts; the subheading says so.
+	sag.add_child(Tema.etiket(Ceviri.t("YARDIM KİPİ · süre kaydedilmez"), 8, Tema.etiket_rengi(Tema.KAGIT)))
+	var hizlar: Array = []
+	for h: float in Ayarlar.YARDIM_HIZLARI:
+		hizlar.append(Ceviri.t("%%%d") % roundi(h * 100.0))
+	sag.add_child(_secim(Ceviri.t("Oyun hızı"), "yardim_hiz", hizlar))
+	sag.add_child(_anahtar(Ceviri.t("Pratik noktaları (yerde dur)"), "pratik"))
 	sutunlar.add_child(sag)
 
 	# Tus atama ayri bir kutuda; ayni kok icinde gorunurluk degistiriliyor.

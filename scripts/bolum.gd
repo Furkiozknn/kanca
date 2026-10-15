@@ -31,6 +31,9 @@ var _parcacik_havuzu: Array[CPUParticles2D] = []
 var _parcacik_sira := 0
 var _zincir := 0            ## yere degmeden art arda kac kanca (ustalik zinciri)
 var _en_uzun_zincir := 0
+var _yardimli := false      ## assist mode was on at some point during this run (nothing is recorded)
+var _pratik_t := 0.0        ## seconds the player has stood on the ground (practice points)
+var _yardim_etiket: Label = null
 
 ## Dokunmatikte olumden sonra beliren tek dokunusluk "Bastan basla" dugmesi.
 ## Kisa bir bekleme var: olum aninda ekranda olan parmak yanlislikla basmasin.
@@ -422,6 +425,8 @@ func _yeniden() -> void:
 	_oluyor = false
 	_zincir = 0
 	_en_uzun_zincir = 0
+	_yardimli = false   # _dogur -> _hiz_uygula marks the run again if assist is on
+	_pratik_t = 0.0
 	_yeniden_dugmesini_gizle()
 	_dunyayi_kur()
 	_dogur()
@@ -464,6 +469,8 @@ func _dogur() -> void:
 	_duraklat_panel.visible = false
 	_ayar_panel.visible = false
 	_bitis_panel.visible = false
+	_pratik_t = 0.0
+	_hiz_uygula(true)
 	_sure_yaz()
 	_alanlari_ac.call_deferred()
 
@@ -497,6 +504,8 @@ func _process(delta: float) -> void:
 		if _ipucu_sayac <= 0.0 and is_instance_valid(_ipucu_kutu):
 			var kutu := _ipucu_kutu
 			kutu.create_tween().tween_property(kutu, "modulate:a", 0.0, 0.4)
+	if _sayiyor and not _bitti and not _oluyor:
+		_pratik_isle(delta, _oyuncu.is_on_floor() and not _oyuncu.kancali())
 	if not _bitti and not _duraklatildi and _oyuncu.global_position.y > Ayarlar.OLUM_Y:
 		_oldu()
 
@@ -529,6 +538,10 @@ func _bitise_degdi(govde: Node2D) -> void:
 	sars(2.0)
 
 	_yeniden_dugmesini_gizle()
+	Engine.time_scale = 1.0   # the finish card animates at normal speed
+	if _yardimli:
+		_yardimli_bitis()
+		return
 
 	# Gunluk kosu ayri yuvaya yazilir: en iyi sureyi, acik bolumu, akis rekorunu
 	# ve hayaleti BOZMAZ - degistiriciyle kosulmus bir sure normal tabloya girmemeli.
@@ -618,6 +631,8 @@ func _duraklat_degistir() -> void:
 		_kart_goster(_duraklat_panel, _duraklat_panel.find_child("Kart", true, false))
 	_sayiyor = not _duraklatildi
 	_oyuncu.set_physics_process(not _duraklatildi)
+	# Menus run at normal speed; a speed changed in the pause settings applies on resume.
+	_hiz_uygula(not _duraklatildi)
 	Ses.cal("menu")
 	if _duraklatildi:
 		_duraklat_panel.find_child("Devam", true, false).grab_focus()
@@ -628,7 +643,67 @@ func _sonraki() -> void:
 
 func _menuye() -> void:
 	Gunluk.aktif = false
+	Engine.time_scale = 1.0
 	Gecis.git(MENU_YOLU, Tema.aktif)
+
+## Engine.time_scale is global and survives scene changes: never leave a level slowed.
+func _exit_tree() -> void:
+	Engine.time_scale = 1.0
+
+# --- Assist mode --------------------------------------------------------
+
+## Applies the assist game speed while the run is live and normal speed in menus.
+## A live run with any assist option on is marked assisted for good (turning the
+## option off just before the flag does not turn the run into a record).
+func _hiz_uygula(calisiyor: bool) -> void:
+	Engine.time_scale = Ayarlar.yardim_hizi() if calisiyor else 1.0
+	if calisiyor and Ayarlar.yardim_acik():
+		_yardimli = true
+	_yardim_yaz()
+
+## Practice points: with the option on, standing on the ground (not hooked) for
+## Ayarlar.PRATIK_BEKLEME seconds moves the respawn point there. The short wait
+## keeps a landing that dies on the same frame (spikes) from becoming a spawn.
+func _pratik_isle(delta: float, yerde: bool) -> void:
+	if not bool(Kayit.ayar("pratik")) or not yerde:
+		_pratik_t = 0.0
+		return
+	_pratik_t += delta
+	if _pratik_t < Ayarlar.PRATIK_BEKLEME:
+		return
+	var yer := _oyuncu.global_position
+	if yer.distance_to(_dogus) < Ayarlar.PRATIK_ASGARI_ARALIK:
+		return
+	_dogus = yer
+	_yardimli = true
+	Ses.cal("kontrol")
+	parcacik_at(yer, Tema.TURKUAZ, 6)
+
+## Short HUD summary of the active assist options: "YARDIM · %70 · PRATİK".
+func _yardim_ozeti() -> String:
+	var parca := PackedStringArray([tr("YARDIM")])
+	var h := Ayarlar.yardim_hizi()
+	if h < 1.0:
+		parca.append(tr("%%%d") % roundi(h * 100.0))
+	if bool(Kayit.ayar("pratik")):
+		parca.append(tr("PRATİK"))
+	return " · ".join(parca)
+
+func _yardim_yaz() -> void:
+	if _yardim_etiket == null:
+		return
+	_yardim_etiket.visible = _yardimli
+	_yardim_etiket.text = _yardim_ozeti()
+
+## Assisted finish: no best time, medal, chain record, ghost or daily result is
+## written. A normal level still unlocks the next one (assist is for getting
+## through the game, not for the leaderboard of your own times).
+func _yardimli_bitis() -> void:
+	if not _gunluk:
+		Kayit.bolum_ac(mini(bolum_no + 1, Bolumler.sayi()))
+	var ust := tr("GÜNLÜK MEYDAN OKUMA") if _gunluk else Tema.kisa_baslik(bolum_no, Bolumler.ad(bolum_no))
+	_bitis_karti_doldur(ust, Gunluk.baslik() if _gunluk else "", false, 3,
+		tr("YARDIM KİPİ · SÜRE KAYDEDİLMEDİ"), _yardim_ozeti(), _gunluk)
 
 # --- Dokunmatik yeniden baslatma --------------------------------------
 
@@ -790,6 +865,11 @@ func _arayuzu_kur() -> void:
 	_akis_etiket = Tema.etiket("", 8, Tema.TURUNCU, true, true)
 	_akis_etiket.visible = false
 	sol.add_child(_akis_etiket)
+	# Assist badge: always visible during an assisted run (it is not a record attempt).
+	_yardim_etiket = Tema.etiket("", 8, soluk, true, true)
+	_yardim_etiket.name = "YardimEtiket"
+	sol.add_child(_yardim_etiket)
+	_yardim_yaz()
 	var sol_rozet := _rozet(sol)
 	sol_rozet.position = Vector2(8, 6)
 	_sol_stil = sol_rozet.get_theme_stylebox("panel") as StyleBoxFlat
@@ -1035,6 +1115,7 @@ func _arayuzu_yenile() -> void:
 	eski.queue_free()
 	_arayuzu_kur()
 	_akis_yaz()
+	_yardim_yaz()
 	if ayarda:
 		AyarPanel.ana_kutuya_don(_ayar_panel)
 		_ayar_panel.visible = true
