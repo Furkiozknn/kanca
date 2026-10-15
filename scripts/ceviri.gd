@@ -88,6 +88,8 @@ const EN := {
 	"Sonraki bölüm": "Next level",
 	"GÜNLÜK MEYDAN OKUMA": "DAILY CHALLENGE",
 	"BUGÜNÜN EN İYİSİ %s": "TODAY'S BEST %s",
+	"ÖNCEKİ EN İYİYE %s": "VS PREVIOUS BEST %s",
+	"ALTINA %s": "VS GOLD %s",
 	"ALTIN %s · GÜMÜŞ %s · BRONZ %s": "GOLD %s · SILVER %s · BRONZE %s",
 	# --- madalyalar ---
 	"Altın": "Gold",

@@ -161,6 +161,13 @@ Nişan, parmağın ekranda bulunduğu noktaya bakar.
   *Kapalı*, *En iyi koşun*, **Altın hayalet** — sonuncusu botun koşusunu altın
   renkli oynatır ve yalnız o bölümde **altın madalya kazandıktan sonra** açılır.
   Kayıt 10 Hz örnek + ara değer (bölüm başına birkaç yüz bayt).
+- **Ara süreler ve fark** (speedrun sayaçları ve Neon White'ın bitiş ekranı gibi).
+  Kontrol noktası olan bölümlerde (11–14) her noktaya ilk değişinde sayacın altında
+  en iyi koşunun o noktadaki ara süresine göre fark 2,5 sn görünür: turkuaz
+  `-0.214` öndesin, kırmızı `+0.350` geridesin. Ara süreler yalnız **yeni rekorla**
+  biten koşudan yazılır (`[araliklar]`), yani her zaman en iyi koşuya aittir. Bitiş
+  kartında her bölümde `ÖNCEKİ EN İYİYE -0.214 · ALTINA +0.512` satırı var (günlük
+  koşuda bugünün önceki en iyisine göre).
 - **Günlük meydan okuma:** tarihten tohumlanan bir bölüm + küçük bir değiştirici
   (kısa halat ya da yan rüzgâr). Herkeste aynı, günde bir değişir. Kendi kayıt
   yuvası var: ana ilerlemeyi, en iyi süreleri ve hayaletleri bozmaz.
