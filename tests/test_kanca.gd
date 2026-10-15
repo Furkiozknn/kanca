@@ -45,6 +45,7 @@ func _calistir() -> void:
 	_test_yerlesim()
 	_test_madalya()
 	_test_hayalet_kaydi()
+	_test_bozuk_kayit()
 	_test_hayalet_ara_deger()
 	_test_altin_hayalet()
 	_test_gunluk_tohum()
@@ -664,6 +665,39 @@ func _test_hayalet_kaydi() -> void:
 	_bildir("eski surumsuz hayalet dosyasi yok sayiliyor",
 		Kayit.hayalet_oku(99).is_empty(), "eski dosya kabul edildi")
 	DirAccess.remove_absolute(Kayit.HAYALET_YOL % 99)
+
+# --- 11a. Corrupt save guard -------------------------------------------
+
+## A corrupt or truncated save must not wipe progress: dosya_oku() falls back
+## to the automatic backup and keeps the unreadable file as *.bozuk.cfg.
+## Uses its own file under user://, never the player's kayit.cfg.
+func _test_bozuk_kayit() -> void:
+	var yol := "user://test_kayit.cfg"
+	var yollar: Array[String] = [yol, Kayit.yedek_yolu(yol), Kayit.bozuk_yolu(yol)]
+	for y in yollar:
+		DirAccess.remove_absolute(y)
+	var cfg := ConfigFile.new()
+	cfg.set_value("sureler", "1", 12.5)
+	cfg.set_value("ilerleme", "acik", 7)
+	_bildir("save writes the main file and its backup",
+		Kayit.dosya_yaz(cfg, yol) == OK and FileAccess.file_exists(Kayit.yedek_yolu(yol)))
+	var f := FileAccess.open(yol, FileAccess.WRITE)
+	f.store_string("bozuk [[[ dosya")
+	f.close()
+	var geri := Kayit.dosya_oku(yol)
+	_bildir("corrupt save is read from the backup",
+		int(geri.get_value("ilerleme", "acik", 0)) == 7
+		and absf(float(geri.get_value("sureler", "1", 0.0)) - 12.5) < 0.0001,
+		"acik=%d" % int(geri.get_value("ilerleme", "acik", 0)))
+	_bildir("corrupt save is kept as .bozuk.cfg",
+		FileAccess.get_file_as_string(Kayit.bozuk_yolu(yol)) == "bozuk [[[ dosya")
+	f = FileAccess.open(yol, FileAccess.WRITE)
+	f.close()
+	geri = Kayit.dosya_oku(yol)
+	_bildir("empty (cut short) save is read from the backup",
+		int(geri.get_value("ilerleme", "acik", 0)) == 7)
+	for y in yollar:
+		DirAccess.remove_absolute(y)
 
 ## Hayalet 10 Hz ornekle kaydedilip ara degerle oynatiliyor: iki ornek
 ## arasindaki konum dogrusal ara deger olmali.

@@ -13,7 +13,7 @@ var _cfg := ConfigFile.new()
 var salt_okunur := false
 
 func _ready() -> void:
-	_cfg.load(YOL)
+	_cfg = dosya_oku(YOL)
 	Ceviri.kur()
 	dil_uygula()
 	Tuslar.uygula()
@@ -181,6 +181,44 @@ func gunluk_yaz(tohum: int, sure: float) -> bool:
 func _yaz() -> void:
 	if salt_okunur:
 		return
-	var hata := _cfg.save(YOL)
+	var hata := dosya_yaz(_cfg, YOL)
 	if hata != OK:
 		push_warning("Kayit yazilamadi: %d" % hata)
+
+## Automatic copy written after every successful save (same scheme as
+## tek-tus-kosu): kayit.cfg -> kayit.yedek.cfg.
+func yedek_yolu(yol: String) -> String:
+	return yol.get_basename() + ".yedek.cfg"
+
+## Where an unreadable save is kept for manual recovery: kayit.bozuk.cfg.
+func bozuk_yolu(yol: String) -> String:
+	return yol.get_basename() + ".bozuk.cfg"
+
+## Loads the save at `yol`. A failed read used to leave _cfg empty, and the
+## next _yaz() (any record, setting or key binding) replaced every best time,
+## unlocked level and setting with that empty table. Now an unreadable (parse
+## error) or empty (write cut short) file falls back to the automatic backup,
+## and an unreadable file is copied to bozuk_yolu() before anything can
+## overwrite it.
+func dosya_oku(yol: String) -> ConfigFile:
+	var cfg := ConfigFile.new()
+	var hata := cfg.load(yol)
+	if hata == OK and not cfg.get_sections().is_empty():
+		return cfg
+	if hata != OK and hata != ERR_FILE_NOT_FOUND:
+		DirAccess.copy_absolute(yol, bozuk_yolu(yol))
+		push_warning("Save file unreadable (error %d), kept as %s" % [hata, bozuk_yolu(yol)])
+	var yedek := ConfigFile.new()
+	if yedek.load(yedek_yolu(yol)) == OK and not yedek.get_sections().is_empty():
+		push_warning("Save loaded from backup %s" % yedek_yolu(yol))
+		return yedek
+	return cfg if hata == OK else ConfigFile.new()
+
+## Saves `cfg` to `yol`, then refreshes the backup. The backup is written only
+## after the main file saved cleanly, so a save cut short (crash, closed tab)
+## leaves the previous good copy for dosya_oku().
+func dosya_yaz(cfg: ConfigFile, yol: String) -> Error:
+	var hata := cfg.save(yol)
+	if hata == OK:
+		hata = cfg.save(yedek_yolu(yol))
+	return hata
