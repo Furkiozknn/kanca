@@ -29,7 +29,7 @@ kararları: [`docs/DENETIM.md`](docs/DENETIM.md), [`docs/TASARIM.md`](docs/TASAR
 Türkçe/İngilizce arayüz, ayarlar ekranı, madalyalar, hayalet tekrarı (kendi koşun ya da **altın hayalet**), kontrol noktaları,
 günlük meydan okuma, puanlamalı hedefleme, kancada tampon + kojot, halat pompası,
 bırakma bonusu, ileri bakan kamera, tek parmak dokunmatik şeması, tuş atama, rota
-ipucu ve ustalık zinciri.
+ipucu, ustalık zinciri ve **yardım kipi** (oyun hızı %50–100 + pratik noktaları).
 
 **Madalya eşikleri 14 bölümün 13'ünde ölçülmüş bot koşusundan geliyor** — formülle
 değil. Kalan biri hâlâ tahmin ve "Bilinen sınırlar" bölümünde öyle yazıyor.
@@ -153,6 +153,20 @@ Nişan, parmağın ekranda bulunduğu noktaya bakar.
   `BIRAKMA_CARPANI` bonusu). Hızlıyken arkanda hız izi çizilir.
 - **Ölüm** = çukur, diken veya tavan dikeni. Kontrol noktası varsa oradan devam
   edersin ama **sayaç durmaz** — ölmek yine de süre kaybıdır.
+- **Yardım kipi** (Ayarlar → Oynanış → *Yardım kipi*). Celeste'in Assist Mode'u ve
+  Geometry Dash'in pratik kipi örnek alındı; zor bir salınımı yavaşta öğrenip
+  sonra tam hızda denemek için:
+  - **Oyun hızı** %100 / 90 / 80 / 70 / 60 / 50. Yalnız koşu sırasında uygulanır
+    (`Engine.time_scale`); duraklatma, bitiş kartı ve menüler normal hızda.
+  - **Pratik noktaları (yerde dur):** kanca takılı değilken yerde 0,35 sn durduğun
+    yer yeni doğuş noktası olur (önceki doğuştan en az 48 px uzakta). Ölünce oradan
+    devam edersin; aynı karede ölünen iniş (diken) nokta sayılmaz.
+  - Yardımlı koşu **hiçbir şey kaydetmez**: en iyi süre, madalya, akış rekoru,
+    hayalet ve günlük sonuç yazılmaz. Koşunun herhangi bir anında yardım açıksa
+    koşu yardımlı sayılır (bayraktan hemen önce kapatmak işe yaramaz). Sonraki
+    bölüm yine açılır: yardım oyunu bitirmek için, rekor için değil. HUD'da
+    `YARDIM · %70 · PRATİK` rozeti görünür. Madalya botu (`tools/rota.gd`) yardım
+    ayarlarını her zaman kapatır.
 - **Madalya:** her bölümün altın/gümüş/bronz hedef süresi var (ms hassasiyetinde,
   bot koşusundan üretilmiş — aşağıya bak); oyun içinde sol üstte altın hedefi,
   bitişte kazanılan madalya, Bölüm Seç ekranında bölüm başına madalya rozeti görünür.

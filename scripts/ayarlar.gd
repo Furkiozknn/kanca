@@ -62,6 +62,25 @@ const KAMERA_YUMUSAKLIK := 6.0
 const SARSINTI_SONUMU := 9.0         ## sarsinti genligi saniyede bu carpanla soner
 const SARSINTI_HIZ := 34.0           ## sarsinti titresim frekansi
 
+# --- Assist mode (Celeste-style game speed + Geometry Dash-style practice points) ---
+## Selectable game speeds; the setting "yardim_hiz" stores the index. Index 0 is
+## normal speed. Any run that used a speed below 100% or practice points at any
+## moment is "assisted": it never writes a best time, medal, chain record, ghost
+## or daily result (Bolum._yardimli). The next level still unlocks, so assist
+## players can progress through the game.
+const YARDIM_HIZLARI := [1.0, 0.9, 0.8, 0.7, 0.6, 0.5]
+const PRATIK_BEKLEME := 0.35         ## s standing on the ground before a practice point is set
+const PRATIK_ASGARI_ARALIK := 48.0   ## px; a new practice point must be this far from the last spawn
+
+## Game speed chosen in assist mode (1.0 = normal).
+func yardim_hizi() -> float:
+	var i := clampi(int(Kayit.ayar("yardim_hiz")), 0, YARDIM_HIZLARI.size() - 1)
+	return float(YARDIM_HIZLARI[i])
+
+## True when any assist option is on (slower game speed or practice points).
+func yardim_acik() -> bool:
+	return yardim_hizi() < 1.0 or bool(Kayit.ayar("pratik"))
+
 # --- Girdi semasi ---
 
 ## Testlerin ezmesi icin: -1 otomatik, 0 zorla kapali, 1 zorla acik.

@@ -156,6 +156,11 @@ func _calistir() -> void:
 	# Bot gercek bolumleri bitiriyor: Bolum bitise deginde rekor, hayalet ve
 	# acilan bolumu OYUNCUNUN kaydina yazardi (v0.3'ten beri). Artik yazmaz.
 	Kayit.salt_okunur = true
+	# Medal times are measured at normal speed: a player's assist settings
+	# (slower Engine.time_scale, practice spawns) must never reach the bot.
+	# salt_okunur is already set, so this only changes the in-memory copy.
+	Kayit.ayar_yaz("yardim_hiz", 0)
+	Kayit.ayar_yaz("pratik", false)
 	await get_tree().process_frame
 	var kullanici := OS.get_cmdline_user_args()
 	_tani = kullanici.has("--tani")
