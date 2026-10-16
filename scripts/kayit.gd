@@ -45,6 +45,21 @@ func akis_yaz(bolum: int, zincir: int) -> bool:
 	_yaz()
 	return true
 
+## Personal-best splits (speedrun-timer style): the run time at which the best
+## run first reached each checkpoint, in checkpoint order; -1 = not reached.
+## Written together with a new best time, so they always belong to that run.
+func araliklar(bolum: int) -> Array[float]:
+	var sonuc: Array[float] = []
+	var v: Variant = _cfg.get_value("araliklar", str(bolum), [])
+	if v is Array or v is PackedFloat32Array or v is PackedFloat64Array:
+		for x: Variant in v:
+			sonuc.append(float(x))
+	return sonuc
+
+func araliklar_yaz(bolum: int, liste: Array[float]) -> void:
+	_cfg.set_value("araliklar", str(bolum), liste.duplicate())
+	_yaz()
+
 func acik_bolum() -> int:
 	return int(_cfg.get_value("ilerleme", "acik", 1))
 

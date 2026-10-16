@@ -72,6 +72,7 @@ func _calistir() -> void:
 	await _test_menu_akisi()
 	await _test_duraklat_akisi()
 	await _test_bolum_sonu_karti()
+	await _test_aralik_farki()
 	await _test_ilk_oyun_ipucu()
 	await _test_erken_girdi()
 	await _test_gecis()
@@ -1570,6 +1571,113 @@ func _test_duraklat_akisi() -> void:
 	Ayarlar.dokunmatik_zorla = -1
 
 ## Bolum sonu karti: sure, rekor damgasi, madalya, ilk odak kurali, son bolum ve gunluk.
+## Personal-best splits and deltas: a checkpoint flashes the delta against the
+## best run's split (first touch only), a record run stores its splits, a slower
+## run keeps the old ones, and the finish card compares with the previous best
+## and the gold time in both languages.
+func _test_aralik_farki() -> void:
+	Ayarlar.dokunmatik_zorla = 0
+	_dil_ayarla("tr")
+	_bildir("fark bicimi: -0.214 onde, +0.350 geride",
+		Bolum.fark_bicim(-0.2144) == "-0.214" and Bolum.fark_bicim(0.35) == "+0.350"
+		and Bolum.fark_bicim(0.0) == "+0.000")
+	var no := -1
+	for i in range(1, Bolumler.sayi() + 1):
+		if (Bolumler.veri(i)["kontrol"] as Array).size() >= 2:
+			no = i
+			break
+	_bildir("en az iki kontrol noktali bolum var", no > 0)
+	if no < 0:
+		return
+	var adet := (Bolumler.veri(no)["kontrol"] as Array).size()
+	var anahtar := str(no)
+	var eski_sure: Variant = _cfg_al("sureler", anahtar)
+	var eski_aralik: Variant = _cfg_al("araliklar", anahtar)
+	var en_iyi: Array[float] = []
+	for i in adet:
+		en_iyi.append(5.0 + i)
+	Kayit._cfg.set_value("sureler", anahtar, 99.0)
+	Kayit._cfg.set_value("araliklar", anahtar, en_iyi)
+
+	# 1) Ahead at checkpoint 0, then a record finish stores this run's splits.
+	var b1: Bolum = load(Bolumler.yol(no)).instantiate()
+	add_child(b1)
+	for i in 3:
+		await get_tree().physics_frame
+	var etiket: Label = b1.find_child("FarkEtiket", true, false)
+	var basta_gizli: bool = etiket != null and not etiket.visible
+	b1.set("_sure", 4.8)
+	b1.call("_aralik_isle", 0)
+	var onde_metin := etiket.text if etiket != null else ""
+	var onde_renk: Color = etiket.get_theme_color("font_color") if etiket != null else Color.BLACK
+	b1.set("_sure", 9.0)
+	b1.call("_aralik_isle", 0)   # second touch of the same checkpoint: ignored
+	var ikinci_dokunus := etiket.text if etiket != null else ""
+	b1.set("_sure", 20.0)
+	b1.call("_bitise_degdi", b1.find_child("Oyuncu", true, false))
+	await get_tree().process_frame
+	var yazilan := Kayit.araliklar(no)
+	var kart1 := (b1.get("_bk_esik") as Label).text
+	b1.free()
+	await get_tree().physics_frame
+	_bildir("aralik: etiket basta gizli, kontrolde '-0.200' turkuaz",
+		basta_gizli and onde_metin == "-0.200" and onde_renk == Tema.TURKUAZ,
+		"'%s' %s" % [onde_metin, str(onde_renk)])
+	_bildir("aralik: ayni kontrole ikinci dokunus sayilmiyor", ikinci_dokunus == "-0.200", ikinci_dokunus)
+	_bildir("aralik: rekor kosu kendi araliklarini yaziyor",
+		yazilan.size() == adet and is_equal_approx(yazilan[0], 4.8) and yazilan[1] < 0.0, str(yazilan))
+	_bildir("bitis karti: onceki en iyiye ve altina gore fark",
+		kart1.contains("ÖNCEKİ EN İYİYE -79.000") and kart1.contains("ALTINA +"), kart1)
+
+	# 2) Behind at checkpoint 0 and slower than the best: old splits kept.
+	var b2: Bolum = load(Bolumler.yol(no)).instantiate()
+	add_child(b2)
+	for i in 3:
+		await get_tree().physics_frame
+	var etiket2: Label = b2.find_child("FarkEtiket", true, false)
+	b2.set("_sure", 7.0)
+	b2.call("_aralik_isle", 0)
+	var geride_metin := etiket2.text
+	var geride_renk: Color = etiket2.get_theme_color("font_color")
+	b2.set("_sure", 120.0)
+	b2.call("_bitise_degdi", b2.find_child("Oyuncu", true, false))
+	await get_tree().process_frame
+	var korundu := Kayit.araliklar(no)
+	b2.free()
+	await get_tree().physics_frame
+	_bildir("aralik: geride '+2.200' kirmizi", geride_metin == "+2.200" and geride_renk == Tema.DIKEN,
+		"'%s'" % geride_metin)
+	_bildir("aralik: rekor olmayan kosu araliklari ezmiyor",
+		korundu.size() == adet and is_equal_approx(korundu[0], 4.8), str(korundu))
+
+	# 3) First ever finish: nothing to compare with, no "previous best" line.
+	Kayit._cfg.erase_section_key("sureler", anahtar)
+	_dil_ayarla("en")
+	var b3: Bolum = load(Bolumler.yol(no)).instantiate()
+	add_child(b3)
+	for i in 3:
+		await get_tree().physics_frame
+	b3.set("_sure", 30.0)
+	b3.call("_bitise_degdi", b3.find_child("Oyuncu", true, false))
+	await get_tree().process_frame
+	var kart3 := (b3.get("_bk_esik") as Label).text
+	b3.free()
+	await get_tree().physics_frame
+	_dil_ayarla("tr")
+	_bildir("ilk bitis: onceki en iyi satiri yok, altina fark Ingilizce",
+		not kart3.contains("PREVIOUS") and kart3.contains("VS GOLD +"), kart3)
+
+	if eski_sure == null:
+		Kayit._cfg.erase_section_key("sureler", anahtar)
+	else:
+		Kayit._cfg.set_value("sureler", anahtar, eski_sure)
+	if eski_aralik == null:
+		if Kayit._cfg.has_section_key("araliklar", anahtar):
+			Kayit._cfg.erase_section_key("araliklar", anahtar)
+	else:
+		Kayit._cfg.set_value("araliklar", anahtar, eski_aralik)
+	Ayarlar.dokunmatik_zorla = -1
+
 func _test_bolum_sonu_karti() -> void:
 	Ayarlar.dokunmatik_zorla = 0
 	_dil_ayarla("tr")

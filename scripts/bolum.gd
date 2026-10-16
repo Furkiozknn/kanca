@@ -26,6 +26,11 @@ var _dogus := Vector2.ZERO
 var _sarsinti := 0.0
 var _sarsinti_t := 0.0
 var _kayit_sayaci := 0.0
+## Splits of this run: run time when each checkpoint was first reached (-1 = not yet).
+var _araliklar: Array[float] = []
+var _fark_etiket: Label = null      ## live split delta under the timer ("-0.214")
+var _fark_sayac := 0.0              ## >0 while the split delta is shown
+const FARK_GORUNME := 2.5           ## s the split delta stays on screen
 var _kayit := PackedVector2Array()
 var _parcacik_havuzu: Array[CPUParticles2D] = []
 var _parcacik_sira := 0
@@ -422,6 +427,7 @@ func _yeniden() -> void:
 	_dogus = _veri["basla"]
 	_kayit = PackedVector2Array()
 	_kayit_sayaci = 0.0
+	_aralik_sifirla()
 	_oluyor = false
 	_zincir = 0
 	_en_uzun_zincir = 0
@@ -479,6 +485,10 @@ func _process(delta: float) -> void:
 		_vurgu_kalan -= delta
 		if _vurgu_kalan <= 0.0:
 			_sayac_sifirla()
+	if _fark_sayac > 0.0:
+		_fark_sayac -= delta
+		if _fark_sayac <= 0.0 and _fark_etiket != null:
+			_fark_etiket.visible = false
 	if _sayiyor:
 		_sure += delta
 		_sure_yaz()
@@ -524,6 +534,7 @@ func _kontrole_degdi(govde: Node2D, alan: Area2D) -> void:
 	Ses.cal("kontrol")
 	parcacik_at(alan.global_position, Tema.TURKUAZ, 10)
 	_sayac_vurgula()
+	_aralik_isle(int(String(alan.name).trim_prefix("Kontrol")))
 
 func _bitise_degdi(govde: Node2D) -> void:
 	if govde != _oyuncu or _bitti:
@@ -546,15 +557,19 @@ func _bitise_degdi(govde: Node2D) -> void:
 	# Gunluk kosu ayri yuvaya yazilir: en iyi sureyi, acik bolumu, akis rekorunu
 	# ve hayaleti BOZMAZ - degistiriciyle kosulmus bir sure normal tabloya girmemeli.
 	if _gunluk:
+		var g_eski := Kayit.gunluk_en_iyi(Gunluk.tohum())
 		var g_rekor := Kayit.gunluk_yaz(Gunluk.tohum(), _sure)
 		_bitis_karti_doldur(tr("GÜNLÜK MEYDAN OKUMA"), Gunluk.baslik(), g_rekor, 3,
 			tr("BUGÜNÜN EN İYİSİ %s") % _bicim(Kayit.gunluk_en_iyi(Gunluk.tohum())),
-			_akis_yazisi(false), true)
+			_fark_satiri(g_eski, -1.0) + _akis_yazisi(false), true)
 		return
 
+	var eski_en_iyi := Kayit.en_iyi(bolum_no)
 	var akis_rekor := Kayit.akis_yaz(bolum_no, _en_uzun_zincir)
 	var rekor := Kayit.sure_yaz(bolum_no, _sure)
 	Kayit.bolum_ac(mini(bolum_no + 1, Bolumler.sayi()))
+	if rekor:
+		Kayit.araliklar_yaz(bolum_no, _araliklar)
 	if rekor and int(Kayit.ayar("hayalet_kip")) > 0:
 		Kayit.hayalet_yaz(bolum_no, _kayit, Hayalet.ARALIK)
 
@@ -565,7 +580,54 @@ func _bitise_degdi(govde: Node2D) -> void:
 	var esik := tr("ALTIN %s · GÜMÜŞ %s · BRONZ %s") % [_bicim(m[0]), _bicim(m[1]), _bicim(m[2])]
 	_bitis_karti_doldur(Tema.kisa_baslik(bolum_no, Bolumler.ad(bolum_no)), "", rekor, madalya,
 		tr("EN İYİ %s") % _bicim(Kayit.en_iyi(bolum_no)),
-		_akis_yazisi(akis_rekor) + "\n" + esik, false)
+		_fark_satiri(eski_en_iyi, float(m[0])) + _akis_yazisi(akis_rekor) + "\n" + esik, false)
+
+## Finish-card delta line (Neon White / speedrun timers): this run against the
+## previous best and, for normal levels, against the gold time. Empty when
+## there is nothing to compare with. Ends with a newline when not empty.
+func _fark_satiri(eski: float, altin: float) -> String:
+	var parca := PackedStringArray()
+	if eski > 0.0:
+		parca.append(tr("ÖNCEKİ EN İYİYE %s") % fark_bicim(_sure - eski))
+	if altin > 0.0:
+		parca.append(tr("ALTINA %s") % fark_bicim(_sure - altin))
+	if parca.is_empty():
+		return ""
+	return " · ".join(parca) + "\n"
+
+## Signed delta with ms precision: "-0.214" ahead, "+0.350" behind. ASCII
+## minus on purpose: the HUD fonts are only checked for the characters in
+## _test_tema.
+static func fark_bicim(fark: float) -> String:
+	return ("-%.3f" if fark < 0.0 else "+%.3f") % absf(fark)
+
+# --- Splits -------------------------------------------------------------
+
+func _aralik_sifirla() -> void:
+	_araliklar.clear()
+	for i in (_veri["kontrol"] as Array).size():
+		_araliklar.append(-1.0)
+	_fark_sayac = 0.0
+	if _fark_etiket != null:
+		_fark_etiket.visible = false
+
+## First time this run reaches checkpoint `sira`: store the split and, when the
+## best run has a split for it, flash the delta under the timer (turquoise when
+## ahead, red when behind). The daily run has no personal-best splits.
+func _aralik_isle(sira: int) -> void:
+	if sira < 0 or sira >= _araliklar.size() or _araliklar[sira] >= 0.0:
+		return
+	_araliklar[sira] = _sure
+	if _gunluk or _fark_etiket == null:
+		return
+	var en_iyi := Kayit.araliklar(bolum_no)
+	if sira >= en_iyi.size() or en_iyi[sira] < 0.0:
+		return
+	var fark := _sure - en_iyi[sira]
+	_fark_etiket.text = fark_bicim(fark)
+	_fark_etiket.add_theme_color_override("font_color", Tema.TURKUAZ if fark < 0.0 else Tema.DIKEN)
+	_fark_etiket.visible = true
+	_fark_sayac = FARK_GORUNME
 
 func _akis_yazisi(yeni_rekor: bool) -> String:
 	return tr("AKIŞ ×%d") % _en_uzun_zincir + (tr("  · YENİ EN UZUN ZİNCİR") if yeni_rekor else "")
@@ -862,6 +924,11 @@ func _arayuzu_kur() -> void:
 	sol.add_child(_sol_baslik)
 	_sure_etiket = Tema.etiket("", 16, blok, true, true)
 	sol.add_child(_sure_etiket)
+	# Split delta against the best run, shown for a moment at each checkpoint.
+	_fark_etiket = Tema.etiket("", 8, Tema.TURKUAZ, true, true)
+	_fark_etiket.name = "FarkEtiket"
+	_fark_etiket.visible = false
+	sol.add_child(_fark_etiket)
 	_akis_etiket = Tema.etiket("", 8, Tema.TURUNCU, true, true)
 	_akis_etiket.visible = false
 	sol.add_child(_akis_etiket)
