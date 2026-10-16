@@ -75,6 +75,9 @@ func _calistir() -> void:
 	await _test_ilk_oyun_ipucu()
 	await _test_erken_girdi()
 	await _test_gecis()
+	await _test_yardim_kipi()
+	await _test_pratik_noktasi()
+	await _test_ayar_paneli_sigiyor()
 	print("=== %d/%d gecti ===" % [_toplam - _kalan, _toplam])
 	get_tree().quit(_kalan)
 
@@ -1968,4 +1971,212 @@ func _test_gecis() -> void:
 	await get_tree().process_frame
 	Gecis.son_tur = &""
 	_sade_ayarla(false)
+	Ayarlar.dokunmatik_zorla = -1
+
+# --- Assist mode: game speed + practice points ---------------------------
+
+## Restores an assist setting key exactly as it was (absent stays absent).
+func _ayar_geri(ad: String, eski: Variant) -> void:
+	if eski == null:
+		if Kayit._cfg.has_section_key("ayarlar", ad):
+			Kayit._cfg.erase_section_key("ayarlar", ad)
+	else:
+		Kayit._cfg.set_value("ayarlar", ad, eski)
+
+## Assist mode off by default; a slower speed sets Engine.time_scale only while
+## the run is live (pause and finish card run at 100%) and leaving the level
+## always restores 1.0. An assisted finish writes nothing: no best time, chain,
+## ghost or daily result, and the card says so in both languages.
+func _test_yardim_kipi() -> void:
+	Ayarlar.dokunmatik_zorla = 0
+	_dil_ayarla("tr")
+	var eski_hiz: Variant = _cfg_al("ayarlar", "yardim_hiz")
+	var eski_pratik: Variant = _cfg_al("ayarlar", "pratik")
+	var eski_sure: Variant = _cfg_al("sureler", "1")
+	var eski_akis: Variant = _cfg_al("akis", "1")
+	_ayar_geri("yardim_hiz", null)
+	_ayar_geri("pratik", null)
+	_bildir("yardim kipi: varsayilan kapali (hiz %100, pratik yok)",
+		not Ayarlar.yardim_acik() and is_equal_approx(Ayarlar.yardim_hizi(), 1.0))
+
+	# Normal run: speed 1.0, no badge.
+	var b0: Bolum = load(Bolumler.yol(1)).instantiate()
+	add_child(b0)
+	for i in 3:
+		await get_tree().physics_frame
+	var normal_hiz := Engine.time_scale
+	var rozet0: Label = b0.find_child("YardimEtiket", true, false)
+	var normal_rozet_yok: bool = rozet0 != null and not rozet0.visible and not bool(b0.get("_yardimli"))
+	b0.free()
+	await get_tree().physics_frame
+	_bildir("yardim kipi kapaliyken oyun hizi 1.0 ve rozet gizli",
+		is_equal_approx(normal_hiz, 1.0) and normal_rozet_yok)
+
+	# Assisted run at 70%.
+	Kayit._cfg.set_value("ayarlar", "yardim_hiz", Ayarlar.YARDIM_HIZLARI.find(0.7))
+	Kayit._cfg.set_value("sureler", "1", 99.0)
+	Kayit._cfg.set_value("akis", "1", 0)
+	var b1: Bolum = load(Bolumler.yol(1)).instantiate()
+	add_child(b1)
+	for i in 3:
+		await get_tree().physics_frame
+	var calisirken := Engine.time_scale
+	var rozet: Label = b1.find_child("YardimEtiket", true, false)
+	var rozet_metni := rozet.text if rozet != null else ""
+	b1.call("_duraklat_degistir")
+	var duraklatinca := Engine.time_scale
+	b1.call("_duraklat_degistir")
+	var devaminda := Engine.time_scale
+	b1.set("_sure", 0.5)
+	b1.set("_en_uzun_zincir", 7)
+	b1.call("_bitise_degdi", b1.find_child("Oyuncu", true, false))
+	await get_tree().process_frame
+	var bitiste := Engine.time_scale
+	var kart_alt := (b1.get("_bk_alt") as Label).text
+	var madalya_gizli: bool = not (b1.get("_bk_madalya") as Control).visible
+	var damga_gizli: bool = not (b1.get("_bk_damga") as Control).visible
+	_bildir("yardim %70: kosu sirasinda Engine.time_scale 0.7, rozet '%70' diyor",
+		is_equal_approx(calisirken, 0.7) and rozet != null and rozet.visible
+		and rozet_metni.contains("%70") and rozet_metni.begins_with("YARDIM"),
+		"%.2f '%s'" % [calisirken, rozet_metni])
+	_bildir("yardim: duraklatma ve bitis karti normal hizda, devamda yine 0.7",
+		is_equal_approx(duraklatinca, 1.0) and is_equal_approx(devaminda, 0.7)
+		and is_equal_approx(bitiste, 1.0),
+		"%.2f %.2f %.2f" % [duraklatinca, devaminda, bitiste])
+	_bildir("yardimli bitis rekor, akis ve madalya yazmiyor",
+		is_equal_approx(Kayit.en_iyi(1), 99.0) and Kayit.akis(1) == 0
+		and madalya_gizli and damga_gizli and kart_alt == "YARDIM KİPİ · SÜRE KAYDEDİLMEDİ",
+		"en_iyi=%.3f akis=%d '%s'" % [Kayit.en_iyi(1), Kayit.akis(1), kart_alt])
+	b1.free()
+	await get_tree().physics_frame
+	_bildir("bolumden cikinca Engine.time_scale 1.0'a donuyor", is_equal_approx(Engine.time_scale, 1.0))
+
+	# Turning assist off just before the flag does not turn the run into a record.
+	var b2: Bolum = load(Bolumler.yol(1)).instantiate()
+	add_child(b2)
+	for i in 3:
+		await get_tree().physics_frame
+	_ayar_geri("yardim_hiz", null)
+	b2.set("_sure", 0.5)
+	b2.call("_bitise_degdi", b2.find_child("Oyuncu", true, false))
+	await get_tree().process_frame
+	_bildir("kosu ortasinda yardimi kapatmak kosuyu rekora cevirmiyor", is_equal_approx(Kayit.en_iyi(1), 99.0))
+	b2.free()
+	await get_tree().physics_frame
+
+	# Daily challenge with assist: the daily slot stays empty.
+	var eski_tohum := Gunluk.tohum_zorla
+	Gunluk.tohum_zorla = 19990105
+	Kayit._cfg.set_value("ayarlar", "yardim_hiz", 1)
+	var onceki_gunluk := Kayit.gunluk_en_iyi(Gunluk.tohum())
+	Gunluk.aktif = true
+	var b3: Bolum = load(Bolumler.yol(Gunluk.bolum_no())).instantiate()
+	add_child(b3)
+	for i in 3:
+		await get_tree().physics_frame
+	b3.set("_sure", 2.0)
+	b3.call("_bitise_degdi", b3.find_child("Oyuncu", true, false))
+	await get_tree().process_frame
+	var gunluk_ayni: bool = is_equal_approx(Kayit.gunluk_en_iyi(Gunluk.tohum()), onceki_gunluk)
+	b3.free()
+	await get_tree().physics_frame
+	Gunluk.aktif = false
+	Gunluk.tohum_zorla = eski_tohum
+	_bildir("yardimli gunluk kosu gunluk yuvasina yazilmiyor", gunluk_ayni)
+
+	# English badge and card.
+	_dil_ayarla("en")
+	Kayit._cfg.set_value("ayarlar", "pratik", true)
+	var b4: Bolum = load(Bolumler.yol(1)).instantiate()
+	add_child(b4)
+	for i in 3:
+		await get_tree().physics_frame
+	var en_rozet := (b4.find_child("YardimEtiket", true, false) as Label).text
+	b4.set("_sure", 0.5)
+	b4.call("_bitise_degdi", b4.find_child("Oyuncu", true, false))
+	await get_tree().process_frame
+	var en_kart := (b4.get("_bk_alt") as Label).text
+	b4.free()
+	await get_tree().physics_frame
+	_dil_ayarla("tr")
+	_bildir("yardim kipi Ingilizce: rozet 'ASSIST · 90% · PRACTICE', kart 'TIME NOT SAVED'",
+		en_rozet == "ASSIST · 90% · PRACTICE" and en_kart == "ASSIST MODE · TIME NOT SAVED",
+		"'%s' / '%s'" % [en_rozet, en_kart])
+
+	_ayar_geri("yardim_hiz", eski_hiz)
+	_ayar_geri("pratik", eski_pratik)
+	if eski_sure == null:
+		Kayit._cfg.erase_section_key("sureler", "1")
+	else:
+		Kayit._cfg.set_value("sureler", "1", eski_sure)
+	if eski_akis == null:
+		Kayit._cfg.erase_section_key("akis", "1")
+	else:
+		Kayit._cfg.set_value("akis", "1", eski_akis)
+	Ayarlar.dokunmatik_zorla = -1
+
+## Practice points: standing on the ground for PRATIK_BEKLEME moves the
+## respawn there, a landing shorter than that does not, being hooked does not,
+## and a death respawns the player on the practice point.
+func _test_pratik_noktasi() -> void:
+	Ayarlar.dokunmatik_zorla = 0
+	var eski_pratik: Variant = _cfg_al("ayarlar", "pratik")
+	Kayit._cfg.set_value("ayarlar", "pratik", false)
+	var b: Bolum = load(Bolumler.yol(1)).instantiate()
+	add_child(b)
+	for i in 3:
+		await get_tree().physics_frame
+	var oyuncu: Oyuncu = b.find_child("Oyuncu", true, false)
+	var basla: Vector2 = b.get("_dogus")
+	var yer := basla + Vector2(160, 0)
+	oyuncu.global_position = yer
+	b.call("_pratik_isle", 1.0, true)
+	_bildir("pratik kapaliyken yerde durmak dogus noktasini degistirmiyor",
+		(b.get("_dogus") as Vector2) == basla)
+
+	Kayit._cfg.set_value("ayarlar", "pratik", true)
+	b.call("_pratik_isle", Ayarlar.PRATIK_BEKLEME * 0.5, true)
+	var kisa: bool = (b.get("_dogus") as Vector2) == basla
+	b.call("_pratik_isle", Ayarlar.PRATIK_BEKLEME * 0.5, false)   # lifted off: timer resets
+	b.call("_pratik_isle", Ayarlar.PRATIK_BEKLEME * 0.6, true)
+	var sifirlandi: bool = (b.get("_dogus") as Vector2) == basla
+	_bildir("pratik: kisa temas ve havaya kalkis nokta koymuyor", kisa and sifirlandi)
+	b.call("_pratik_isle", Ayarlar.PRATIK_BEKLEME * 0.6, true)
+	_bildir("pratik: yeterince yerde durunca dogus oraya tasiniyor ve kosu yardimli",
+		(b.get("_dogus") as Vector2) == yer and bool(b.get("_yardimli")))
+
+	b.call("_oldu")
+	await get_tree().process_frame
+	for i in 2:
+		await get_tree().physics_frame
+	_bildir("pratik: olumden sonra pratik noktasinda doguluyor",
+		oyuncu.global_position.distance_to(yer) < 2.0, str(oyuncu.global_position))
+	for i in 3:
+		await get_tree().physics_frame
+	b.free()
+	await get_tree().physics_frame
+	_ayar_geri("pratik", eski_pratik)
+	Ayarlar.dokunmatik_zorla = -1
+
+## The settings panel gained two assist rows: it must still fit the 640x360
+## base resolution in both languages and carry both new controls.
+func _test_ayar_paneli_sigiyor() -> void:
+	Ayarlar.dokunmatik_zorla = 0
+	for dil in ["tr", "en"]:
+		_dil_ayarla(dil)
+		var katman := CanvasLayer.new()
+		add_child(katman)
+		var panel := AyarPanel.yap(func() -> void: pass)
+		katman.add_child(panel)
+		panel.visible = true
+		await get_tree().process_frame
+		var kutu: Control = panel.find_child("Kutu", true, false)
+		var boy := kutu.get_combined_minimum_size()
+		var hiz: OptionButton = panel.find_child("yardim_hiz", true, false)
+		_bildir("ayarlar (%s): yardim kipi satirlari var ve panel 640x360'a sigiyor" % dil,
+			hiz != null and hiz.item_count == Ayarlar.YARDIM_HIZLARI.size()
+			and boy.x <= 640.0 and boy.y <= 360.0, str(boy))
+		katman.free()
+		await get_tree().process_frame
+	_dil_ayarla("tr")
 	Ayarlar.dokunmatik_zorla = -1

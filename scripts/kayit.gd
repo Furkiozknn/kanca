@@ -101,6 +101,8 @@ const VARSAYILAN := {
 	"dokunmatik": false,         ## tek parmak semasi (mobilde zaten acik)
 	"nisan_hassasiyet": 0.5,     ## 0 = genis nisan yardimi, 1 = dar ve tam nisan
 	"dil": "",                   ## "" = otomatik (isletim sistemi/tarayici dili), "tr" ya da "en"
+	"yardim_hiz": 0,             ## assist mode: index into Ayarlar.YARDIM_HIZLARI (0 = 100%, normal speed)
+	"pratik": false,             ## assist mode: standing still on the ground sets a practice checkpoint
 }
 
 func ayar(ad: String) -> Variant:
