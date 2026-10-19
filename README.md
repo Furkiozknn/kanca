@@ -5,6 +5,7 @@
 <p align="center"><img src="docs/reel/reel.gif" alt="kanca - 15 saniyelik tanıtım videosu" width="720"></p>
 <p align="center"><sub><a href="docs/reel/reel.mp4">Sesli MP4 sürümü</a></sub></p>
 <h3 align="center"><a href="https://furkiozknn.github.io/kanca/">Tarayıcıda oyna → furkiozknn.github.io/kanca</a></h3>
+<p align="center"><a href="https://furkiozknn.itch.io/kanca">itch.io sayfası / on itch.io → furkiozknn.itch.io/kanca</a></p>
 
 *Throw a hook at the ceiling, swing, release at the right moment and carry the momentum. A speed-focused 2D swinging platformer (Godot 4, Turkish and English UI, flat-colour look matching the trailer); medal times come from real bot runs rather than formulas — 13 of 14 levels measured. 216 tests.*
 
