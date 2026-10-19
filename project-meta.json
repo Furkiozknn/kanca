@@ -51,9 +51,9 @@
     "videos": []
   },
   "tests": {
-    "count": 216,
-    "source": "CI log: `=== 216/216 gecti ===`",
-    "measured": "2026-09-29"
+    "count": 244,
+    "source": "CI log: `=== 244/244 gecti ===`",
+    "measured": "2026-10-19"
   },
   "ci": {
     "workflows": [

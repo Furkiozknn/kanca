@@ -7,7 +7,7 @@
 <h3 align="center"><a href="https://furkiozknn.github.io/kanca/">Tarayıcıda oyna → furkiozknn.github.io/kanca</a></h3>
 <p align="center"><a href="https://furkiozknn.itch.io/kanca">itch.io sayfası / on itch.io → furkiozknn.itch.io/kanca</a></p>
 
-*Throw a hook at the ceiling, swing, release at the right moment and carry the momentum. A speed-focused 2D swinging platformer (Godot 4, Turkish and English UI, flat-colour look matching the trailer); medal times come from real bot runs rather than formulas — 13 of 14 levels measured. 216 tests.*
+*Throw a hook at the ceiling, swing, release at the right moment and carry the momentum. A speed-focused 2D swinging platformer (Godot 4, Turkish and English UI, flat-colour look matching the trailer); medal times come from real bot runs rather than formulas — 13 of 14 levels measured. 244 tests.*
 
 [![CI](https://github.com/Furkiozknn/kanca/actions/workflows/ci.yml/badge.svg)](https://github.com/Furkiozknn/kanca/actions/workflows/ci.yml)
 
@@ -22,7 +22,7 @@ vurgu, kırmızı diken. Arayüz **Türkçe ve İngilizce**.
 ![Tanıtım](yayin/tanitim.gif)
 
 Durum: **arayüz yenilemesi** (son yayın v0.5.2) — her push'ta ve her PR'da
-**216 testin** koştuğu CI. Çekirdek mekanik, bölümler ve bot eşikleri v0.5 ile
+**244 testin** koştuğu CI. Çekirdek mekanik, bölümler ve bot eşikleri v0.5 ile
 aynı; yenilenen şey görünüm, arayüz, dil ve girdi tepkisi. Denetim ve tasarım
 kararları: [`docs/DENETIM.md`](docs/DENETIM.md), [`docs/TASARIM.md`](docs/TASARIM.md).
 
@@ -621,7 +621,7 @@ Windows'ta sarmalı: `powershell -ExecutionPolicy Bypass -File tests\calistir.ps
 
 `main`'e her push'ta ve her pull request'te **aynı sahne** GitHub Actions'ta
 koşuyor (Godot 4.7.2, Linux
-headless, Git LFS çekilerek). Son ölçüm: **216/216 geçti**.
+headless, Git LFS çekilerek). Son ölçüm: **244/244 geçti**.
 
 **Çıkış kodu tek başına yetmiyor.** Bir test fonksiyonundaki çalışma zamanı
 hatası (null erişimi, eksik metot) yalnızca o fonksiyonu keser: motor
